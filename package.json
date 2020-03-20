@@ -1,0 +1,23 @@
+{
+  "name": "atiumlang",
+  "version": "0.1.0",
+  "description": "Easy to write language that compiles to WASM",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "rollup": "^1.31.0",
+    "rollup-plugin-typescript2": "^0.25.3",
+    "typescript": "^3.7.5"},
+  "keywords": [
+    "wasm",
+    "webassembly",
+    "js",
+    "ts",
+    "atium",
+    "atiumlang"
+  ],
+  "author": "shortercode",
+  "license": "MIT"
+}

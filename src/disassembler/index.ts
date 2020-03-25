@@ -309,6 +309,9 @@ class Instruction {
 	constructor (opcode: string) {
 		this.op = opcode;
 	}
+	toString () {
+		return `(${this.op})`;
+	}
 }
 
 class BlockInstruction extends Instruction {
@@ -318,6 +321,9 @@ class BlockInstruction extends Instruction {
 		super(opcode);
 		this.type = type;
 		this.block = block;
+	}
+	toString () {
+		return `(${this.op} ${this.type === null ? "void" : this.type} ${this.block.toString()})`;
 	}
 }
 
@@ -331,13 +337,21 @@ class ConditionalInstruction extends Instruction {
 		this.primary = primary;
 		this.secondary = secondary;
 	}
+
+	toString () {
+		return `(${this.op} ${this.type === null ? "void" : this.type} ${this.primary.toString()} ${this.secondary ? this.secondary.toString() : ""})`;
+	}
 }
 
 class ValueInstruction extends Instruction {
-	readonly id: number
+	readonly value: number
 	constructor (op: string, id: number) {
 		super (op);
-		this.id = id;
+		this.value = id;
+	}
+
+	toString() {
+		return `(${this.op} ${this.value})`;
 	}
 }
 
@@ -349,6 +363,10 @@ class MemoryInstruction extends Instruction {
 		this.align = align;
 		this.offset = offset;
 	}
+
+	toString() {
+		return `(${this.op} ${this.align} ${this.offset})`;
+	}
 }
 
 class BreakTableInstruction extends Instruction {
@@ -358,6 +376,10 @@ class BreakTableInstruction extends Instruction {
 		super("br_table");
 		this.entries = entries;
 		this.fallback = fallback;
+	}
+
+	toString() {
+		return `(${this.op} (${this.entries.toString}) ${this.fallback})`;
 	}
 }
 
@@ -441,7 +463,7 @@ function readNumericInstruction(opcode: number, byteReader: ByteReader): Instruc
 	if (opcode < 0 || opcode >= numericInstructions.length)
 		throw new Error("Invalid numeric opcode");
 	const op = numericInstructions[opcode];
-	return { op };
+	return new Instruction(op);
 }
 
 function readConstNumericInstruction(opcode: number, byteReader: ByteReader): Instruction {
@@ -485,8 +507,8 @@ function readVariableInstruction(opcode: number, byteReader: ByteReader): Instru
 }
 
 function readParametricInstruction(opcode: number, byteReader: ByteReader): Instruction {
-	if (opcode === 0x1A) return { op: "drop" };
-	if (opcode === 0x1B) return { op: "select" };
+	if (opcode === 0x1A) return new Instruction("drop");
+	if (opcode === 0x1B) return new Instruction("select");
 	throw new Error("invalid instruction opcode");
 }
 
@@ -722,7 +744,7 @@ function disassembleWASMBinary (bytes: ArrayBuffer) {
 
 					const expr = readExpression(byteReader);
 					
-					console.log(`Read global ${mutable ? "mut " : ""}let = Expression(${expr.length})`);
+					console.log(`Read global ${mutable ? "mut " : ""}let = ${expr}`);
 				}
 				break;
 			}
@@ -758,7 +780,7 @@ function disassembleWASMBinary (bytes: ArrayBuffer) {
 						initFnList.push(byteReader.readUVint());
 					}
 
-					console.log(`Read element entry Table: ${tableID} Offset: Expression(${offsetExpression.length}) Entries: ${initFnList}`);
+					console.log(`Read element entry Table: ${tableID} Offset: ${offsetExpression} Entries: ${initFnList}`);
 				}
 				break;
 			}
@@ -779,7 +801,7 @@ function disassembleWASMBinary (bytes: ArrayBuffer) {
 
 					const expr = readExpression(byteReader);
 
-					console.log(`Read code block (${locals.join()}) -> Expression(${expr.length})`);
+					console.log(`Read code block (${locals.join()}) -> ${expr}`);
 				}
 				break;
 			}
@@ -792,7 +814,7 @@ function disassembleWASMBinary (bytes: ArrayBuffer) {
 					const dataLength = byteReader.readUVint();
 					const data = byteReader.readBuffer(dataLength);
 
-					console.log(`Read data segment Mem: ${id} Offset: Expression(${expr.length}) Data: Buffer(${data.length})`);
+					console.log(`Read data segment Mem: ${id} Offset: ${expr} Data: Buffer(${data.length})`);
 				}
 				break;
 			}
@@ -805,6 +827,9 @@ function assert (test: boolean, message: string) {
 		throw new Error(message);
 }
 
+const fs = require("fs");
+
+
 function readArguments () {
   const filename = process.argv[2];
 
@@ -812,8 +837,6 @@ function readArguments () {
     filename
   };
 }
-
-const fs = require("fs");
 
 async function readFile(filename: string) {
 	const buffer = await fs.promises.readFile(filename);
@@ -832,11 +855,7 @@ async function readFile(filename: string) {
 	return arrayBuffer;
 }
 
-function NOT_IMPLEMENTED (label: string = "unknown") {
-  throw new Error(`Not implemented (${label})`);
-}
-
-function tryDisassemblyWASMBinary (bytes: ArrayBuffer) {
+function tryDisassembleWASMBinary (bytes: ArrayBuffer) {
 	try {
 		disassembleWASMBinary(bytes);
 	}
@@ -852,7 +871,7 @@ async function main () {
 
 	const bytes = (await readFile(filename));
 
-	tryDisassemblyWASMBinary(bytes);
+	tryDisassembleWASMBinary(bytes);
 }
 
 main()

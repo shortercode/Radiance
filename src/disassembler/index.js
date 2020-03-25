@@ -274,12 +274,18 @@ class Instruction {
     constructor(opcode) {
         this.op = opcode;
     }
+    toString() {
+        return `(${this.op})`;
+    }
 }
 class BlockInstruction extends Instruction {
     constructor(opcode, type, block) {
         super(opcode);
         this.type = type;
         this.block = block;
+    }
+    toString() {
+        return `(${this.op} ${this.type === null ? "void" : this.type} ${this.block.toString()})`;
     }
 }
 class ConditionalInstruction extends Instruction {
@@ -289,11 +295,17 @@ class ConditionalInstruction extends Instruction {
         this.primary = primary;
         this.secondary = secondary;
     }
+    toString() {
+        return `(${this.op} ${this.type === null ? "void" : this.type} ${this.primary.toString()} ${this.secondary ? this.secondary.toString() : ""})`;
+    }
 }
 class ValueInstruction extends Instruction {
     constructor(op, id) {
         super(op);
-        this.id = id;
+        this.value = id;
+    }
+    toString() {
+        return `(${this.op} ${this.value})`;
     }
 }
 class MemoryInstruction extends Instruction {
@@ -302,12 +314,18 @@ class MemoryInstruction extends Instruction {
         this.align = align;
         this.offset = offset;
     }
+    toString() {
+        return `(${this.op} ${this.align} ${this.offset})`;
+    }
 }
 class BreakTableInstruction extends Instruction {
     constructor(entries, fallback) {
         super("br_table");
         this.entries = entries;
         this.fallback = fallback;
+    }
+    toString() {
+        return `(${this.op} (${this.entries.toString}) ${this.fallback})`;
     }
 }
 function readControlInstruction(opcode, byteReader) {
@@ -389,7 +407,7 @@ function readNumericInstruction(opcode, byteReader) {
     if (opcode < 0 || opcode >= numericInstructions.length)
         throw new Error("Invalid numeric opcode");
     const op = numericInstructions[opcode];
-    return { op };
+    return new Instruction(op);
 }
 function readConstNumericInstruction(opcode, byteReader) {
     switch (opcode) {
@@ -429,9 +447,9 @@ function readVariableInstruction(opcode, byteReader) {
 }
 function readParametricInstruction(opcode, byteReader) {
     if (opcode === 0x1A)
-        return { op: "drop" };
+        return new Instruction("drop");
     if (opcode === 0x1B)
-        return { op: "select" };
+        return new Instruction("select");
     throw new Error("invalid instruction opcode");
 }
 function readMemoryInstruction(opcode, byteReader) {
@@ -642,7 +660,7 @@ function disassembleWASMBinary(bytes) {
                         throw new Error("Invalid global mutablity flag");
                     }
                     const expr = readExpression(byteReader);
-                    console.log(`Read global ${mutable ? "mut " : ""}let = Expression(${expr.length})`);
+                    console.log(`Read global ${mutable ? "mut " : ""}let = ${expr}`);
                 }
                 break;
             }
@@ -673,7 +691,7 @@ function disassembleWASMBinary(bytes) {
                     for (let ii = 0; ii < initFnCount; ii++) {
                         initFnList.push(byteReader.readUVint());
                     }
-                    console.log(`Read element entry Table: ${tableID} Offset: Expression(${offsetExpression.length}) Entries: ${initFnList}`);
+                    console.log(`Read element entry Table: ${tableID} Offset: ${offsetExpression} Entries: ${initFnList}`);
                 }
                 break;
             }
@@ -692,10 +710,9 @@ function disassembleWASMBinary(bytes) {
                         locals.push([count, type]);
                     }
                     const expr = readExpression(byteReader);
-                    console.log(`Read code block (${locals.join()}) -> Expression(${expr.length})`);
+                    console.log(`Read code block (${locals.join()}) -> ${expr}`);
                 }
                 break;
-                // NOT_IMPLEMENTED("code section");
             }
             case 11: { // data section
                 const segmentCount = byteReader.readUVint();
@@ -704,7 +721,7 @@ function disassembleWASMBinary(bytes) {
                     const expr = readExpression(byteReader);
                     const dataLength = byteReader.readUVint();
                     const data = byteReader.readBuffer(dataLength);
-                    console.log(`Read data segment Mem: ${id} Offset: Expression(${expr.length}) Data: Buffer(${data.length})`);
+                    console.log(`Read data segment Mem: ${id} Offset: ${expr} Data: Buffer(${data.length})`);
                 }
                 break;
             }
@@ -715,13 +732,13 @@ function assert(test, message) {
     if (test === false)
         throw new Error(message);
 }
+const fs = require("fs");
 function readArguments() {
     const filename = process.argv[2];
     return {
         filename
     };
 }
-const fs = require("fs");
 async function readFile(filename) {
     const buffer = await fs.promises.readFile(filename);
     /*
@@ -738,10 +755,7 @@ async function readFile(filename) {
     }
     return arrayBuffer;
 }
-function NOT_IMPLEMENTED(label = "unknown") {
-    throw new Error(`Not implemented (${label})`);
-}
-function tryDisassemblyWASMBinary(bytes) {
+function tryDisassembleWASMBinary(bytes) {
     try {
         disassembleWASMBinary(bytes);
     }
@@ -752,6 +766,6 @@ function tryDisassemblyWASMBinary(bytes) {
 async function main() {
     const { filename } = readArguments();
     const bytes = (await readFile(filename));
-    tryDisassemblyWASMBinary(bytes);
+    tryDisassembleWASMBinary(bytes);
 }
 main();

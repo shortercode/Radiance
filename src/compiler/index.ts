@@ -4,6 +4,12 @@ import { AtiumType, validate_atium_type, downgrade_type } from "./AtiumType.js";
 import { Context } from "./Context.js";
 import { FunctionDeclaration } from "./FunctionDeclaration.js";
 
+/*
+    This class is the second stage of the process after the parser. It performs type validation
+    on the Atium code and converts it from a Atium AST to a WebAssembly AST. The final stage
+    serialises this WebAssembly AST into a binary file.
+*/
+
 export default function (node: Node): WAST.WASTModuleNode {
     const ctx: Context = new Context;
     if (node.type !== "module")

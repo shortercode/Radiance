@@ -3,6 +3,13 @@ import Node from "../pratt/Node.js";
 import Iterator from "../pratt/Iterator.js";
 import Token from "../pratt/Token.js";
 
+/*
+    This class is the first stage of the process. It converts a text stream into an
+    Atium AST ready to be processed. This validates the basic syntax but does not
+    do any static analsis on the source at this stage.
+*/
+
+
 class AtiumParser extends Parser {
     constructor () {
         super();

@@ -1,4 +1,4 @@
-import { WASTType } from "./WASTNode.js";
+import { WASTType } from "../WASTNode.js";
 
 export type AtiumType = WASTType;
 

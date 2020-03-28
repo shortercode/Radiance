@@ -1,4 +1,4 @@
-import * as WAST from "./WASTNode.js"
+import * as WAST from "../WASTNode.js"
 import Node from "../pratt/Node.js";
 import { AtiumType, validate_atium_type, downgrade_type } from "./AtiumType.js";
 import { Context } from "./Context.js";

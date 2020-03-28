@@ -1,6 +1,6 @@
 import * as WAST from "./WASTNode.js"
 import Node from "../pratt/Node.js";
-import { AtiumType } from "./AtiumType.js";
+import { AtiumType, validate_atium_type, downgrade_type } from "./AtiumType.js";
 import { Context } from "./Context.js";
 import { FunctionDeclaration } from "./FunctionDeclaration.js";
 
@@ -33,7 +33,7 @@ function visit_module(node: Node, ctx: Context): WAST.WASTModuleNode {
     }
 
     for (const stmt of statements) {
-        const wast_stmt = visit_statement(stmt, ctx);
+        const wast_stmt = visit_global_statement(stmt, ctx);
         module.statements.push(wast_stmt);
     }
 
@@ -56,16 +56,16 @@ function hoist_declaration(node: Node, ctx: Context) {
 
             const parameters = data.parameters.map(param => ({
                 name: param.name,
-                type: validateAtiumType(param.type)
+                type: validate_atium_type(param.type)
             }));
 
-            ctx.declare_function(data.name, validateAtiumType(data.type), parameters);
+            ctx.declare_function(data.name, validate_atium_type(data.type), parameters);
             break;
         }
     }
 }
 
-function visit_statement(node: Node, ctx: Context): WAST.WASTStatementNode {
+function visit_global_statement(node: Node, ctx: Context): WAST.WASTStatementNode {
     switch (node.type) {
         case "function": {
             /*
@@ -126,65 +126,13 @@ function visit_statement(node: Node, ctx: Context): WAST.WASTStatementNode {
     }
 }
 
-/*
-    convert an AtiumType to a WASTType
-*/
-function downgrade_type (type: AtiumType): WAST.WASTType {
-    switch (type) {
-        case "f32":
-        case "f64":
-        case "i32":
-        case "i64":
-            return type;
-        // everything else is a pointer, we ditch the type
-        // information associated with it, as thats just for
-        // this stage of the compiler, and just turn it into
-        // a number
-        default:
-            // NOTE we use i32 for the pointer type because this
-            // allows us to send it to JS land unlike i64
-            return "i32";
-    }
-}
-
-function validateAtiumType(type: string): AtiumType {
-    switch (type) {
-        case "f32":
-        case "f64":
-        case "i32":
-        case "i64":
-            return type;
-        default:
-            throw new Error(`Illegal type ${type}`);
-    }
-}
-
-function visit_nested_statement(node: Node, ctx: Context): WAST.WASTExpressionNode {
-    switch (node.type) {
-        case "expression":
-            return visit_expression(node.data as Node, ctx);
-        case "variable": {
-            const data = node.data as {
-                name: string
-                type: string
-                initial: Node
-            };
-            ctx.declare_variable(data.name, validateAtiumType(data.type));
-            const value = visit_expression(data.initial, ctx);
-            // TODO type validation
-            return new WAST.WASTSetLocalNode(data.name, value);
-        }
-        default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected a statement`);
-    }
-}
-
 function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode | null {
     switch (node.type) {
         case "block": {
             const wast_block = new WAST.WASTBlockNode;
             const statements = node.data as Array<Node>;
             for (const stmt of statements) {
-                const result = visit_nested_statement(stmt, ctx);
+                const result = visit_local_statement(stmt, ctx);
                 if (result !== null)
                     wast_block.body.push(result);
             }
@@ -222,5 +170,24 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode | n
         }
 
         default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected an expression`);;
+    }
+}
+
+function visit_local_statement(node: Node, ctx: Context): WAST.WASTExpressionNode {
+    switch (node.type) {
+        case "expression":
+            return visit_expression(node.data as Node, ctx);
+        case "variable": {
+            const data = node.data as {
+                name: string
+                type: string
+                initial: Node
+            };
+            ctx.declare_variable(data.name, validate_atium_type(data.type));
+            const value = visit_expression(data.initial, ctx);
+            // TODO type validation
+            return new WAST.WASTSetLocalNode(data.name, value);
+        }
+        default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected a statement`);
     }
 }

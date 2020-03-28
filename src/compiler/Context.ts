@@ -1,10 +1,10 @@
 import { FunctionDeclaration } from "./FunctionDeclaration.js";
 import { Environment } from "./Environment.js";
-import { AtiumType } from "./AtiumType.js";
+import { AtiumType, downgrade_type } from "./AtiumType.js";
 
 export class Context {
-    globals: Map<string, FunctionDeclaration> = new Map
-    current_environment: Environment | null = null
+    private globals: Map<string, FunctionDeclaration> = new Map
+    private current_environment: Environment | null = null
     
     push_environment () {
         if (this.current_environment === null)

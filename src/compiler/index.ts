@@ -4,40 +4,47 @@ import { AtiumType } from "./AtiumType.js";
 import { Context } from "./Context.js";
 import { FunctionDeclaration } from "./FunctionDeclaration.js";
 
-/*
-    convert an AtiumType to a WASTType
-*/
-function downgrade_type (type: AtiumType): WAST.WASTType {
-    switch (type) {
-        case "f32":
-        case "f64":
-        case "i32":
-        case "i64":
-            return type;
-        // everything else is a pointer, we ditch the type
-        // information associated with it, as thats just for
-        // this stage of the compiler, and just turn it into
-        // a number
-        default:
-            // NOTE we use i32 for the pointer type because this
-            // allows us to send it to JS land unlike i64
-            return "i32";
-    }
+export default function (node: Node): WAST.WASTModuleNode {
+    const ctx: Context = new Context;
+    if (node.type !== "module")
+        throw new Error(`Invalid node type ${node.type} expected a module`);
+    return visit_module(node, ctx);
 }
 
-function validateAtiumType(type: string): AtiumType {
-    switch (type) {
-        case "f32":
-        case "f64":
-        case "i32":
-        case "i64":
-            return type;
-        default:
-            throw new Error(`Illegal type ${type}`);
+function visit_module(node: Node, ctx: Context): WAST.WASTModuleNode {
+    /*
+        This is entry point to the compiler
+        the public exported function does some simple setup
+        and input verification but this actually creates the
+        module and recusively visits the source AST
+    */
+
+    const module = new WAST.WASTModuleNode;
+
+    const statements = node.data as Array<Node>;
+
+    /*
+        Before processing the bulk of the AST we visit
+        the functions and create them so that they can
+        refer to each other in their bodies
+    */
+    for (const stmt of statements) {
+        hoist_declaration(stmt, ctx);
     }
+
+    for (const stmt of statements) {
+        const wast_stmt = visit_statement(stmt, ctx);
+        module.statements.push(wast_stmt);
+    }
+
+    const memory_stmt = new WAST.WASTMemoryNode("main", 1);
+
+    module.statements.push(memory_stmt);
+
+    return module;
 }
 
-function visit_declaration(node: Node, ctx: Context) {
+function hoist_declaration(node: Node, ctx: Context) {
     switch (node.type) {
         case "function": {
             const data = node.data as {
@@ -119,6 +126,39 @@ function visit_statement(node: Node, ctx: Context): WAST.WASTStatementNode {
     }
 }
 
+/*
+    convert an AtiumType to a WASTType
+*/
+function downgrade_type (type: AtiumType): WAST.WASTType {
+    switch (type) {
+        case "f32":
+        case "f64":
+        case "i32":
+        case "i64":
+            return type;
+        // everything else is a pointer, we ditch the type
+        // information associated with it, as thats just for
+        // this stage of the compiler, and just turn it into
+        // a number
+        default:
+            // NOTE we use i32 for the pointer type because this
+            // allows us to send it to JS land unlike i64
+            return "i32";
+    }
+}
+
+function validateAtiumType(type: string): AtiumType {
+    switch (type) {
+        case "f32":
+        case "f64":
+        case "i32":
+        case "i64":
+            return type;
+        default:
+            throw new Error(`Illegal type ${type}`);
+    }
+}
+
 function visit_nested_statement(node: Node, ctx: Context): WAST.WASTExpressionNode {
     switch (node.type) {
         case "expression":
@@ -183,44 +223,4 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode | n
 
         default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected an expression`);;
     }
-}
-
-function visit_module(node: Node, ctx: Context): WAST.WASTModuleNode {
-    /*
-        This is entry point to the compiler
-        the public exported function does some simple setup
-        and input verification but this actually creates the
-        module and recusively visits the source AST
-    */
-
-    const module = new WAST.WASTModuleNode;
-
-    const statements = node.data as Array<Node>;
-
-    /*
-        Before processing the bulk of the AST we visit
-        the functions and create them so that they can
-        refer to each other in their bodies
-    */
-    for (const stmt of statements) {
-        visit_declaration(stmt, ctx);
-    }
-
-    for (const stmt of statements) {
-        const wast_stmt = visit_statement(stmt, ctx);
-        module.statements.push(wast_stmt);
-    }
-
-    const memory_stmt = new WAST.WASTMemoryNode("main", 1);
-
-    module.statements.push(memory_stmt);
-
-    return module;
-}
-
-export default function (node: Node): WAST.WASTModuleNode {
-    const ctx: Context = new Context;
-    if (node.type !== "module")
-        throw new Error(`Invalid node type ${node.type} expected a module`);
-    return visit_module(node, ctx);
 }

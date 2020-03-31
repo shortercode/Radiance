@@ -9,6 +9,11 @@ function transfer_arraybuffer (source, new_length) {
     return destView.buffer;
 }
 
+function encode_string (str: string): Uint8Array {
+    // TODO actually encode string...
+    return new Uint8Array(0);
+}
+
 export class Writer {
     private buffer: ArrayBuffer = new ArrayBuffer(PAGE_SIZE)
     private data_view: DataView = new DataView(this.buffer)
@@ -17,7 +22,7 @@ export class Writer {
     private write_offset: number = 0
 
     getCurrentOffset (): number {
-
+        return this.write_offset;
     }
 
     complete (): Uint8Array {
@@ -65,12 +70,16 @@ export class Writer {
         this.write_offset += 8;
     }
 
-    writeString () {
-        // TODO
+    writeString (value: string) {
+        const encoded_value = encode_string(value);
+        this.writeBuffer(encoded_value);
     }
 
-    writeBuffer () {
-        // TODO
+    writeBuffer (value: Uint8Array) {
+        this.allocate(value.byteLength);
+        const view = new Uint8Array(this.buffer);
+        view.set(value, this.write_offset);
+        this.write_offset += value.byteLength;
     }
 
     private allocate (count: number) {

@@ -24,15 +24,19 @@ export class WASTModuleNode implements WASTNode {
     statements: Array<WASTStatementNode> = []
 }
 
+type ExportType = "function" | "table" | "memory" | "global";
+
 export class WASTExportNode implements WASTNode {
     type: "export"
 
     name: string
     target: string
+    target_type: ExportType
 
-    constructor (name: string, target: string) {
+    constructor (type: ExportType, name: string, target: string) {
         this.name = name;
         this.target = target;
+        this.target_type = type;
     }
 }
 

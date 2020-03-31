@@ -126,7 +126,7 @@ function visit_global_statement(node: Node, ctx: Context): WAST.WASTStatementNod
             else
                 throw new Error(`Cannot export ${data.name} as it's not a function`);
 
-            return new WAST.WASTExportNode(data.name, data.name);
+            return new WAST.WASTExportNode("function", data.name, data.name);
         }
         default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected a statement`);
     }

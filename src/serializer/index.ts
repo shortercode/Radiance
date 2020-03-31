@@ -42,10 +42,11 @@ export function serialize_wast(ast: WAST.WASTModuleNode): Uint8Array {
             case "memory":
                 memory_nodes.push(node);
                 break;
-            default:
-                throw new Error(`Unexpected statement type ${node.type}`);
         }
     }
+
+    const function_index_map = new Map;
+    const memory_index_map = new Map;
 
     // Section 1 - Types AKA function signatures
     {
@@ -71,12 +72,86 @@ export function serialize_wast(ast: WAST.WASTModuleNode): Uint8Array {
     }
 
     // Section 3 - Function AKA function ID to signature mapping
+    {
+        const section_offset = write_section_header(writer, 3);
+
+        writer.writeUVint(function_nodes.length);
+
+        for (let i = 0; i < function_nodes.length; i++) {
+            writer.writeUVint(i);
+            function_index_map.set(function_nodes[i].name, i);
+        }
+
+        finish_section_header(writer, section_offset);
+    }
 
     // Section 5 - Memory AKA memory block declaration
 
+    {
+        const section_offset = write_section_header(writer, 5);
+
+        // TODO should assert that there is only 1 memory node
+
+        writer.writeUVint(memory_nodes.length);
+
+        for (let i = 0; i < memory_nodes.length; i++) {
+            const node = memory_nodes[i];
+            write_unbounded_limit(writer, node.size);
+            memory_index_map.set(node.name, i);
+        }
+
+        finish_section_header(writer, section_offset);
+    }
+
     // Section 7 - Export AKA public function exports
 
+    {
+        const section_offset = write_section_header(writer, 7);
+
+        writer.writeUVint(export_nodes.length);
+
+        for (let i = 0; i < export_nodes.length; i++) {
+            const node = export_nodes[i];
+            writer.writeString(node.name);
+            switch (node.target_type) {
+                case "function": {
+                    writer.writeUint8(0);
+                    const index = function_index_map.get(node.target);
+                    if (typeof index !== "number")
+                        throw new Error(`Cannot export unknown function ${node.target}`);
+                    writer.writeUVint(index);
+                    break;
+                }
+                case "memory":
+                    writer.writeUint8(2);
+                    const index = memory_index_map.get(node.target);
+                    if (typeof index !== "number")
+                        throw new Error(`Cannot export unknown memory ${node.target}`);
+                    writer.writeUVint(index);
+                    break;
+                default:
+                    throw new Error("Invalid export type");
+            }
+        }
+
+        finish_section_header(writer, section_offset);
+    }
+
     // Section 10 - Code AKA function bodies
+
+    {
+        const section_offset = write_section_header(writer, 10);
+
+        writer.writeUVint(function_nodes.length);
+
+        for (let i = 0; i < function_nodes.length; i++) {
+            const node = function_nodes[i];
+
+            // declare local variables
+            // flatten tree
+            // write linear operations
+        }
+    }
 
     return writer.complete();
 }
@@ -112,4 +187,15 @@ function write_value_type (writer: Writer, type: WAST.WASTType) {
             writer.writeUint8(0x7C);
             break;
     }
+}
+
+function write_unbounded_limit (writer: Writer, min: number) {
+    writer.writeUint8(0);
+    writer.writeUVint(min);
+}
+
+function write_bounded_limit(writer: Writer, min: number, max: number) {
+    writer.writeUint8(1);
+    writer.writeUVint(min);
+    writer.writeUVint(max);
 }

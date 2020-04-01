@@ -1,5 +1,6 @@
 import * as WAST from "../WASTNode";
 import { Writer } from "./Writer";
+import { Variable } from "../compiler/Variable";
 
 /*
     Section order
@@ -20,7 +21,7 @@ import { Writer } from "./Writer";
 const MAGIC_NUMBER = 0x0061736D;
 const VERSION_NUMBER = 0x01000000;
 
-export function serialize_wast(ast: WAST.WASTModuleNode): Uint8Array {
+export default function serialize_wast(ast: WAST.WASTModuleNode): Uint8Array {
     
     const writer = new Writer;
 
@@ -45,8 +46,8 @@ export function serialize_wast(ast: WAST.WASTModuleNode): Uint8Array {
         }
     }
 
-    const function_index_map = new Map;
-    const memory_index_map = new Map;
+    const function_index_map: Map<string, number> = new Map;
+    const memory_index_map: Map<string, number> = new Map;
 
     // Section 1 - Types AKA function signatures
     {
@@ -60,9 +61,10 @@ export function serialize_wast(ast: WAST.WASTModuleNode): Uint8Array {
         writer.writeUVint(function_nodes.length);
 
         for (const function_node of function_nodes) {
+						writer.writeUint8(0x60);
             writer.writeUVint(function_node.parameters.length);
             for (const parameter of function_node.parameters) {
-                write_value_type(writer, parameter);
+                write_value_type(writer, parameter.type);
             }
             writer.writeUVint(1);
             write_value_type(writer, function_node.result);
@@ -145,15 +147,204 @@ export function serialize_wast(ast: WAST.WASTModuleNode): Uint8Array {
         writer.writeUVint(function_nodes.length);
 
         for (let i = 0; i < function_nodes.length; i++) {
-            const node = function_nodes[i];
+						const code_block_start = writer.writeFixedSizeUVint(0);
+						const node = function_nodes[i];
 
-            // declare local variables
-            // flatten tree
-            // write linear operations
-        }
+						const parameter_count = node.parameters.length;
+						
+						// NOTE locals are written with a style of run length encoding
+						// to save space, so we must first convert the locals array into
+						// an array of [type, count] tuples. We could also in theory
+						// rearrange so that all locals of the same type are adjacent to
+						// reduce to item count 
+						const locals_excluding_parameters = node.locals.slice(parameter_count);
+						const locals_compressed = compress_local_variables(locals_excluding_parameters);
+
+						writer.writeUVint(locals_compressed.length);
+
+						for (const [type, count] of locals_compressed) {
+							writer.writeUVint(count);
+							write_value_type(writer, type);
+						}
+
+						const ctx = new FunctionContext(
+							writer,
+							function_index_map,
+							node.locals
+						);
+
+						write_expression(ctx, node.body);
+						writer.writeUint8(0x0B);
+						const code_block_length = writer.getCurrentOffset() - code_block_start - 5;
+						writer.changeFixedSizeUVint(code_block_start, code_block_length);
+				}
+				
+				finish_section_header(writer, section_offset);
     }
 
     return writer.complete();
+}
+
+function write_expression(ctx: FunctionContext, node: WAST.WASTExpressionNode) {
+		switch (node.type) {
+			case "add":
+				return write_add_expression(ctx, node);
+			case "sub":
+				return write_sub_expression(ctx, node);
+			case "block":
+				return write_block_expression(ctx, node);
+			case "call":
+				return write_call_expression(ctx, node);
+			case "const":
+				return write_const_expression(ctx, node);
+			case "get_local":
+				return write_get_local_expression(ctx, node);
+			case "multiply":
+				return write_multiply_expression(ctx, node);
+			case "set_local":
+				return write_set_local_expression(ctx, node);
+			case "store":
+			case "load":
+				throw new Error("Not implemented");
+		}
+}
+
+function write_add_expression(ctx: FunctionContext, node: WAST.WASTAddNode) {
+	write_expression(ctx, node.left);
+	write_expression(ctx, node.right);
+	switch (node.value_type) {
+		case "f32":
+			ctx.writer.writeUint8(0x92);
+			break;
+		case "f64":
+			ctx.writer.writeUint8(0xA0);
+			break;
+		case "i32":
+			ctx.writer.writeUint8(0x6A);
+			break;
+		case "i64":
+			ctx.writer.writeUint8(0x7C);
+			break;
+	}
+}
+
+function write_sub_expression(ctx: FunctionContext, node: WAST.WASTSubNode) {
+	write_expression(ctx, node.left);
+	write_expression(ctx, node.right);
+	switch (node.value_type) {
+		case "f32":
+			ctx.writer.writeUint8(0x93);
+			break;
+		case "f64":
+			ctx.writer.writeUint8(0xA1);
+			break;
+		case "i32":
+			ctx.writer.writeUint8(0x6B);
+			break;
+		case "i64":
+			ctx.writer.writeUint8(0x7D);
+			break;
+	}
+}
+
+function write_block_expression(ctx: FunctionContext, node: WAST.WASTBlockNode) {
+	ctx.writer.writeUint8(0x02);
+	write_block_type(ctx.writer, node.value_type);
+	for (const subnode of node.body) {
+		write_expression(ctx, subnode);
+	}
+	ctx.writer.writeUint8(0x0B);
+}
+
+function write_call_expression(ctx: FunctionContext, node: WAST.WASTCallNode) {
+	const function_id = ctx.function_lookup.get(node.name);
+
+	if (typeof function_id !== "number")
+		throw new Error(`Cannot find function ${node.name}`);
+
+	for (const arg of node.arguments) {
+		write_expression(ctx, arg);
+	}
+	ctx.writer.writeUint8(0x10);
+	ctx.writer.writeUVint(function_id);
+}
+
+function write_const_expression(ctx: FunctionContext, node: WAST.WASTConstNode) {
+	switch (node.value_type) {
+		case "f32":
+			ctx.writer.writeUint8(0x43);
+			ctx.writer.writeFloat32(parseFloat(node.value));
+			break;
+		case "f64":
+			ctx.writer.writeUint8(0x44);
+			ctx.writer.writeFloat32(parseFloat(node.value));
+			break;
+		case "i32":
+			ctx.writer.writeUint8(0x41);
+			ctx.writer.writeUVint(parseInt(node.value, 10));
+			break;
+		case "i64":
+			ctx.writer.writeUint8(0x42);
+			// WARN node.value may not fit into a JS number literal!
+			// which would cause this to input the wrong number
+			ctx.writer.writeUVint(parseInt(node.value, 10));
+			break;
+	}
+}
+
+function write_get_local_expression(ctx: FunctionContext, node: WAST.WASTGetLocalNode) {
+	const local_id = ctx.variable_lookup.get(node.id);
+
+	if (typeof local_id !== "number")
+		throw new Error(`Cannot find local ${node.name}`);
+	
+	ctx.writer.writeUint8(0x20);
+	ctx.writer.writeUVint(local_id);
+}
+
+function write_multiply_expression(ctx: FunctionContext, node: WAST.WASTMultiplyNode) {
+	write_expression(ctx, node.left);
+	write_expression(ctx, node.right);
+	switch (node.value_type) {
+		case "f32":
+			ctx.writer.writeUint8(0x94);
+			break;
+		case "f64":
+			ctx.writer.writeUint8(0xA2);
+			break;
+		case "i32":
+			ctx.writer.writeUint8(0x6C);
+			break;
+		case "i64":
+			ctx.writer.writeUint8(0x7E);
+			break;
+	}
+}
+
+function write_set_local_expression(ctx: FunctionContext, node: WAST.WASTSetLocalNode) {
+	const local_id = ctx.variable_lookup.get(node.id);
+
+	if (typeof local_id !== "number")
+		throw new Error(`Cannot find local ${node.name}`);
+	
+	write_expression(ctx, node.value);
+	ctx.writer.writeUint8(0x21);
+	ctx.writer.writeUVint(local_id);
+}
+
+class FunctionContext {
+		readonly writer: Writer
+		readonly variable_lookup: Map<number, number> = new Map
+		readonly function_lookup: Map<string, number>
+
+		constructor (writer: Writer, function_lookup: Map<string, number>, locals: Array<Variable>) {
+				this.writer = writer;
+				this.function_lookup = function_lookup;
+				let index = 0;
+				for (const local of locals) {
+					this.variable_lookup.set(local.id, index++);
+				}
+		}
 }
 
 function write_section_header (writer: Writer, id: number) {
@@ -169,7 +360,9 @@ function write_section_header (writer: Writer, id: number) {
 }
 
 function finish_section_header (writer: Writer, offset: number) {
-    writer.changeFixedSizeUVint(offset, writer.getCurrentOffset() - offset);
+	const length = writer.getCurrentOffset() - offset - 5;
+	console.log(`finished writing section length = ${length}`)
+  writer.changeFixedSizeUVint(offset, length);
 }
 
 function write_value_type (writer: Writer, type: WAST.WASTType) {
@@ -189,11 +382,47 @@ function write_value_type (writer: Writer, type: WAST.WASTType) {
     }
 }
 
+function write_block_type (writer: Writer, type: WAST.WASTType | "void") {
+	if (type === "void")
+		writer.writeUint8(0x40);
+	else
+		write_value_type(writer, type);
+}
+
+function compress_local_variables (locals: Array<Variable>) {
+	const output: Array<[WAST.WASTType, number]> = [];
+	
+	if (locals.length === 0)
+		return output;
+
+	let last: [WAST.WASTType, number] = [
+		locals[0].type,
+		0
+	];
+	output.push(last);
+	
+	for (const current_local of locals) {
+		if (last[0] === current_local.type) {
+			last[1] += 1;
+		}
+		else {
+			last = [
+				current_local.type,
+				1
+			];
+			output.push(last);
+		}
+	}
+
+	return output;
+}
+
 function write_unbounded_limit (writer: Writer, min: number) {
     writer.writeUint8(0);
     writer.writeUVint(min);
 }
 
+// NOTE not used at this time
 function write_bounded_limit(writer: Writer, min: number, max: number) {
     writer.writeUint8(1);
     writer.writeUVint(min);

@@ -1,8 +1,10 @@
 import { AtiumType } from "./AtiumType";
 
 export class Variable {
-    type: AtiumType
-    constructor (type: AtiumType) {
-        this.type = type;
+		type: AtiumType
+		id: number
+    constructor (type: AtiumType, id: number) {
+				this.type = type;
+				this.id = id;
     }
 }

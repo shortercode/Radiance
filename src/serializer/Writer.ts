@@ -10,8 +10,18 @@ function transfer_arraybuffer (source, new_length) {
 }
 
 function encode_string (str: string): Uint8Array {
-    // TODO actually encode string...
-    return new Uint8Array(0);
+		// TODO add support for unicode ( yes I know it should already... )
+		const chars = [...str];
+		const result = new Uint8Array(chars.length);
+
+		for (let i = 0; i < chars.length; i++) {
+			const code = chars[i].charCodeAt(0);
+			if (code > 127)
+				throw new Error("Unable to encode non-ascii characters");
+			result[i] = code;
+		}
+
+    return result;
 }
 
 export class Writer {
@@ -32,18 +42,47 @@ export class Writer {
     }
 
     writeUVint (value: number) {
-        // TODO
-    }
+				do {
+					let byte = value & 0x7f;
+					value >>>= 7;
+					if (value !== 0) {
+						byte |= 0x80;
+					}
+					this.writeUint8(byte);
+				} while (value !== 0);
+		}
+		
+		writeSignedUVint (value: number) {
+			let more = true;
+			while (more) {
+				let byte = value & 0x7f;
+				value >>>= 7;
+				if ((value === 0 && (byte & 0x40) === 0) || (value === -1 && (byte & 0x40) !== 0)) {
+					more = false;
+				} else {
+					byte |= 0x80;
+				}
+				this.writeUint8(byte);
+			}
+		}
 
     writeFixedSizeUVint (value: number): number {
-        // TODO
-        // always uses 5 bytes
-        // returns the offset
-        return this.write_offset;
+				const position = this.write_offset;
+				this.allocate(5);
+				this.changeFixedSizeUVint(this.write_offset, value);
+				this.write_offset += 5;
+        return position;
     }
     
     changeFixedSizeUVint (offset: number, value: number) {
-        // TODO
+			for (let i = 0; i < 4; i++) {
+				let byte = value & 0x7f;
+				value >>>= 7;
+				byte |= 0x80;
+				this.data_view.setUint8(offset + i, byte);
+			}
+			let byte = value & 0x7f;
+			this.data_view.setUint8(offset + 4, byte);
     }
 
     writeUint8 (value: number) {
@@ -71,7 +110,8 @@ export class Writer {
     }
 
     writeString (value: string) {
-        const encoded_value = encode_string(value);
+				const encoded_value = encode_string(value);
+				this.writeUVint(encoded_value.length);
         this.writeBuffer(encoded_value);
     }
 

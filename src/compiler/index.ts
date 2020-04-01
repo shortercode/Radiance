@@ -3,6 +3,7 @@ import Node from "../pratt/Node.js";
 import { AtiumType, validate_atium_type, downgrade_type } from "./AtiumType.js";
 import { Context } from "./Context.js";
 import { FunctionDeclaration } from "./FunctionDeclaration.js";
+import { Environment } from "./Environment.js";
 
 /*
     This class is the second stage of the process after the parser. It performs type validation
@@ -88,17 +89,25 @@ function visit_global_statement(node: Node, ctx: Context): WAST.WASTStatementNod
 
             const fn_wast = new WAST.WASTFunctionNode(data.name, downgrade_type(data.type));
 
-            ctx.create_environment();
+            ctx.environment = new Environment;
 
-            for (const { name, type } of  data.parameters) {
-                ctx.declare_variable(name, type);
-                fn_wast.parameters.push(downgrade_type(type));
+            for (const { name, type } of data.parameters) {
+                const variable = ctx.declare_variable(name, type);
+                fn_wast.parameters.push({
+									type: downgrade_type(type),
+									id: variable.id
+								});
             }
         
-            const expr = visit_expression(data.block, ctx) as WAST.WASTBlockNode;
-            ctx.exit_environment();
+						const expr = visit_expression(data.block, ctx) as WAST.WASTBlockNode;
+						const locals = ctx.environment.variables;
+            ctx.environment = null;
 
-            fn_wast.body = expr; 
+						fn_wast.body = expr;
+
+						for (const local of locals) {
+								fn_wast.locals.push(local);
+						}
 
             return fn_wast;
         }
@@ -141,12 +150,48 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode | n
                 const result = visit_local_statement(stmt, ctx);
                 if (result !== null)
                     wast_block.body.push(result);
-            }
+						}
+
+						const last = wast_block.body[wast_block.body.length - 1];
+
+						if (last) {
+							wast_block.value_type = last.value_type;
+							if (typeof last.value_type !== "string")
+								throw new Error("Invalid value type!");
+						}
+						else {
+							wast_block.value_type = "void";
+						}
             return wast_block;
         }
         case "number": {
             return new WAST.WASTConstNode("f64", node.data as string);
-        }
+				}
+				case "call": {
+					const value = node.data as {
+						callee: Node,
+						arguments: Array<Node>
+					};
+
+					if (value.callee.type !== "identifier") {
+						throw new Error(`${value.callee.type} is not a function`);
+					}
+
+					const function_name = value.callee.data as string;
+					const fn = ctx.get_global(function_name);
+
+					if (!fn) {
+						throw new Error(`Undefined function ${function_name}`);
+					}
+					const args: Array<WAST.WASTExpressionNode> = [];
+
+					for (const arg of value.arguments) {
+						const expr = visit_expression(arg, ctx);
+						args.push(expr);
+					}
+
+					return new WAST.WASTCallNode(function_name, fn.type, args)
+				}
         case "boolean": {
             const value = node.data as string;
             if (value === "false") {
@@ -163,7 +208,7 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode | n
             const name = node.data as string;
             const variable = ctx.get_local(name);
             // TODO validate type checks!
-            return new WAST.WASTGetLocalNode(name);
+            return new WAST.WASTGetLocalNode(variable.id, name, variable.type);
         }
         case "+": {
             const data = node.data as {
@@ -173,7 +218,16 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode | n
             const left = visit_expression(data.left, ctx);
             const right = visit_expression(data.right, ctx);
             return new WAST.WASTAddNode("f64", left, right);
-        }
+				}
+				case "-": {
+					const data = node.data as {
+							left: Node
+							right: Node
+					};
+					const left = visit_expression(data.left, ctx);
+					const right = visit_expression(data.right, ctx);
+					return new WAST.WASTSubNode("f64", left, right);
+			}
 
         default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected an expression`);;
     }
@@ -188,11 +242,15 @@ function visit_local_statement(node: Node, ctx: Context): WAST.WASTExpressionNod
                 name: string
                 type: string
                 initial: Node
-            };
-            ctx.declare_variable(data.name, validate_atium_type(data.type));
-            const value = visit_expression(data.initial, ctx);
-            // TODO type validation
-            return new WAST.WASTSetLocalNode(data.name, value);
+						};
+						const type = validate_atium_type(data.type);
+            const variable = ctx.declare_variable(data.name, type);
+						const value = visit_expression(data.initial, ctx);
+						
+						if (value.value_type !== downgrade_type(type))
+							throw new Error("Initialiser type doesn't match variable type");
+						
+            return new WAST.WASTSetLocalNode(variable.id, data.name, value, value.value_type);
         }
         default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected a statement`);
     }

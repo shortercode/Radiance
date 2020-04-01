@@ -18,12 +18,39 @@ class AtiumParser extends Parser {
         this.addStatement("identifier:func", this.parseFunction);
         this.addStatement("identifier:let", this.parseVariable);
 
-        this.addInfix("symbol:+", 1, this.binary("+"));
+				this.addInfix("symbol:+", 1, this.binary("+"));
+				this.addInfix("symbol:-", 1, this.binary("-"));
+				this.addInfix("symbol:(", 1, this.parseCallExpression);
         this.addPrefix("number:", 1, this.literal("number"));
         this.addPrefix("identifier:", 1, this.literal("identifier"));
         this.addPrefix("identifier:true", 1, this.literal("boolean"));
         this.addPrefix("identifier:false", 1, this.literal("boolean"));
-    }
+		}
+		
+		parseCallExpression(tokens: Iterator<Token>, left: Node): Node {
+			const start = left.start;
+
+			const values: Array<Node> = [];
+
+			if (!this.match(tokens, "symbol:)")) {
+				while (tokens.incomplete()) {
+					const sub_expression = this.parseExpression(tokens);
+					values.push(sub_expression);
+
+					if (this.match(tokens, "symbol:,")) {
+							tokens.next();
+					}
+					else {
+							break;
+					}
+				}
+			}
+
+			this.ensure(tokens, "symbol:)")
+        
+			const end = tokens.previous().end;
+			return new Node("call", start, end, { callee: left, arguments: values });
+		}
 
     parseFunction (tokens: Iterator<Token>): Node {
         const start = tokens.previous().start;

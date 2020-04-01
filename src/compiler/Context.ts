@@ -1,48 +1,21 @@
 import { FunctionDeclaration } from "./FunctionDeclaration.js";
 import { Environment } from "./Environment.js";
-import { AtiumType, downgrade_type } from "./AtiumType.js";
+import { AtiumType } from "./AtiumType.js";
+import { Variable } from "./Variable.js";
 
 export class Context {
     private globals: Map<string, FunctionDeclaration> = new Map
-    private current_environment: Environment | null = null
-    
-    push_environment () {
-        if (this.current_environment === null)
-            throw new Error("Cannot push an Environment when there is no active environment");
-        const env = new Environment;
-        env.parent = this.current_environment;
-        this.current_environment = env;
-    }
+    environment: Environment | null = null
 
-    pop_environment () {
-        this.current_environment = this.current_environment.parent;
-    }
-
-    create_environment () {
-        if (this.current_environment !== null)
-            throw new Error("An active environment already exists");
-        
-        this.current_environment = new Environment;
-    }
-
-    exit_environment () {
-        const env = this.current_environment;
-
-        if (env === null)
-            throw new Error("No active environment currently exists");
-        
-        this.current_environment = null;
-    }
-
-    declare_variable (name: string, type: AtiumType) {
-        if (this.current_environment === null)
+    declare_variable (name: string, type: AtiumType): Variable {
+        if (this.environment === null)
             throw new Error("Cannot declare global variable");
 
-        this.current_environment.declare(name, type);
+        return this.environment.declare(name, type);
     }
 
     declare_function (name: string, type: AtiumType, parameters: Array<{ name: string, type: AtiumType }>) {
-        if (this.current_environment !== null)
+        if (this.environment !== null)
             throw new Error("Cannot declare local function");
         
         if (this.globals.has(name))
@@ -58,6 +31,6 @@ export class Context {
     }
 
     get_local (name: string) {
-        return this.current_environment.get_variable(name);
+        return this.environment.get_variable(name);
     }
 }

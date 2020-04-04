@@ -183,6 +183,19 @@ export default function serialize_wast(ast: WAST.WASTModuleNode): Uint8Array {
 						for (const subnode of node.body) {
 							write_expression(ctx, subnode);
 						}
+
+						// NOTE if the return type is "void" we may need to throw away
+						// the last stack value
+						if (node.result === "void" && ctx.stack_depth > 0) {
+								writer.writeUint8(0x1A);
+								ctx.consume_any_value();
+						}
+
+						const required_stack_depth = node.result === "void" ? 0 : 1;
+
+						if (ctx.stack_depth !== required_stack_depth)
+								throw new Error(`Expected ${required_stack_depth} values on the stack but only ${ctx.stack_depth} are present`);
+
 						writer.writeUint8(0x0B);
 						const code_block_length = writer.getCurrentOffset() - code_block_start - 5;
 						writer.changeFixedSizeUVint(code_block_start, code_block_length);
@@ -221,6 +234,11 @@ function write_expression(ctx: FunctionContext, node: WAST.WASTExpressionNode) {
 function write_add_expression(ctx: FunctionContext, node: WAST.WASTAddNode) {
 	write_expression(ctx, node.left);
 	write_expression(ctx, node.right);
+
+	ctx.consume_value(node.value_type);
+	ctx.consume_value(node.value_type);
+	ctx.push_value(node.value_type);
+
 	switch (node.value_type) {
 		case "f32":
 			ctx.writer.writeUint8(0x92);
@@ -240,6 +258,11 @@ function write_add_expression(ctx: FunctionContext, node: WAST.WASTAddNode) {
 function write_sub_expression(ctx: FunctionContext, node: WAST.WASTSubNode) {
 	write_expression(ctx, node.left);
 	write_expression(ctx, node.right);
+
+	ctx.consume_value(node.value_type);
+	ctx.consume_value(node.value_type);
+	ctx.push_value(node.value_type);
+
 	switch (node.value_type) {
 		case "f32":
 			ctx.writer.writeUint8(0x93);
@@ -262,6 +285,18 @@ function write_block_expression(ctx: FunctionContext, node: WAST.WASTBlockNode) 
 	for (const subnode of node.body) {
 		write_expression(ctx, subnode);
 	}
+
+	// TODO we might want to generate a drop instruction here instead of throwing an error
+	if (node.value_type === "void") {
+			// TODO write error message
+			if (ctx.stack_depth !== 0)
+					throw new Error("");
+	}
+	else if (ctx.stack_depth !== 1) {
+			// TODO write error message
+			throw new Error("");
+	}
+
 	ctx.writer.writeUint8(0x0B);
 }
 
@@ -273,12 +308,21 @@ function write_call_expression(ctx: FunctionContext, node: WAST.WASTCallNode) {
 
 	for (const arg of node.arguments) {
 		write_expression(ctx, arg);
+		ctx.consume_value(arg.value_type);
 	}
+
+	if (node.value_type !== "void") {
+			ctx.push_value(node.value_type);
+	}
+
 	ctx.writer.writeUint8(0x10);
 	ctx.writer.writeUVint(function_id);
 }
 
 function write_const_expression(ctx: FunctionContext, node: WAST.WASTConstNode) {
+
+	ctx.push_value(node.value_type);
+
 	switch (node.value_type) {
 		case "f32":
 			ctx.writer.writeUint8(0x43);
@@ -306,6 +350,8 @@ function write_get_local_expression(ctx: FunctionContext, node: WAST.WASTGetLoca
 
 	if (typeof local_id !== "number")
 		throw new Error(`Cannot find local ${node.name}`);
+
+	ctx.push_value(node.value_type);
 	
 	ctx.writer.writeUint8(0x20);
 	ctx.writer.writeUVint(local_id);
@@ -314,6 +360,11 @@ function write_get_local_expression(ctx: FunctionContext, node: WAST.WASTGetLoca
 function write_multiply_expression(ctx: FunctionContext, node: WAST.WASTMultiplyNode) {
 	write_expression(ctx, node.left);
 	write_expression(ctx, node.right);
+
+	ctx.consume_value(node.value_type);
+	ctx.consume_value(node.value_type);
+	ctx.push_value(node.value_type);
+
 	switch (node.value_type) {
 		case "f32":
 			ctx.writer.writeUint8(0x94);
@@ -337,6 +388,9 @@ function write_set_local_expression(ctx: FunctionContext, node: WAST.WASTSetLoca
 		throw new Error(`Cannot find local ${node.name}`);
 	
 	write_expression(ctx, node.value);
+
+	ctx.consume_value(node.value_type);
+
 	ctx.writer.writeUint8(0x21);
 	ctx.writer.writeUVint(local_id);
 }
@@ -345,6 +399,7 @@ class FunctionContext {
 		readonly writer: Writer
 		readonly variable_lookup: Map<number, number> = new Map
 		readonly function_lookup: Map<string, number>
+		private value_stack: Array<AtiumType> = []
 
 		constructor (writer: Writer, function_lookup: Map<string, number>, locals: Array<Variable>) {
 				this.writer = writer;
@@ -353,6 +408,28 @@ class FunctionContext {
 				for (const local of locals) {
 					this.variable_lookup.set(local.id, index++);
 				}
+		}
+
+		consume_value (type: AtiumType) {
+				const value = this.value_stack.pop();
+				if (!value)
+						throw new Error("TODO write error message");
+				if (type !== null && value !== type)
+						throw new Error("TODO write error message");
+		}
+
+		consume_any_value() {
+				const value = this.value_stack.pop();
+				if (!value)
+						throw new Error("TODO write error message");
+		}
+
+		push_value (type: AtiumType) {
+				this.value_stack.push(type);
+		}
+
+		get stack_depth () {
+				return this.value_stack.length;
 		}
 }
 

@@ -21,6 +21,7 @@ class AtiumParser extends Parser {
 				this.addInfix("symbol:+", 1, this.binary("+"));
 				this.addInfix("symbol:-", 1, this.binary("-"));
 				this.addInfix("symbol:(", 1, this.parseCallExpression);
+				this.addPrefix("symbol:{", 1, this.parseBlockExpression);
         this.addPrefix("number:", 1, this.literal("number"));
         this.addPrefix("identifier:", 1, this.literal("identifier"));
         this.addPrefix("identifier:true", 1, this.literal("boolean"));
@@ -113,7 +114,12 @@ class AtiumParser extends Parser {
 
         const end = this.endStatement(tokens);
         return new Node("variable", start, end, { name, type, initial });
-    }
+		}
+		
+		parseBlockExpression(tokens: Iterator<Token>): Node {
+			tokens.back();
+			return this.parseBlock(tokens);
+		}
 
     parseBlock(tokens: Iterator<Token>): Node {
         const statements = [];

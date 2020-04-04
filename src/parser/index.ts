@@ -46,37 +46,57 @@ class AtiumParser extends Parser {
 				}
 			}
 
-			this.ensure(tokens, "symbol:)")
-        
-			const end = tokens.previous().end;
+			this.ensure(tokens, "symbol:)");
+			
+			// NOTE previous token is the "symbol:)" read above
+			const end = tokens.previous()!.end;
 			return new Node("call", start, end, { callee: left, arguments: values });
 		}
 
     parseFunction (tokens: Iterator<Token>): Node {
-        const start = tokens.previous().start;
+				// NOTE previous token is the "identifier:func" read by statement matcher
+        const start = tokens.previous()!.start;
         const name = this.ensure(tokens, "identifier:");
         const parameters = this.parseParameterBlock(tokens);
 
-        this.ensure(tokens, "symbol:->");
+				let returnType = "void";
 
-        const returnType = this.parseType(tokens);
-        const block = this.parseBlock(tokens);
+				if (this.match(tokens, "symbol:->")) {
+						tokens.next();
+						returnType = this.parseType(tokens);
+				}
+				
+				const statements = [];
+      
+        this.ensure(tokens, "symbol:{");
+    
+        while (tokens.incomplete()) { 
+          if (this.match(tokens, "symbol:}")) {
+            break; // exit if a closing brace is the next token
+          }
+          statements.push(this.parseStatement(tokens));
+        }
+    
+				this.ensure(tokens, "symbol:}");
 
-        const type = returnType;
-        const end = tokens.previous().end;
+				const type = returnType;
+				// NOTE previous token is the "symbol:}" read above
+        const end = tokens.previous()!.end;
 
-        return new Node("function", start, end, { name, type, parameters, block });
+        return new Node("function", start, end, { name, type, parameters, body: statements });
     }
 
     parseExport (tokens: Iterator<Token>): Node {
-        const start = tokens.previous().start;
+				// NOTE previous token is the "identifier:}" read by statement matcher
+        const start = tokens.previous()!.start;
         const name = this.ensure(tokens, "identifier:");
         const end = this.endStatement(tokens);
         return new Node("export", start, end, { name });
     }
 
     parseVariable (tokens: Iterator<Token>): Node {
-        const start = tokens.previous().start;
+				// NOTE previous token is the "identifier:let" read by statement matcher
+        const start = tokens.previous()!.start;
         const name = this.ensure(tokens, "identifier:");
         let initial = null;
 
@@ -95,12 +115,13 @@ class AtiumParser extends Parser {
         return new Node("variable", start, end, { name, type, initial });
     }
 
-    parseBlock(tokens): Node {
+    parseBlock(tokens: Iterator<Token>): Node {
         const statements = [];
       
         this.ensure(tokens, "symbol:{");
-    
-        const start = tokens.previous().start;
+			
+				// NOTE previous token is the "symbol:{" read above
+        const start = tokens.previous()!.start;
     
         while (tokens.incomplete()) { 
           if (this.match(tokens, "symbol:}")) {
@@ -110,8 +131,9 @@ class AtiumParser extends Parser {
         }
     
         this.ensure(tokens, "symbol:}");
-    
-        const end = tokens.previous().end;
+		
+				// NOTE previous token is the "symbol:}" read above
+        const end = tokens.previous()!.end;
     
         return new Node("block", start, end, statements); 
     }
@@ -146,7 +168,7 @@ class AtiumParser extends Parser {
         return values;
     }
 
-    parseType(tokens) {
+    parseType(tokens: Iterator<Token>) {
         return this.ensure(tokens, "identifier:");
     }
 }

@@ -264,7 +264,7 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 					const right = visit_expression(data.right, ctx);
 					
 					if (left.value_type !== right.value_type)
-						throw new Error(`Mismatched operand types for operation "-" ${left.value_type} + ${right.value_type}`);
+						throw new Error(`Mismatched operand types for operation "-" ${left.value_type} - ${right.value_type}`);
 					
 					if (is_numeric(left.value_type) === false)
 						throw new Error(`Unable to perform operation "-" on non-numeric type`);
@@ -293,7 +293,7 @@ function visit_local_statement(node: Node, ctx: Context): WAST.WASTExpressionNod
 						if (value.value_type !== type)
 							throw new Error("Initialiser type doesn't match variable type");
 						
-            return new WAST.WASTSetLocalNode(variable.id, data.name, value, value.value_type);
+            return new WAST.WASTSetLocalNode(variable.id, data.name, value, "void");
         }
         default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected a statement`);
     }

@@ -22,7 +22,11 @@ async function test () {
 	}
 
 	func sub (a: f64, b: f64) -> f64 {
-		a - b
+		{
+			a
+			a
+			a - b
+		}
 	}
 
 	func double(a: f64) -> f64 {

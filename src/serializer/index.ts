@@ -180,14 +180,26 @@ export default function serialize_wast(ast: WAST.WASTModuleNode): Uint8Array {
 							node.locals
 						);
 						
-						for (const subnode of node.body) {
-							write_expression(ctx, subnode);
+						if (node.body.length > 0) {
+								for (let i = 0; i < node.body.length - 1; i++) {
+										const subnode = node.body[i];
+										write_expression(ctx, subnode);
+										if (subnode.value_type !== "void") {
+												ctx.consume_any_value();
+												write_drop_instruction(writer);
+										}
+								}
+							
+								{
+										const last_subnode = node.body[node.body.length - 1];
+										write_expression(ctx, last_subnode);
+								}
 						}
 
 						// NOTE if the return type is "void" we may need to throw away
 						// the last stack value
 						if (node.result === "void" && ctx.stack_depth > 0) {
-								writer.writeUint8(0x1A);
+								write_drop_instruction(writer);
 								ctx.consume_any_value();
 						}
 
@@ -280,21 +292,33 @@ function write_sub_expression(ctx: FunctionContext, node: WAST.WASTSubNode) {
 }
 
 function write_block_expression(ctx: FunctionContext, node: WAST.WASTBlockNode) {
+
+	if (node.body.length === 0)
+		return;
+
 	ctx.writer.writeUint8(0x02);
 	write_value_type(ctx.writer, node.value_type);
-	for (const subnode of node.body) {
+
+	for (let i = 0; i < node.body.length - 1; i++) {
+		const subnode = node.body[i];
 		write_expression(ctx, subnode);
+		if (subnode.value_type !== "void") {
+			ctx.consume_any_value();
+			write_drop_instruction(ctx.writer);
+		}
 	}
 
-	// TODO we might want to generate a drop instruction here instead of throwing an error
+	{
+		const last_subnode = node.body[node.body.length - 1];
+		write_expression(ctx, last_subnode);
+	}
+
 	if (node.value_type === "void") {
-			// TODO write error message
 			if (ctx.stack_depth !== 0)
-					throw new Error("");
+					throw new Error(`Expected no values on the stack, but found ${ctx.stack_depth}`);
 	}
 	else if (ctx.stack_depth !== 1) {
-			// TODO write error message
-			throw new Error("");
+			throw new Error(`Expected 1 values on the stack, but found ${ctx.stack_depth}`);
 	}
 
 	ctx.writer.writeUint8(0x0B);
@@ -387,9 +411,10 @@ function write_set_local_expression(ctx: FunctionContext, node: WAST.WASTSetLoca
 	if (typeof local_id !== "number")
 		throw new Error(`Cannot find local ${node.name}`);
 	
-	write_expression(ctx, node.value);
+	const subnode = node.value;
+	write_expression(ctx, subnode);
 
-	ctx.consume_value(node.value_type);
+	ctx.consume_value(subnode.value_type);
 
 	ctx.writer.writeUint8(0x21);
 	ctx.writer.writeUVint(local_id);
@@ -413,15 +438,15 @@ class FunctionContext {
 		consume_value (type: AtiumType) {
 				const value = this.value_stack.pop();
 				if (!value)
-						throw new Error("TODO write error message");
+						throw new Error("Unable to consume value; nothing on the stack");
 				if (type !== null && value !== type)
-						throw new Error("TODO write error message");
+						throw new Error(`Unable to consume value; expected ${type} but is ${value}`);
 		}
 
 		consume_any_value() {
 				const value = this.value_stack.pop();
 				if (!value)
-						throw new Error("TODO write error message");
+						throw new Error("Unable to consume value; nothing on the stack");
 		}
 
 		push_value (type: AtiumType) {
@@ -499,6 +524,10 @@ function compress_local_variables (locals: Array<Variable>) {
 	}
 
 	return output;
+}
+
+function write_drop_instruction (writer: Writer) {
+	writer.writeUint8(0x1A);
 }
 
 function write_unbounded_limit (writer: Writer, min: number) {

@@ -1,6 +1,6 @@
 const PAGE_SIZE = 2048;
 
-function transfer_arraybuffer (source, new_length) {
+function transfer_arraybuffer (source: ArrayBuffer, new_length: number) {
     if (new_length <= source.byteLength)
         return source.slice(0, new_length);
     const sourceView = new Uint8Array(source);

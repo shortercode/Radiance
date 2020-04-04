@@ -1,10 +1,10 @@
 export default class Trie extends Map {
-    value: string
+    value: string | null
 
-    constructor (itr: Iterable<string>) {
+    constructor (itr: Iterable<string> | null) {
         super();
         this.value = null;
-        if (itr) {
+        if (itr !== null) {
             for (const sym of itr) 
                 this.add(sym);
         }
@@ -27,7 +27,7 @@ export default class Trie extends Map {
         if (key.length === 0)
             return;
 
-        const path = [];
+        const path: Array<[Trie, string]> = [];
         let node = this;
 
         for (const char of key) {
@@ -42,7 +42,7 @@ export default class Trie extends Map {
 
         // no children, remove this branch
         if (node.size === 0) {
-            const [ parent, char] = path.pop();
+            const [parent, char] = path.pop()!;
             parent.delete(char);
         }
     }

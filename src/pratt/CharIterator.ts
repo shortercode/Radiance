@@ -4,7 +4,7 @@ export default class CharIterator extends Iterator<string> {
     previousPosition: [number, number]
     currentPosition: [number, number]
 
-    constructor (str) {
+    constructor (str: string) {
         super (str);
         this.previousPosition = [0, 0];
         this.currentPosition = [0, 0];

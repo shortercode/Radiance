@@ -14,7 +14,7 @@ export default class Scanner {
     *scan (str: string, label: string): Generator<Token> {
         const source = new CharIterator(str);
         const buffer = new CharBuffer();
-        let previousToken;
+        let previousToken: Token | null = null;
 
         while (source.incomplete()) {
             let token = null;
@@ -33,37 +33,38 @@ export default class Scanner {
 
             else if (this.isWhitespace(source))
                 source.consume();
-                
+						
+						// NOTE the source is not complete, hence peek will never be null
             else
-                SyntaxError.InvalidToken(source.position(), source.peek(), label);
+                SyntaxError.InvalidToken(source.position(), source.peek()!, label);
 
             if (token)
                 yield previousToken = this.checkNewline(previousToken, token);
         }
     }
 
-    isIdentifier (source) {
+    isIdentifier (source: CharIterator) {
         const ch = source.peek();
-        return /^[_a-z]$/i.test(ch);
+        return ch === null ? false : /^[_a-z]$/i.test(ch);
     }
-    isSymbol (source) {
+    isSymbol (source: CharIterator) {
         const ch = source.peek();
-        return this.symbols.has(ch);
+        return ch === null ? false : this.symbols.has(ch);
     }
-    isNumber (source) {
+    isNumber (source: CharIterator) {
         const ch = source.peek();
-        return /^[0-9]$/.test(ch);
+        return ch === null ? false : /^[0-9]$/.test(ch);
     }
-    isString (source) {
+    isString (source: CharIterator) {
         const ch = source.peek();
         return ch === "\"";
     }
-    isWhitespace (source) {
+    isWhitespace (source: CharIterator) {
         const ch = source.peek();
-        return /^\s$/.test(ch);
+        return ch === null ? false : /^\s$/.test(ch);
     }
 
-    scanIdentifier (source, buffer) {
+    scanIdentifier (source: CharIterator, buffer: CharBuffer) {
         const start = source.position();
         for (const ch of source) {
             buffer.push(ch);
@@ -72,7 +73,7 @@ export default class Scanner {
                 return new Token("identifier", buffer.consume(), start, source.position());
         }
     }
-    scanNumber (source, buffer) {
+    scanNumber (source: CharIterator, buffer: CharBuffer) {
         const start = source.position();
         for (const ch of source) {
             buffer.push(ch);
@@ -102,7 +103,7 @@ export default class Scanner {
 
         return new Token("number", buffer.consume(), start, source.position());
     }
-    scanString (source, buffer, label) {
+    scanString (source: CharIterator, buffer: CharBuffer, label: string) {
         const start = source.position();
         source.next(); // consume quote mark
         let isTextEscaped = false;
@@ -131,7 +132,7 @@ export default class Scanner {
 
         SyntaxError.UnterminatedStringLiteral(source.position(), label);
     }
-    scanLineComment (source, buffer) {
+    scanLineComment (source: CharIterator, buffer: CharBuffer) {
         source.next();
         source.next();
         for (const ch of source) {
@@ -141,7 +142,7 @@ export default class Scanner {
             }
         }
     }
-    scanComment (source, buffer) {
+    scanComment (source: CharIterator, buffer: CharBuffer) {
         source.next();
         source.next();
         for (const ch of source) {
@@ -152,7 +153,7 @@ export default class Scanner {
             }
         }
     }
-    scanSymbol (source, buffer, label) {
+    scanSymbol (source: CharIterator, buffer: CharBuffer, label: string) {
         let trie = this.symbols;
 
         if (source.peek() === "/") {
@@ -172,7 +173,7 @@ export default class Scanner {
             if (!next) {
                 source.back();
                 if (!trie.value)
-                    SyntaxError.InvalidToken(source.position(), source.next(), label);
+                    SyntaxError.InvalidToken(source.position(), ch, label);
                 break;
             }
             
@@ -186,7 +187,7 @@ export default class Scanner {
         return new Token("symbol", value, start, source.position());
     }
 
-    checkNewline (previous, token) {
+    checkNewline (previous: Token | null, token: Token) {
         if (!previous || previous.end[0] < token.end[0])
             token.newline = true;
         return token;

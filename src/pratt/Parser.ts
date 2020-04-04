@@ -45,17 +45,17 @@ export default class Parser {
 
     // public setup functions
 
-    addStatement (label: string, fn) {
+    addStatement (label: string, fn: (tokens: Iterator<Token>) => Node) {
         const parselet = new Parselet(0, fn.bind(this));
         this.statement.set(label, parselet);
         return this;
     }
-    addPrefix (label: string, precedence, fn) {
+    addPrefix (label: string, precedence: number, fn: (tokens: Iterator<Token>) => Node) {
         const parselet = new Parselet(precedence, fn.bind(this));
         this.prefix.set(label, parselet);
         return this;
     }
-    addInfix (label: string, precedence, fn) {
+    addInfix (label: string, precedence: number, fn: (tokens: Iterator<Token>, left: Node, precedence: number) => Node) {
         const parselet = new Parselet(precedence, fn.bind(this));
         this.infix.set(label, parselet);
         return this;
@@ -80,14 +80,17 @@ export default class Parser {
             return this.createNode("module", pos, pos, stmts);
         }
 
-        const start = tokens.peek().start;
+				// NOTE the .incomplete() check above tells us there will always be a token
+        const start = tokens.peek()!.start;
         
         while ( tokens.incomplete() ) {
             const stmt = this.parseStatement(tokens);
             stmts.push(stmt);
         }
 
-        const end = tokens.previous().end;
+				// NOTE the .incomplete() check at the start tells us there will always
+				// be at least one token consumed before now
+        const end = tokens.previous()!.end;
 
         return this.createNode("module", start, end, stmts);
     }
@@ -98,7 +101,7 @@ export default class Parser {
             return parselet.parse(tokens);
         else {
             tokens.back();
-            const start = tokens.peek().start;
+            const start = tokens.peek()!.start;
             const expression = this.parseExpression(tokens); 
             const end = this.endStatement(tokens);
             const stmt = this.createNode("expression", start, end, expression);
@@ -109,12 +112,13 @@ export default class Parser {
         let parselet = this.getPrefix(tokens);
 
         if (!parselet)
-            this.throwUnexpectedToken(tokens.previous());
+            this.throwUnexpectedToken(tokens.previous()!);
 
         let left = parselet.parse(tokens, parselet.precedence);
 
         while (precedence < this.getPrecedence(tokens)) {
-            parselet = this.getInfix(tokens);
+						// NOTE getPrecedence guarentees that this will return a parselet
+            parselet = this.getInfix(tokens)!;
             left = parselet.parse(tokens, left, parselet.precedence);
         }
 
@@ -123,62 +127,62 @@ export default class Parser {
 
     // private functions
 
-    getPrefix (tokens) {
-        return this.getParselet(this.prefix, tokens.consume());
+    getPrefix (tokens: Iterator<Token>) {
+        return this.getParselet(this.prefix, tokens.consume()!);
     }
-    getInfix (tokens) {
-        return this.getParselet(this.infix, tokens.consume());
+    getInfix (tokens: Iterator<Token>) {
+        return this.getParselet(this.infix, tokens.consume()!);
     }
-    getStatement (tokens) {
-        return this.getParselet(this.statement, tokens.consume());
+    getStatement (tokens: Iterator<Token>) {
+        return this.getParselet(this.statement, tokens.consume()!);
     }
-    getPrecedence (tokens) {
+    getPrecedence (tokens: Iterator<Token>) {
         const isEnd = tokens.incomplete()
-        const parselet = isEnd ? this.getParselet(this.infix, tokens.peek()) : null;
+        const parselet = isEnd ? this.getParselet(this.infix, tokens.peek()!) : null;
         return parselet ? parselet.precedence : 0;
     }
-    getParselet (collection, token) {
+    getParselet (collection: Map<string, Parselet>, token: Token) {
         const { type, value } = token;
         return collection.get(type + ":" + value) || collection.get(type + ":");
     }
 
     // helpers for errors
 
-    throwUnexpectedToken (token) {
+    throwUnexpectedToken (token: Token): never {
         SyntaxError.UnexpectedToken(token, this.label);
     }
 
-    throwSyntaxError (ln, col, msg) {
+    throwSyntaxError (ln: number, col: number, msg: string): never {
         throw new SyntaxError(ln, col, msg, this.label);
     }
 
-    throwUnexpectedEndOfInput (tokens) {
-        const last = tokens.previous();
+    throwUnexpectedEndOfInput (tokens: Iterator<Token>): never {
+        const last = tokens.previous()!;
         SyntaxError.UnexpectedEndOfInput(last.end, this.label);
     }
 
     // helper functions for common parsing methods
 
-    binary (type): (tokens: Iterator<Token>, left: Node, precedence: number) => Node {
-        return function (tokens, left, precedence) {
+    binary (type: string): (tokens: Iterator<Token>, left: Node, precedence: number) => Node {
+        return (tokens, left, precedence) => {
             const right = this.parseExpression(tokens, precedence);
-            const end = tokens.previous().end;
+            const end = tokens.previous()!.end;
             return this.createNode(type, left.start, end, { left, right });
         }
     }
 
-    unary (type): (tokens: Iterator<Token>, precedence: number) => Node {
-        return function (tokens, precedence) {
-            const start = tokens.previous().start;
+    unary (type: string): (tokens: Iterator<Token>, precedence: number) => Node {
+        return (tokens, precedence) => {
+            const start = tokens.previous()!.start;
             const expression = this.parseExpression(tokens, precedence);
-            const end = tokens.previous().end;
+            const end = tokens.previous()!.end;
             return this.createNode(type, start, end, expression); 
         }
     }
 
-    literal (type): (tokens: Iterator<Token>) => Node {
-        return function (tokens) {
-            const token = tokens.previous();
+    literal (type: string): (tokens: Iterator<Token>) => Node {
+        return (tokens) => {
+            const token = tokens.previous()!;
             const { value, start, end } = token;
 
             return this.createNode(type, start, end, value); 
@@ -191,16 +195,28 @@ export default class Parser {
         return new Node(type, start, end, data);
     }
 
-    readLabel (label: string): [string, string] {
-        const i = label.indexOf(":");
-    
-        const type = label.slice(0, i);
-        const value = label.slice(i + 1);
-    
-        return [ type, value ];
-    }
+    readLabel (label: string): ["identifier" | "number" | "string" | "symbol", string] {
+				const i = label.indexOf(":");
 
-    match (tokens: Iterator<Token>, label): boolean {
+				const type = this.assertTokenType(label.slice(0, i));
+				const value = label.slice(i + 1);
+		
+				return [ type, value ];
+		}
+		
+		assertTokenType (type: string): "identifier" | "number" | "string" | "symbol" {
+			switch (type) {
+				case "identifier":
+				case "number":
+				case "string":
+				case "symbol":
+					return type;
+				default:
+					throw new Error(`Invalid token type ${type}`);
+			}
+		}
+
+    match (tokens: Iterator<Token>, label: string): boolean {
         const token = tokens.peek();
         const [ type, value ] = this.readLabel(label);
 
@@ -214,9 +230,9 @@ export default class Parser {
             this.throwUnexpectedEndOfInput(tokens);
 
         if (!this.match(tokens, label))
-            this.throwUnexpectedToken(tokens.peek());
+            this.throwUnexpectedToken(tokens.peek()!);
 
-        return tokens.consume().value; // always matches at least the type, so return the value ( more useful )
+        return tokens.consume()!.value; // always matches at least the type, so return the value ( more useful )
     }
 
     shouldEndStatement (tokens: Iterator<Token>): boolean {
@@ -228,13 +244,13 @@ export default class Parser {
     endStatement (tokens: Iterator<Token>): [number, number] {
         const token = tokens.peek();
         if (!token)
-            return tokens.previous().end;
+            return tokens.previous()!.end;
         if (token.match("symbol", ";")) {
             tokens.next();
             return token.end;
         }
         if (token.newline)
-            return tokens.previous().end;
+            return tokens.previous()!.end;
 
         this.throwUnexpectedToken(token);
     }

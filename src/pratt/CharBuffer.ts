@@ -60,7 +60,7 @@ export default class CharBuffer {
         // increase the index position
         this.index += size;
     }
-    back (l) {
+    back (l: number) {
         this.index -= l;
     }
     get_index (): number {

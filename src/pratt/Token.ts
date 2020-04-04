@@ -13,7 +13,7 @@ export default class Token {
         this.type = type;
         this.value = value;
     }
-    match (type, value = "") {
+    match (type: TokenType, value = "") {
         return this.type === type && ( value === "" || value === this.value);
     }
 }

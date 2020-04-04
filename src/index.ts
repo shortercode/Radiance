@@ -11,7 +11,10 @@ async function main () {
 	}
 }
 
+const { PerformanceObserver, performance } = require('perf_hooks');
+
 async function test () {
+	performance.mark("mark_1");
 	const ast = Parser.parseProgram(`
 	func add (a: f64, b: f64) -> f64 {
 			let c: f64 = a + b
@@ -26,19 +29,38 @@ async function test () {
 		add(a, a)
 	}
 
+	func noop(a: boolean) {
+		a
+	}
+
 	export sub
 	export double
+	export noop
 
 	`, "test program");
-
-	console.log("AST:");
-	console.log(JSON.stringify(ast, null, 2));
+	performance.mark("mark_2");
+	// console.log("AST:");
+	// console.log(JSON.stringify(ast, null, 2));
 	const wast = Compiler(ast);
-	console.log("WAST:");
-	console.log(JSON.stringify(wast, null, 2));
+	performance.mark("mark_3");
+	// console.log("WAST:");
+	// console.log(JSON.stringify(wast, null, 2));
 	const binary = Serializer(wast);
-	console.log("Binary:");
-	console.log(binary)
+	performance.mark("mark_4");
+
+	const obs = new PerformanceObserver((items: any) => {
+		for (const entry of items.getEntries()) {
+			console.log(`${entry.name} ${entry.duration}`);
+		}
+	});
+	obs.observe({ entryTypes: ['measure'] });
+
+	performance.measure("Parse", "mark_1", "mark_2");
+	performance.measure("Compile", "mark_2", "mark_3");
+	performance.measure("Serialise", "mark_3", "mark_4");
+	performance.measure("Overall", "mark_1", "mark_4");
+	// console.log("Binary:");
+	console.log(Buffer.from(binary).toString("hex"))
 
 	const { module, instance } = await WebAssembly.instantiate(binary);
 	

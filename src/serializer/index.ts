@@ -1,6 +1,7 @@
 import * as WAST from "../WASTNode";
 import { Writer } from "./Writer";
 import { Variable } from "../compiler/Variable";
+import { AtiumType } from "../compiler/AtiumType";
 
 /*
     Section order
@@ -66,8 +67,14 @@ export default function serialize_wast(ast: WAST.WASTModuleNode): Uint8Array {
             for (const parameter of function_node.parameters) {
                 write_value_type(writer, parameter.type);
             }
-            writer.writeUVint(1);
-            write_value_type(writer, function_node.result);
+						
+						if (function_node.result === "void") {
+								writer.writeUVint(0);
+						}
+						else {
+								writer.writeUVint(1);
+								write_value_type(writer, function_node.result);
+						}
         }
 
         finish_section_header(writer, section_offset);
@@ -172,8 +179,10 @@ export default function serialize_wast(ast: WAST.WASTModuleNode): Uint8Array {
 							function_index_map,
 							node.locals
 						);
-
-						write_expression(ctx, node.body);
+						
+						for (const subnode of node.body) {
+							write_expression(ctx, subnode);
+						}
 						writer.writeUint8(0x0B);
 						const code_block_length = writer.getCurrentOffset() - code_block_start - 5;
 						writer.changeFixedSizeUVint(code_block_start, code_block_length);
@@ -249,7 +258,7 @@ function write_sub_expression(ctx: FunctionContext, node: WAST.WASTSubNode) {
 
 function write_block_expression(ctx: FunctionContext, node: WAST.WASTBlockNode) {
 	ctx.writer.writeUint8(0x02);
-	write_block_type(ctx.writer, node.value_type);
+	write_value_type(ctx.writer, node.value_type);
 	for (const subnode of node.body) {
 		write_expression(ctx, subnode);
 	}
@@ -361,12 +370,12 @@ function write_section_header (writer: Writer, id: number) {
 
 function finish_section_header (writer: Writer, offset: number) {
 	const length = writer.getCurrentOffset() - offset - 5;
-	console.log(`finished writing section length = ${length}`)
   writer.changeFixedSizeUVint(offset, length);
 }
 
-function write_value_type (writer: Writer, type: WAST.WASTType) {
+function write_value_type (writer: Writer, type: AtiumType) {
     switch (type) {
+				case "boolean":
         case "i32":
             writer.writeUint8(0x7F);
             break;
@@ -378,24 +387,22 @@ function write_value_type (writer: Writer, type: WAST.WASTType) {
             break;
         case "f64":
             writer.writeUint8(0x7C);
-            break;
+						break;
+				case "void":
+						writer.writeUint8(0x40);
+						break;
+				default:
+						throw new Error("Invalid value type");
     }
 }
 
-function write_block_type (writer: Writer, type: WAST.WASTType | "void") {
-	if (type === "void")
-		writer.writeUint8(0x40);
-	else
-		write_value_type(writer, type);
-}
-
 function compress_local_variables (locals: Array<Variable>) {
-	const output: Array<[WAST.WASTType, number]> = [];
+	const output: Array<[AtiumType, number]> = [];
 	
 	if (locals.length === 0)
 		return output;
 
-	let last: [WAST.WASTType, number] = [
+	let last: [AtiumType, number] = [
 		locals[0].type,
 		0
 	];

@@ -1,9 +1,10 @@
 import * as WAST from "../WASTNode.js"
 import Node from "../pratt/Node.js";
-import { AtiumType, validate_atium_type, downgrade_type } from "./AtiumType.js";
+import { AtiumType, validate_atium_type, is_numeric } from "./AtiumType.js";
 import { Context } from "./Context.js";
 import { FunctionDeclaration } from "./FunctionDeclaration.js";
 import { Environment } from "./Environment.js";
+import { Variable } from "./Variable.js";
 
 /*
     This class is the second stage of the process after the parser. It performs type validation
@@ -61,10 +62,10 @@ function hoist_declaration(node: Node, ctx: Context) {
                 block: Node
             }
 
-            const parameters = data.parameters.map(param => ({
-                name: param.name,
-                type: validate_atium_type(param.type)
-            }));
+						const parameters = data.parameters.map((param, index) => {
+							const type = validate_atium_type(param.type);
+							return new Variable(type, param.name, index);
+						});
 
             ctx.declare_function(data.name, validate_atium_type(data.type), parameters);
             break;
@@ -83,27 +84,31 @@ function visit_global_statement(node: Node, ctx: Context): WAST.WASTStatementNod
             const data = node.data as {
                 name: string
                 type: AtiumType
-                parameters: Array<{ name: string, type: AtiumType }>
-                block: Node
+								body: Array<Node>
+								parameters: Array<{ name: string, type: string }>
             }
 
-            const fn_wast = new WAST.WASTFunctionNode(data.name, downgrade_type(data.type));
+						const fn_decl = ctx.globals.get(data.name);
 
-            ctx.environment = new Environment;
+						if (!fn_decl)
+								throw new Error("Cannot locate function declaration");
 
-            for (const { name, type } of data.parameters) {
-                const variable = ctx.declare_variable(name, type);
-                fn_wast.parameters.push({
-									type: downgrade_type(type),
-									id: variable.id
-								});
-            }
-        
-						const expr = visit_expression(data.block, ctx) as WAST.WASTBlockNode;
+            const fn_wast = new WAST.WASTFunctionNode(data.name, data.type);
+
+            ctx.environment = new Environment(fn_decl.parameters);
+
+            for (const variable of fn_decl.parameters) {
+                fn_wast.parameters.push(variable);
+						}
+
+						for (const node of data.body) {
+								const expr = visit_local_statement(node, ctx);
+								if (expr !== null)
+										fn_wast.body.push(expr);
+						}
+
 						const locals = ctx.environment.variables;
             ctx.environment = null;
-
-						fn_wast.body = expr;
 
 						for (const local of locals) {
 								fn_wast.locals.push(local);
@@ -115,21 +120,19 @@ function visit_global_statement(node: Node, ctx: Context): WAST.WASTStatementNod
             const data = node.data as {
                 name: string
             };
-            const fn = ctx.get_global(data.name);
+            const fn = ctx.globals.get(data.name);
 
             if (!fn)
                 throw new Error(`Cannot export ${data.name} as it is not available in the global scope`);
 
             if (fn instanceof FunctionDeclaration) {
-                for (const {name, type} of fn.parameters) {
-                    const real_type = downgrade_type(type);
-                    if (real_type === "i64") {
-                        throw new Error(`Cannot export ${data.name} because the parameter ${name} is the type "i64" which cannot be used in exported functions`);
+                for (const { name, type } of fn.parameters) {
+                    if (is_type_exportable(type) === false) {
+                        throw new Error(`Cannot export ${data.name} because the parameter ${name} is not an exportable type`);
                     }
                 }
-                const return_type = downgrade_type(fn.type);
-                if (return_type === "i64") {
-                    throw new Error(`Cannot export ${data.name} because the return type is "i64" which cannot be used in exported functions`);
+                if (is_type_exportable(fn.type) === false) {
+                    throw new Error(`Cannot export ${data.name} because the return type is not an exportable type`);
                 }
             }
             else
@@ -141,11 +144,29 @@ function visit_global_statement(node: Node, ctx: Context): WAST.WASTStatementNod
     }
 }
 
-function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode | null {
+function is_type_exportable (type: AtiumType) {
+		switch (type) {
+			case "i64":
+					return false;
+			case "boolean":
+			case "i32":
+			case "f32":
+			case "f64":
+			case "void":
+					return true;
+			default:
+					throw new Error("Invalid value type");
+		}
+}
+
+function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
     switch (node.type) {
         case "block": {
             const wast_block = new WAST.WASTBlockNode;
-            const statements = node.data as Array<Node>;
+						const statements = node.data as Array<Node>;
+						
+						ctx.environment!.push_frame();
+
             for (const stmt of statements) {
                 const result = visit_local_statement(stmt, ctx);
                 if (result !== null)
@@ -153,6 +174,8 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode | n
 						}
 
 						const last = wast_block.body[wast_block.body.length - 1];
+
+						ctx.environment!.pop_frame();
 
 						if (last) {
 							wast_block.value_type = last.value_type;
@@ -178,16 +201,19 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode | n
 					}
 
 					const function_name = value.callee.data as string;
-					const fn = ctx.get_global(function_name);
+					const fn = ctx.globals.get(function_name);
 
 					if (!fn) {
 						throw new Error(`Undefined function ${function_name}`);
 					}
 					const args: Array<WAST.WASTExpressionNode> = [];
 
+					// TODO check params vs arguments here!
+
 					for (const arg of value.arguments) {
-						const expr = visit_expression(arg, ctx);
-						args.push(expr);
+							const expr = visit_expression(arg, ctx);
+							if (expr !== null)
+									args.push(expr);
 					}
 
 					return new WAST.WASTCallNode(function_name, fn.type, args)
@@ -206,28 +232,45 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode | n
         }
         case "identifier": {
             const name = node.data as string;
-            const variable = ctx.get_local(name);
-            // TODO validate type checks!
+						const variable = ctx.get_variable(name);
+						if (!variable)
+								throw new Error(`Undefined variable ${name}`);
             return new WAST.WASTGetLocalNode(variable.id, name, variable.type);
         }
         case "+": {
             const data = node.data as {
                 left: Node
                 right: Node
-            };
+						};
+						
             const left = visit_expression(data.left, ctx);
-            const right = visit_expression(data.right, ctx);
-            return new WAST.WASTAddNode("f64", left, right);
+						const right = visit_expression(data.right, ctx);
+						
+						if (left.value_type !== right.value_type)
+							throw new Error(`Mismatched operand types for operation "+" ${left.value_type} + ${right.value_type}`);
+						
+						if (is_numeric(left.value_type) === false)
+							throw new Error(`Unable to perform operation "+" on non-numeric type`);
+
+						return new WAST.WASTAddNode(left.value_type, left, right);
 				}
 				case "-": {
 					const data = node.data as {
 							left: Node
 							right: Node
 					};
+
 					const left = visit_expression(data.left, ctx);
 					const right = visit_expression(data.right, ctx);
-					return new WAST.WASTSubNode("f64", left, right);
-			}
+					
+					if (left.value_type !== right.value_type)
+						throw new Error(`Mismatched operand types for operation "-" ${left.value_type} + ${right.value_type}`);
+					
+					if (is_numeric(left.value_type) === false)
+						throw new Error(`Unable to perform operation "-" on non-numeric type`);
+
+					return new WAST.WASTSubNode(left.value_type, left, right);
+				}
 
         default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected an expression`);;
     }
@@ -247,7 +290,7 @@ function visit_local_statement(node: Node, ctx: Context): WAST.WASTExpressionNod
             const variable = ctx.declare_variable(data.name, type);
 						const value = visit_expression(data.initial, ctx);
 						
-						if (value.value_type !== downgrade_type(type))
+						if (value.value_type !== type)
 							throw new Error("Initialiser type doesn't match variable type");
 						
             return new WAST.WASTSetLocalNode(variable.id, data.name, value, value.value_type);

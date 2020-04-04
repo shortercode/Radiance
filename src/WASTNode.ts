@@ -1,4 +1,5 @@
 import { Variable } from "./compiler/Variable";
+import { AtiumType } from "./compiler/AtiumType";
 
 export interface WASTNode {
     type: string
@@ -18,8 +19,6 @@ export type WASTExpressionNode = WASTBlockNode |
 export type WASTStatementNode = WASTExportNode |
     WASTFunctionNode |
     WASTMemoryNode;
-
-export type WASTType = "f32" | "f64" | "i32" | "i64";
 
 export class WASTModuleNode implements WASTNode {
     type: "module" = "module"
@@ -48,11 +47,11 @@ export class WASTFunctionNode implements WASTNode {
 
     name: string
     parameters: Array<Variable> = []
-    result: WASTType
-		body: WASTBlockNode = new WASTBlockNode
+    result: AtiumType
+		body: Array<WASTExpressionNode> = []
 		locals: Array<Variable> = []
 
-    constructor (name: string, result: WASTType) {
+    constructor (name: string, result: AtiumType) {
         this.name = name;
 				this.result = result;
     }
@@ -72,7 +71,7 @@ export class WASTMemoryNode implements WASTNode {
 
 export class WASTBlockNode implements WASTNode {
 		type: "block" = "block"
-		value_type: WASTType | "void"
+		value_type: AtiumType = "void"
 
     body: Array<WASTExpressionNode> = []
 }
@@ -80,10 +79,10 @@ export class WASTBlockNode implements WASTNode {
 export class WASTConstNode implements WASTNode {
     type: "const" = "const"
 
-    value_type: WASTType
+    value_type: AtiumType
     value: string
 
-    constructor (type: WASTType, value: string) {
+    constructor (type: AtiumType, value: string) {
         if (isNaN(parseFloat(value)))
             throw new Error(`Constant must be a valid numeric value`);
 
@@ -95,11 +94,11 @@ export class WASTConstNode implements WASTNode {
 export class WASTAddNode implements WASTNode {
     type: "add" = "add"
 
-    value_type: WASTType
+    value_type: AtiumType
     left: WASTExpressionNode
     right: WASTExpressionNode
 
-    constructor (type: WASTType, left: WASTExpressionNode, right: WASTExpressionNode) {
+    constructor (type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
         this.value_type = type;
         this.left = left;
         this.right = right;
@@ -109,11 +108,11 @@ export class WASTAddNode implements WASTNode {
 export class WASTSubNode implements WASTNode {
 	type: "sub" = "sub"
 
-	value_type: WASTType
+	value_type: AtiumType
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 
-	constructor (type: WASTType, left: WASTExpressionNode, right: WASTExpressionNode) {
+	constructor (type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
 			this.value_type = type;
 			this.left = left;
 			this.right = right;
@@ -123,11 +122,11 @@ export class WASTSubNode implements WASTNode {
 export class WASTMultiplyNode implements WASTNode {
     type: "multiply" = "multiply"
 
-    value_type: WASTType
+    value_type: AtiumType
     left: WASTExpressionNode
     right: WASTExpressionNode
 
-    constructor (type: WASTType, left: WASTExpressionNode, right: WASTExpressionNode) {
+    constructor (type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
         this.value_type = type;
         this.left = left;
         this.right = right;
@@ -136,12 +135,12 @@ export class WASTMultiplyNode implements WASTNode {
 
 export class WASTGetLocalNode implements WASTNode {
 		type: "get_local" = "get_local"
-		value_type: WASTType
+		value_type: AtiumType
 
 		id: number
 		name: string
 
-    constructor (id: number, name: string, type: WASTType) { 
+    constructor (id: number, name: string, type: AtiumType) { 
 				this.id = id;
 				this.name = name;
 				this.value_type = type;
@@ -150,13 +149,13 @@ export class WASTGetLocalNode implements WASTNode {
 
 export class WASTSetLocalNode implements WASTNode {
 		type: "set_local" = "set_local"
-		value_type: WASTType
+		value_type: AtiumType
 
 		id: number
 		name: string
     value: WASTExpressionNode
 
-    constructor (id: number, name: string, value: WASTExpressionNode, type: WASTType) {
+    constructor (id: number, name: string, value: WASTExpressionNode, type: AtiumType) {
 				this.id = id;	
 				this.name = name;
 				this.value = value;
@@ -167,10 +166,10 @@ export class WASTSetLocalNode implements WASTNode {
 export class WASTLoadNode implements WASTNode {
     type: "load" = "load"
 
-    value_type: WASTType
+    value_type: AtiumType
     location: WASTExpressionNode
 
-    constructor (type: WASTType, location: WASTExpressionNode) {
+    constructor (type: AtiumType, location: WASTExpressionNode) {
         this.value_type = type;
         this.location = location;
     }
@@ -179,11 +178,11 @@ export class WASTLoadNode implements WASTNode {
 export class WASTStoreNode implements WASTNode {
     type: "store" = "store"
 
-    value_type: WASTType
+    value_type: AtiumType
     location: WASTExpressionNode
     value: WASTExpressionNode
 
-    constructor (type: WASTType, location: WASTExpressionNode, value: WASTExpressionNode) {
+    constructor (type: AtiumType, location: WASTExpressionNode, value: WASTExpressionNode) {
         this.value_type = type;
         this.location = location;
         this.value = value;
@@ -193,11 +192,11 @@ export class WASTStoreNode implements WASTNode {
 export class WASTCallNode implements WASTNode {
     type: "call" = "call"
 
-		value_type: WASTType | "void"
+		value_type: AtiumType
     name: string
     arguments: Array<WASTExpressionNode>
 
-    constructor (name: string, type: WASTType, args: Array<WASTExpressionNode>) {
+    constructor (name: string, type: AtiumType, args: Array<WASTExpressionNode>) {
 				this.name = name;
 				this.value_type = type;
 				this.arguments = args;

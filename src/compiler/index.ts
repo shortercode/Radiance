@@ -218,6 +218,32 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 
 					return new WAST.WASTCallNode(function_name, fn.type, args)
 				}
+				case "if": {
+						const value = node.data as {
+							condition: Node
+							thenBranch: Node
+							elseBranch: Node | null
+						};
+
+						let condition = visit_expression(value.condition, ctx);
+
+						if (condition.value_type !== "boolean") {
+							condition = wrap_boolean_cast(condition);
+						}
+
+						const then_branch = visit_expression(value.thenBranch, ctx) as WAST.WASTBlockNode;
+						let value_type = then_branch.value_type;
+						let else_branch = null;
+
+						if (value.elseBranch !== null) {
+							else_branch = visit_expression(value.elseBranch, ctx) as WAST.WASTBlockNode;
+							if (else_branch.value_type !== value_type) {
+								value_type = "void";
+							}
+						}
+
+						return new WAST.WASTConditionalNode(value_type, condition, then_branch, else_branch);
+				}
         case "boolean": {
             const value = node.data as string;
             if (value === "false") {
@@ -297,4 +323,20 @@ function visit_local_statement(node: Node, ctx: Context): WAST.WASTExpressionNod
         }
         default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected a statement`);
     }
+}
+
+function wrap_boolean_cast(expr: WAST.WASTExpressionNode): WAST.WASTExpressionNode {
+	switch (expr.value_type) {
+		case "i64":
+		case "i32":
+		case "f32":
+		case "f64":
+			const zero = new WAST.WASTConstNode(expr.value_type, "0");
+			return new WAST.WASTEqualsNode(zero, expr);
+		case "boolean":
+			return expr;
+		case "void":
+		default:
+			throw new Error(`Unable to cast ${expr.value_type} to boolean value`);
+	}
 }

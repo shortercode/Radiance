@@ -14,7 +14,9 @@ export type WASTExpressionNode = WASTBlockNode |
     WASTSetLocalNode |
     WASTLoadNode |
     WASTStoreNode |
-    WASTCallNode;
+		WASTCallNode |
+		WASTConditionalNode |
+		WASTEqualsNode;
 
 export type WASTStatementNode = WASTExportNode |
     WASTFunctionNode |
@@ -74,6 +76,20 @@ export class WASTBlockNode implements WASTNode {
 		value_type: AtiumType = "void"
 
     body: Array<WASTExpressionNode> = []
+}
+
+export class WASTEqualsNode implements WASTNode {
+		type: "equals" = "equals"
+
+		value_type: AtiumType
+		left: WASTExpressionNode
+		right: WASTExpressionNode
+		
+		constructor (left: WASTExpressionNode, right: WASTExpressionNode) {
+			this.value_type = left.value_type;
+			this.left = left;
+			this.right = right;
+		}
 }
 
 export class WASTConstNode implements WASTNode {
@@ -201,4 +217,20 @@ export class WASTCallNode implements WASTNode {
 				this.value_type = type;
 				this.arguments = args;
     }
+}
+
+export class WASTConditionalNode implements WASTNode {
+		type: "if" = "if"
+
+		value_type: AtiumType
+		condition: WASTExpressionNode
+		then_branch: WASTBlockNode
+		else_branch: WASTBlockNode | null
+
+		constructor(type: AtiumType, condition: WASTExpressionNode, then_branch: WASTBlockNode, else_branch: WASTBlockNode | null) {
+			this.value_type = type;
+			this.condition = condition;
+			this.then_branch = then_branch;
+			this.else_branch = else_branch;
+		}
 }

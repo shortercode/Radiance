@@ -237,10 +237,63 @@ function write_expression(ctx: FunctionContext, node: WAST.WASTExpressionNode) {
 				return write_multiply_expression(ctx, node);
 			case "set_local":
 				return write_set_local_expression(ctx, node);
+			case "if":
+				return write_conditional_expression(ctx, node);
+			case "equals":
+				return write_equals_expression(ctx, node);
 			case "store":
 			case "load":
 				throw new Error("Not implemented");
 		}
+}
+
+function write_conditional_expression(ctx: FunctionContext, node: WAST.WASTConditionalNode) {
+	write_expression(ctx, node.condition)
+	ctx.consume_value("boolean");
+	ctx.writer.writeUint8(0x04);
+	write_value_type(ctx.writer, node.value_type);
+	write_expression(ctx, node.then_branch);
+
+	const does_emit_value = node.value_type !== "void";
+	if (does_emit_value) {
+		ctx.consume_value(node.value_type);
+	}
+	if (node.else_branch !== null) {
+		ctx.writer.writeUint8(0x05);
+		write_expression(ctx, node.else_branch);
+		if (does_emit_value) {
+			ctx.consume_value(node.value_type);
+		}
+	}
+	ctx.writer.writeUint8(0x0B);
+	if (does_emit_value) {
+		ctx.push_value(node.value_type);
+	}
+}
+
+function write_equals_expression(ctx: FunctionContext, node: WAST.WASTEqualsNode) {
+	write_expression(ctx, node.left);
+	write_expression(ctx, node.right);
+
+	ctx.consume_value(node.value_type);
+	ctx.consume_value(node.value_type);
+	ctx.push_value("boolean");
+
+	switch (node.value_type) {
+		case "f32":
+			ctx.writer.writeUint8(0x5B);
+			break;
+		case "f64":
+			ctx.writer.writeUint8(0x61);
+			break;
+		case "boolean":
+		case "i32":
+			ctx.writer.writeUint8(0x46);
+			break;
+		case "i64":
+			ctx.writer.writeUint8(0x51);
+			break;
+	}
 }
 
 function write_add_expression(ctx: FunctionContext, node: WAST.WASTAddNode) {
@@ -291,16 +344,18 @@ function write_sub_expression(ctx: FunctionContext, node: WAST.WASTSubNode) {
 	}
 }
 
-function write_block_expression(ctx: FunctionContext, node: WAST.WASTBlockNode) {
+function write_block_expression(ctx: FunctionContext, block_node: WAST.WASTBlockNode) {
 
-	if (node.body.length === 0)
+	const block_statements = block_node.body;
+
+	if (block_statements.length === 0)
 		return;
 
 	ctx.writer.writeUint8(0x02);
-	write_value_type(ctx.writer, node.value_type);
+	write_value_type(ctx.writer, block_node.value_type);
 
-	for (let i = 0; i < node.body.length - 1; i++) {
-		const subnode = node.body[i];
+	for (let i = 0; i < block_statements.length - 1; i++) {
+		const subnode = block_statements[i];
 		write_expression(ctx, subnode);
 		if (subnode.value_type !== "void") {
 			ctx.consume_any_value();
@@ -309,11 +364,17 @@ function write_block_expression(ctx: FunctionContext, node: WAST.WASTBlockNode) 
 	}
 
 	{
-		const last_subnode = node.body[node.body.length - 1];
+		const last_subnode = block_statements[block_statements.length - 1];
 		write_expression(ctx, last_subnode);
+		const has_value = last_subnode.value_type !== "void";
+		const does_not_emit_value = block_node.value_type === "void"
+		if (has_value && does_not_emit_value) {
+			ctx.consume_value(last_subnode.value_type);
+			write_drop_instruction(ctx.writer);
+		}
 	}
 
-	if (node.value_type === "void") {
+	if (block_node.value_type === "void") {
 			if (ctx.stack_depth !== 0)
 					throw new Error(`Expected no values on the stack, but found ${ctx.stack_depth}`);
 	}
@@ -354,7 +415,7 @@ function write_const_expression(ctx: FunctionContext, node: WAST.WASTConstNode) 
 			break;
 		case "f64":
 			ctx.writer.writeUint8(0x44);
-			ctx.writer.writeFloat32(parseFloat(node.value));
+			ctx.writer.writeFloat64(parseFloat(node.value));
 			break;
 		case "i32":
 			ctx.writer.writeUint8(0x41);

@@ -21,6 +21,21 @@ async function test () {
 			c
 	}
 
+	func is_zero (a: f64) -> boolean {
+		if a {
+			false
+		}
+		else {
+			true
+		}
+	}
+
+	func dumb_conditional () {
+		if true {
+			{}
+		}
+	}
+
 	func sub (a: f64, b: f64) -> f64 {
 		{
 			a

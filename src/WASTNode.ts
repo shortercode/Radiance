@@ -2,35 +2,65 @@ import { Variable } from "./compiler/Variable";
 import { AtiumType } from "./compiler/AtiumType";
 
 export interface WASTNode {
-    type: string
+  type: WASTNodeType
 }
 
 export type WASTExpressionNode = WASTBlockNode | 
-    WASTConstNode |
-		WASTAddNode |
-		WASTSubNode |
-    WASTMultiplyNode |
-    WASTGetLocalNode |
-    WASTSetLocalNode |
-    WASTLoadNode |
-    WASTStoreNode |
-		WASTCallNode |
-		WASTConditionalNode |
-		WASTEqualsNode |
-		WASTNotEqualsNode |
-		WASTLessThanEqualsNode |
-		WASTGreaterThanEqualsNode |
-		WASTLessThanNode | 
-		WASTGreaterThanNode;
+	WASTConstNode |
+	WASTGetLocalNode |
+	WASTSetLocalNode |
+	WASTLoadNode |
+	WASTStoreNode |
+	WASTCallNode |
+	WASTConditionalNode |
+	WASTBinaryExpressionNode;
+
+export type WASTBinaryExpressionNode = WASTEqualsNode |
+	WASTNotEqualsNode |
+	WASTLessThanEqualsNode |
+	WASTGreaterThanEqualsNode |
+	WASTLessThanNode | 
+	WASTGreaterThanNode |
+	WASTAddNode |
+	WASTSubNode |
+	WASTMultiplyNode;
+
+export type WASTNodeType = WASTStatementType | 
+	WASTExpressionType |
+	"module";
+
+export type WASTStatementType = "function" | 
+	"memory" |
+	"export";
+
+export type WASTExpressionType = WASTBinaryExpressionType |
+	"block" |
+	"const" |
+	"get_local" |
+	"set_local" |
+	"load" |
+	"store" |
+	"if" |
+	"call";
+	
+export type WASTBinaryExpressionType = "equals" |
+	"not_equals" |
+	"less_than" |
+	"less_than_equals" |
+	"greater_than" |
+	"greater_than_equals" |
+	"add" |
+	"sub" |
+	"multiply";
 
 export type WASTStatementNode = WASTExportNode |
-    WASTFunctionNode |
-    WASTMemoryNode;
+  WASTFunctionNode |
+	WASTMemoryNode;
 
 export class WASTModuleNode implements WASTNode {
-    type: "module" = "module"
+	type: "module" = "module"
 
-    statements: Array<WASTStatementNode> = []
+	statements: Array<WASTStatementNode> = []
 }
 
 type ExportType = "function" | "table" | "memory" | "global";

@@ -2,6 +2,7 @@ import * as WAST from "../WASTNode";
 import { Writer } from "./Writer";
 import { Variable } from "../compiler/Variable";
 import { AtiumType } from "../compiler/AtiumType";
+import { Opcode } from "./OpCode";
 
 /*
     Section order
@@ -208,7 +209,7 @@ export default function serialize_wast(ast: WAST.WASTModuleNode): Uint8Array {
 						if (ctx.stack_depth !== required_stack_depth)
 								throw new Error(`Expected ${required_stack_depth} values on the stack but only ${ctx.stack_depth} are present`);
 
-						writer.writeUint8(0x0B);
+						writer.writeUint8(Opcode.end);
 						const code_block_length = writer.getCurrentOffset() - code_block_start - 5;
 						writer.changeFixedSizeUVint(code_block_start, code_block_length);
 				}
@@ -241,6 +242,16 @@ function write_expression(ctx: FunctionContext, node: WAST.WASTExpressionNode) {
 				return write_conditional_expression(ctx, node);
 			case "equals":
 				return write_equals_expression(ctx, node);
+			case "not_equals":
+				return write_not_equals_expression(ctx, node);
+			case "less_than":
+				return write_less_than_expression(ctx, node);
+			case "less_than_equals":
+				return write_less_than_equals_expression(ctx, node);
+			case "greater_than":
+				return write_greater_than_expression(ctx, node);
+			case "greater_than_equals":
+				return write_greater_than_equals_expression(ctx, node);
 			case "store":
 			case "load":
 				throw new Error("Not implemented");
@@ -250,7 +261,7 @@ function write_expression(ctx: FunctionContext, node: WAST.WASTExpressionNode) {
 function write_conditional_expression(ctx: FunctionContext, node: WAST.WASTConditionalNode) {
 	write_expression(ctx, node.condition)
 	ctx.consume_value("boolean");
-	ctx.writer.writeUint8(0x04);
+	ctx.writer.writeUint8(Opcode.if);
 	write_value_type(ctx.writer, node.value_type);
 	write_expression(ctx, node.then_branch);
 
@@ -259,13 +270,13 @@ function write_conditional_expression(ctx: FunctionContext, node: WAST.WASTCondi
 		ctx.consume_value(node.value_type);
 	}
 	if (node.else_branch !== null) {
-		ctx.writer.writeUint8(0x05);
+		ctx.writer.writeUint8(Opcode.else);
 		write_expression(ctx, node.else_branch);
 		if (does_emit_value) {
 			ctx.consume_value(node.value_type);
 		}
 	}
-	ctx.writer.writeUint8(0x0B);
+	ctx.writer.writeUint8(Opcode.end);
 	if (does_emit_value) {
 		ctx.push_value(node.value_type);
 	}
@@ -281,17 +292,142 @@ function write_equals_expression(ctx: FunctionContext, node: WAST.WASTEqualsNode
 
 	switch (node.value_type) {
 		case "f32":
-			ctx.writer.writeUint8(0x5B);
+			ctx.writer.writeUint8(Opcode.f32_eq);
 			break;
 		case "f64":
-			ctx.writer.writeUint8(0x61);
+			ctx.writer.writeUint8(Opcode.f64_eq);
 			break;
 		case "boolean":
 		case "i32":
-			ctx.writer.writeUint8(0x46);
+			ctx.writer.writeUint8(Opcode.i32_eq);
 			break;
 		case "i64":
-			ctx.writer.writeUint8(0x51);
+			ctx.writer.writeUint8(Opcode.i64_eq);
+			break;
+	}
+}
+
+function write_not_equals_expression(ctx: FunctionContext, node: WAST.WASTNotEqualsNode) {
+	write_expression(ctx, node.left);
+	write_expression(ctx, node.right);
+
+	ctx.consume_value(node.value_type);
+	ctx.consume_value(node.value_type);
+	ctx.push_value("boolean");
+
+	switch (node.value_type) {
+		case "f32":
+			ctx.writer.writeUint8(Opcode.f32_ne);
+			break;
+		case "f64":
+			ctx.writer.writeUint8(Opcode.f64_ne);
+			break;
+		case "boolean":
+		case "i32":
+			ctx.writer.writeUint8(Opcode.i32_ne);
+			break;
+		case "i64":
+			ctx.writer.writeUint8(Opcode.i64_ne);
+			break;
+	}
+}
+
+function write_less_than_expression(ctx: FunctionContext, node: WAST.WASTLessThanNode) {
+	write_expression(ctx, node.left);
+	write_expression(ctx, node.right);
+
+	ctx.consume_value(node.value_type);
+	ctx.consume_value(node.value_type);
+	ctx.push_value("boolean");
+
+	switch (node.value_type) {
+		case "f32":
+			ctx.writer.writeUint8(Opcode.f32_lt);
+			break;
+		case "f64":
+			ctx.writer.writeUint8(Opcode.f64_lt);
+			break;
+		case "boolean":
+		case "i32":
+			ctx.writer.writeUint8(Opcode.i32_lt_s);
+			break;
+		case "i64":
+			ctx.writer.writeUint8(Opcode.i64_lt_s);
+			break;
+	}
+}
+
+function write_greater_than_expression(ctx: FunctionContext, node: WAST.WASTGreaterThanNode) {
+	write_expression(ctx, node.left);
+	write_expression(ctx, node.right);
+
+	ctx.consume_value(node.value_type);
+	ctx.consume_value(node.value_type);
+	ctx.push_value("boolean");
+
+	switch (node.value_type) {
+		case "f32":
+			ctx.writer.writeUint8(Opcode.f32_gt);
+			break;
+		case "f64":
+			ctx.writer.writeUint8(Opcode.f64_gt);
+			break;
+		case "boolean":
+		case "i32":
+			ctx.writer.writeUint8(Opcode.i32_gt_s);
+			break;
+		case "i64":
+			ctx.writer.writeUint8(Opcode.i64_gt_s);
+			break;
+	}
+}
+
+function write_less_than_equals_expression(ctx: FunctionContext, node: WAST.WASTLessThanEqualsNode) {
+	write_expression(ctx, node.left);
+	write_expression(ctx, node.right);
+
+	ctx.consume_value(node.value_type);
+	ctx.consume_value(node.value_type);
+	ctx.push_value("boolean");
+
+	switch (node.value_type) {
+		case "f32":
+			ctx.writer.writeUint8(Opcode.f32_le);
+			break;
+		case "f64":
+			ctx.writer.writeUint8(Opcode.f64_le);
+			break;
+		case "boolean":
+		case "i32":
+			ctx.writer.writeUint8(Opcode.i32_le_s);
+			break;
+		case "i64":
+			ctx.writer.writeUint8(Opcode.i64_le_s);
+			break;
+	}
+}
+
+function write_greater_than_equals_expression(ctx: FunctionContext, node: WAST.WASTGreaterThanEqualsNode) {
+	write_expression(ctx, node.left);
+	write_expression(ctx, node.right);
+
+	ctx.consume_value(node.value_type);
+	ctx.consume_value(node.value_type);
+	ctx.push_value("boolean");
+
+	switch (node.value_type) {
+		case "f32":
+			ctx.writer.writeUint8(Opcode.f32_ge);
+			break;
+		case "f64":
+			ctx.writer.writeUint8(Opcode.f64_ge);
+			break;
+		case "boolean":
+		case "i32":
+			ctx.writer.writeUint8(Opcode.i32_ge_s);
+			break;
+		case "i64":
+			ctx.writer.writeUint8(Opcode.i64_ge_s);
 			break;
 	}
 }
@@ -306,16 +442,16 @@ function write_add_expression(ctx: FunctionContext, node: WAST.WASTAddNode) {
 
 	switch (node.value_type) {
 		case "f32":
-			ctx.writer.writeUint8(0x92);
+			ctx.writer.writeUint8(Opcode.f32_add);
 			break;
 		case "f64":
-			ctx.writer.writeUint8(0xA0);
+			ctx.writer.writeUint8(Opcode.f64_add);
 			break;
 		case "i32":
-			ctx.writer.writeUint8(0x6A);
+			ctx.writer.writeUint8(Opcode.i32_add);
 			break;
 		case "i64":
-			ctx.writer.writeUint8(0x7C);
+			ctx.writer.writeUint8(Opcode.i64_add);
 			break;
 	}
 }
@@ -330,16 +466,16 @@ function write_sub_expression(ctx: FunctionContext, node: WAST.WASTSubNode) {
 
 	switch (node.value_type) {
 		case "f32":
-			ctx.writer.writeUint8(0x93);
+			ctx.writer.writeUint8(Opcode.f32_sub);
 			break;
 		case "f64":
-			ctx.writer.writeUint8(0xA1);
+			ctx.writer.writeUint8(Opcode.f64_sub);
 			break;
 		case "i32":
-			ctx.writer.writeUint8(0x6B);
+			ctx.writer.writeUint8(Opcode.i32_sub);
 			break;
 		case "i64":
-			ctx.writer.writeUint8(0x7D);
+			ctx.writer.writeUint8(Opcode.i64_sub);
 			break;
 	}
 }
@@ -351,7 +487,7 @@ function write_block_expression(ctx: FunctionContext, block_node: WAST.WASTBlock
 	if (block_statements.length === 0)
 		return;
 
-	ctx.writer.writeUint8(0x02);
+	ctx.writer.writeUint8(Opcode.block);
 	write_value_type(ctx.writer, block_node.value_type);
 
 	for (let i = 0; i < block_statements.length - 1; i++) {
@@ -382,7 +518,7 @@ function write_block_expression(ctx: FunctionContext, block_node: WAST.WASTBlock
 			throw new Error(`Expected 1 values on the stack, but found ${ctx.stack_depth}`);
 	}
 
-	ctx.writer.writeUint8(0x0B);
+	ctx.writer.writeUint8(Opcode.end);
 }
 
 function write_call_expression(ctx: FunctionContext, node: WAST.WASTCallNode) {
@@ -400,7 +536,7 @@ function write_call_expression(ctx: FunctionContext, node: WAST.WASTCallNode) {
 			ctx.push_value(node.value_type);
 	}
 
-	ctx.writer.writeUint8(0x10);
+	ctx.writer.writeUint8(Opcode.call);
 	ctx.writer.writeUVint(function_id);
 }
 
@@ -410,19 +546,19 @@ function write_const_expression(ctx: FunctionContext, node: WAST.WASTConstNode) 
 
 	switch (node.value_type) {
 		case "f32":
-			ctx.writer.writeUint8(0x43);
+			ctx.writer.writeUint8(Opcode.f32_const);
 			ctx.writer.writeFloat32(parseFloat(node.value));
 			break;
 		case "f64":
-			ctx.writer.writeUint8(0x44);
+			ctx.writer.writeUint8(Opcode.f64_const);
 			ctx.writer.writeFloat64(parseFloat(node.value));
 			break;
 		case "i32":
-			ctx.writer.writeUint8(0x41);
+			ctx.writer.writeUint8(Opcode.i32_const);
 			ctx.writer.writeUVint(parseInt(node.value, 10));
 			break;
 		case "i64":
-			ctx.writer.writeUint8(0x42);
+			ctx.writer.writeUint8(Opcode.i64_const);
 			// WARN node.value may not fit into a JS number literal!
 			// which would cause this to input the wrong number
 			ctx.writer.writeUVint(parseInt(node.value, 10));
@@ -438,7 +574,7 @@ function write_get_local_expression(ctx: FunctionContext, node: WAST.WASTGetLoca
 
 	ctx.push_value(node.value_type);
 	
-	ctx.writer.writeUint8(0x20);
+	ctx.writer.writeUint8(Opcode.local_get);
 	ctx.writer.writeUVint(local_id);
 }
 
@@ -452,16 +588,16 @@ function write_multiply_expression(ctx: FunctionContext, node: WAST.WASTMultiply
 
 	switch (node.value_type) {
 		case "f32":
-			ctx.writer.writeUint8(0x94);
+			ctx.writer.writeUint8(Opcode.f32_mul);
 			break;
 		case "f64":
-			ctx.writer.writeUint8(0xA2);
+			ctx.writer.writeUint8(Opcode.f64_mul);
 			break;
 		case "i32":
-			ctx.writer.writeUint8(0x6C);
+			ctx.writer.writeUint8(Opcode.i32_mul);
 			break;
 		case "i64":
-			ctx.writer.writeUint8(0x7E);
+			ctx.writer.writeUint8(Opcode.i64_mul);
 			break;
 	}
 }
@@ -477,8 +613,12 @@ function write_set_local_expression(ctx: FunctionContext, node: WAST.WASTSetLoca
 
 	ctx.consume_value(subnode.value_type);
 
-	ctx.writer.writeUint8(0x21);
+	ctx.writer.writeUint8(Opcode.local_set);
 	ctx.writer.writeUVint(local_id);
+}
+
+function write_drop_instruction (writer: Writer) {
+	writer.writeUint8(Opcode.drop);
 }
 
 class FunctionContext {
@@ -585,10 +725,6 @@ function compress_local_variables (locals: Array<Variable>) {
 	}
 
 	return output;
-}
-
-function write_drop_instruction (writer: Writer) {
-	writer.writeUint8(0x1A);
 }
 
 function write_unbounded_limit (writer: Writer, min: number) {

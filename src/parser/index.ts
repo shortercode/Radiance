@@ -20,6 +20,12 @@ class AtiumParser extends Parser {
 
 				this.addInfix("symbol:+", 1, this.binary("+"));
 				this.addInfix("symbol:-", 1, this.binary("-"));
+				this.addInfix("symbol:==", 1, this.binary("=="));
+				this.addInfix("symbol:!=", 1, this.binary("!="));
+				this.addInfix("symbol:<", 1, this.binary("<"));
+				this.addInfix("symbol:>", 1, this.binary(">"));
+				this.addInfix("symbol:<=", 1, this.binary("<="));
+				this.addInfix("symbol:>=", 1, this.binary(">="));
 				this.addInfix("symbol:(", 1, this.parseCallExpression);
 				this.addPrefix("identifier:if", 1, this.parseIfExpression);
 				this.addPrefix("symbol:{", 1, this.parseBlockExpression);

@@ -262,7 +262,109 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 						if (!variable)
 								throw new Error(`Undefined variable ${name}`);
             return new WAST.WASTGetLocalNode(variable.id, name, variable.type);
-        }
+				}
+				case "==": {
+					const data = node.data as {
+							left: Node
+							right: Node
+					};
+
+					const left = visit_expression(data.left, ctx);
+					const right = visit_expression(data.right, ctx);
+					
+					if (left.value_type !== right.value_type)
+						throw new Error(`Mismatched operand types for operation "==" ${left.value_type} == ${right.value_type}`);
+					
+					if (is_numeric(left.value_type) === false)
+						throw new Error(`Unable to perform operation "==" on non-numeric type`);
+
+					return new WAST.WASTEqualsNode(left, right);
+				}
+				case "!=": {
+					const data = node.data as {
+							left: Node
+							right: Node
+					};
+
+					const left = visit_expression(data.left, ctx);
+					const right = visit_expression(data.right, ctx);
+					
+					if (left.value_type !== right.value_type)
+						throw new Error(`Mismatched operand types for operation "==" ${left.value_type} == ${right.value_type}`);
+					
+					if (is_numeric(left.value_type) === false)
+						throw new Error(`Unable to perform operation "==" on non-numeric type`);
+
+					return new WAST.WASTNotEqualsNode(left, right);
+				}
+				case "<": {
+					const data = node.data as {
+							left: Node
+							right: Node
+					};
+
+					const left = visit_expression(data.left, ctx);
+					const right = visit_expression(data.right, ctx);
+					
+					if (left.value_type !== right.value_type)
+						throw new Error(`Mismatched operand types for operation "==" ${left.value_type} == ${right.value_type}`);
+					
+					if (is_numeric(left.value_type) === false)
+						throw new Error(`Unable to perform operation "==" on non-numeric type`);
+
+					return new WAST.WASTLessThanNode(left, right);
+				}
+				case ">": {
+					const data = node.data as {
+							left: Node
+							right: Node
+					};
+
+					const left = visit_expression(data.left, ctx);
+					const right = visit_expression(data.right, ctx);
+					
+					if (left.value_type !== right.value_type)
+						throw new Error(`Mismatched operand types for operation "==" ${left.value_type} == ${right.value_type}`);
+					
+					if (is_numeric(left.value_type) === false)
+						throw new Error(`Unable to perform operation "==" on non-numeric type`);
+
+					return new WAST.WASTGreaterThanNode(left, right);
+				}
+				case "<=": {
+					const data = node.data as {
+							left: Node
+							right: Node
+					};
+
+					const left = visit_expression(data.left, ctx);
+					const right = visit_expression(data.right, ctx);
+					
+					if (left.value_type !== right.value_type)
+						throw new Error(`Mismatched operand types for operation "==" ${left.value_type} == ${right.value_type}`);
+					
+					if (is_numeric(left.value_type) === false)
+						throw new Error(`Unable to perform operation "==" on non-numeric type`);
+
+					return new WAST.WASTLessThanEqualsNode(left, right);
+				}
+				case ">=": {
+					const data = node.data as {
+							left: Node
+							right: Node
+					};
+
+					const left = visit_expression(data.left, ctx);
+					const right = visit_expression(data.right, ctx);
+					
+					if (left.value_type !== right.value_type)
+						throw new Error(`Mismatched operand types for operation "==" ${left.value_type} == ${right.value_type}`);
+					
+					if (is_numeric(left.value_type) === false)
+						throw new Error(`Unable to perform operation "==" on non-numeric type`);
+
+					return new WAST.WASTGreaterThanEqualsNode(left, right);
+				}
         case "+": {
             const data = node.data as {
                 left: Node
@@ -332,7 +434,7 @@ function wrap_boolean_cast(expr: WAST.WASTExpressionNode): WAST.WASTExpressionNo
 		case "f32":
 		case "f64":
 			const zero = new WAST.WASTConstNode(expr.value_type, "0");
-			return new WAST.WASTEqualsNode(zero, expr);
+			return new WAST.WASTNotEqualsNode(zero, expr);
 		case "boolean":
 			return expr;
 		case "void":

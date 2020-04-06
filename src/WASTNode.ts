@@ -16,7 +16,12 @@ export type WASTExpressionNode = WASTBlockNode |
     WASTStoreNode |
 		WASTCallNode |
 		WASTConditionalNode |
-		WASTEqualsNode;
+		WASTEqualsNode |
+		WASTNotEqualsNode |
+		WASTLessThanEqualsNode |
+		WASTGreaterThanEqualsNode |
+		WASTLessThanNode | 
+		WASTGreaterThanNode;
 
 export type WASTStatementNode = WASTExportNode |
     WASTFunctionNode |
@@ -90,6 +95,76 @@ export class WASTEqualsNode implements WASTNode {
 			this.left = left;
 			this.right = right;
 		}
+}
+
+export class WASTNotEqualsNode implements WASTNode {
+	type: "not_equals" = "not_equals"
+
+	value_type: AtiumType
+	left: WASTExpressionNode
+	right: WASTExpressionNode
+	
+	constructor (left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.value_type = left.value_type;
+		this.left = left;
+		this.right = right;
+	}
+}
+
+export class WASTLessThanNode implements WASTNode {
+	type: "less_than" = "less_than"
+
+	value_type: AtiumType
+	left: WASTExpressionNode
+	right: WASTExpressionNode
+	
+	constructor (left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.value_type = left.value_type;
+		this.left = left;
+		this.right = right;
+	}
+}
+
+export class WASTGreaterThanNode implements WASTNode {
+	type: "greater_than" = "greater_than"
+
+	value_type: AtiumType
+	left: WASTExpressionNode
+	right: WASTExpressionNode
+	
+	constructor (left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.value_type = left.value_type;
+		this.left = left;
+		this.right = right;
+	}
+}
+
+export class WASTLessThanEqualsNode implements WASTNode {
+	type: "less_than_equals" = "less_than_equals"
+
+	value_type: AtiumType
+	left: WASTExpressionNode
+	right: WASTExpressionNode
+	
+	constructor (left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.value_type = left.value_type;
+		this.left = left;
+		this.right = right;
+	}
+}
+
+export class WASTGreaterThanEqualsNode implements WASTNode {
+	type: "greater_than_equals" = "greater_than_equals"
+
+	value_type: AtiumType
+	left: WASTExpressionNode
+	right: WASTExpressionNode
+	
+	constructor (left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.value_type = left.value_type;
+		this.left = left;
+		this.right = right;
+	}
 }
 
 export class WASTConstNode implements WASTNode {

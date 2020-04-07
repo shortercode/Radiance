@@ -48,7 +48,7 @@ export type WASTExpressionType = WASTBinaryExpressionType |
 	"loop" |
 	"br" |
 	"br_if" |
-	"eqz" |
+	"not" |
 	"call";
 	
 export type WASTBinaryExpressionType = "equals" |
@@ -378,7 +378,7 @@ export class WASTConditionalBranchNode implements WASTNode {
 }
 
 export class WASTNotNode implements WASTNode {
-	type: "eqz" = "eqz"
+	type: "not" = "not"
 	readonly value_type: AtiumType = "boolean"
 	inner: WASTExpressionNode
 

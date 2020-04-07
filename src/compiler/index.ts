@@ -244,13 +244,101 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 
 						return new WAST.WASTConditionalNode(value_type, condition, then_branch, else_branch);
 				}
+				case "while": {
+					const value = node.data as {
+						condition: Node
+						block: Node
+					};
+
+					/*
+						NOTE WASM doesn't have a "while" instruction only a "loop". Curiously loops
+						exit after each iteration by default, so to continue a "branch" operation
+						must be executed. To emulate a while loop we use the following structure
+
+						(block 
+							(local temp)
+							(loop
+								(if_br (eqz CONDITION) 1)
+								(local.set BLOCK)
+								(br 0)
+							)
+							(local.get temp)
+						)
+					*/
+					
+					// NOTE before starting we must know if the inner body returns a value
+					const while_body = visit_expression(value.block, ctx) as WAST.WASTBlockNode;
+					const return_value_type = while_body.value_type
+					const emits_value = return_value_type !== "void";
+
+					const root_block = new WAST.WASTBlockNode;
+
+					// NOTE if we do return a value we need to add a temporary var to hold it
+					let temp_variable = null;
+					if (emits_value) {
+						temp_variable = ctx.environment!.declare_hidden("while_temp_variable", while_body.value_type);
+						const init_node = default_initialiser(return_value_type);
+						root_block.body.push(init_node);
+					}
+
+					const loop_block = new WAST.WASTLoopNode;
+					root_block.body.push(loop_block);
+
+					// NOTE we need to massage the condition a bit to get what we want
+					{
+						let condition = visit_expression(value.condition, ctx);
+
+						// NOTE we want to invert the condition. as an optmisation if it's
+						// already inverted (e.g. while !false {} ) then we just remove that
+						// inversion
+						if (condition instanceof WAST.WASTNotNode) {
+							condition = condition.inner;
+						}
+						else {
+							// NOTE otherwise ensure that we have a boolean value then invert
+							// invert it
+							if (condition.value_type !== "boolean") {
+								condition = wrap_boolean_cast(condition);
+							}
+							condition = new WAST.WASTNotNode(condition);
+						}
+
+						// NOTE finally wrap the condition in a conditional branch Op
+						condition = new WAST.WASTConditionalBranchNode(condition, 1);
+						loop_block.body.push(condition);
+					}
+
+					// NOTE if we're emitting a value wrap the block in a set local
+					// to stash it in our temp var
+					if (emits_value) {
+						const set_temp_node = new WAST.WASTSetLocalNode(temp_variable!.id, temp_variable!.name, while_body, "void");
+						loop_block.body.push(set_temp_node);
+					}
+					else {
+						loop_block.body.push(while_body)
+					}
+					
+					// NOTE we need to add a branch 0 here to ensure the loop continues
+					loop_block.body.push(new WAST.WASTBranchNode(0));
+					root_block.body.push(loop_block);
+					
+					// NOTE finally if we're emitting a value then read back our output
+					// from the temp variable
+					if (emits_value) {
+						const get_temp_node = new WAST.WASTGetLocalNode(temp_variable!.id, temp_variable!.name, return_value_type);
+						root_block.body.push(get_temp_node);
+						root_block.value_type = return_value_type;
+					}
+
+					return root_block;
+				}
         case "boolean": {
             const value = node.data as string;
             if (value === "false") {
-                return new WAST.WASTConstNode("i32", "0");
+                return new WAST.WASTConstNode("boolean", "0");
             }
             else if (value === "true") {
-                return new WAST.WASTConstNode("i32", "1");
+                return new WAST.WASTConstNode("boolean", "1");
             }
             else {
                 throw new Error(`Invalid boolean value`);
@@ -440,5 +528,19 @@ function wrap_boolean_cast(expr: WAST.WASTExpressionNode): WAST.WASTExpressionNo
 		case "void":
 		default:
 			throw new Error(`Unable to cast ${expr.value_type} to boolean value`);
+	}
+}
+
+function default_initialiser(value_type: AtiumType): WAST.WASTExpressionNode {
+	switch (value_type) {
+		case "i64":
+		case "i32":
+		case "f32":
+		case "f64":
+		case "boolean":
+			return new WAST.WASTConstNode(value_type, "0");
+		case "void":
+		default:
+			throw new Error(`Unable to zero initialise ${value_type}`);
 	}
 }

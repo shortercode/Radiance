@@ -13,6 +13,10 @@ export type WASTExpressionNode = WASTBlockNode |
 	WASTStoreNode |
 	WASTCallNode |
 	WASTConditionalNode |
+	WASTLoopNode |
+	WASTBranchNode |
+	WASTConditionalBranchNode |
+	WASTNotNode |
 	WASTBinaryExpressionNode;
 
 export type WASTBinaryExpressionNode = WASTEqualsNode |
@@ -41,6 +45,10 @@ export type WASTExpressionType = WASTBinaryExpressionType |
 	"load" |
 	"store" |
 	"if" |
+	"loop" |
+	"br" |
+	"br_if" |
+	"eqz" |
 	"call";
 	
 export type WASTBinaryExpressionType = "equals" |
@@ -338,4 +346,44 @@ export class WASTConditionalNode implements WASTNode {
 			this.then_branch = then_branch;
 			this.else_branch = else_branch;
 		}
+}
+
+export class WASTLoopNode implements WASTNode {
+		type: "loop" = "loop"
+
+		value_type: AtiumType = "void"
+    body: Array<WASTExpressionNode> = []
+}
+
+export class WASTBranchNode implements WASTNode {
+	type: "br" = "br"
+	value_type: AtiumType = "void"
+	index: number
+
+	constructor (index: number) {
+		this.index = index;
+	}
+}
+
+export class WASTConditionalBranchNode implements WASTNode {
+	type: "br_if" = "br_if"
+	value_type: AtiumType = "void"
+	index: number = 0
+	condition: WASTExpressionNode
+
+	constructor (condition: WASTExpressionNode, index: number) {
+		this.condition = condition;
+		this.index = index;
+	}
+}
+
+export class WASTNotNode implements WASTNode {
+	type: "eqz" = "eqz"
+	readonly value_type: AtiumType = "boolean"
+	inner: WASTExpressionNode
+
+	constructor (inner: WASTExpressionNode) {
+		// TODO verify that the inner returns a boolean
+		this.inner = inner;
+	}
 }

@@ -16,6 +16,10 @@ import { write_call_expression } from "./call.js";
 import { write_multiply_expression } from "./multiply.js";
 import { write_set_local_expression } from "./set_local.js";
 import { write_get_local_expression } from "./get_local.js";
+import { write_loop_expression } from "./loop.js";
+import { write_br_expression } from "./br.js";
+import { write_br_if_expression } from "./br_if.js";
+import { write_not_expression } from "./not.js";
 
 type WriterFunction = (ctx: FunctionContext, node: WASTExpressionNode) => void
 
@@ -30,11 +34,16 @@ const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 	["greater_than", write_greater_than_expression],
 	["greater_than_equals", write_greater_than_equals_expression],
 	["less_than_equals", write_less_than_equals_expression],
+	["not", write_not_expression],
 
 	["if", write_if_expression],
 	["block", write_block_expression],
 	["const", write_const_expression],
 	["call", write_call_expression],
+	["loop", write_loop_expression],
+
+	["br", write_br_expression],
+	["br_if", write_br_if_expression],
 
 	["set_local", write_set_local_expression],
 	["get_local", write_get_local_expression]

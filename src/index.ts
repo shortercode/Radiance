@@ -30,6 +30,12 @@ async function test () {
 		}
 	}
 
+	func count (a: f64, b: f64) {
+		while false {
+			1
+		}
+	}
+
 	func dumb_conditional () {
 		if true {
 			{}
@@ -79,6 +85,7 @@ async function test () {
 	performance.measure("Serialise", "mark_3", "mark_4");
 	performance.measure("Overall", "mark_1", "mark_4");
 	// console.log("Binary:");
+	console.log(`Output size ${binary.byteLength}`);
 	console.log(Buffer.from(binary).toString("hex"))
 
 	const { module, instance } = await WebAssembly.instantiate(binary);

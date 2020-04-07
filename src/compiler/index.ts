@@ -320,7 +320,6 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 					
 					// NOTE we need to add a branch 0 here to ensure the loop continues
 					loop_block.body.push(new WAST.WASTBranchNode(0));
-					root_block.body.push(loop_block);
 					
 					// NOTE finally if we're emitting a value then read back our output
 					// from the temp variable

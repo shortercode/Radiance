@@ -99,13 +99,13 @@ export class Writer {
 
     writeFloat32 (value: number) {
         this.allocate(4);
-        this.data_view.setFloat32(this.write_offset, value);
+        this.data_view.setFloat32(this.write_offset, value, true);
         this.write_offset += 4;
     }
 
     writeFloat64 (value: number) {
         this.allocate(8);
-        this.data_view.setFloat64(this.write_offset, value);
+        this.data_view.setFloat64(this.write_offset, value, true);
         this.write_offset += 8;
     }
 

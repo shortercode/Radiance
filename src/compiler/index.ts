@@ -490,6 +490,30 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 
 					return new WAST.WASTSubNode(left.value_type, left, right);
 				}
+				case "=": {
+					const value = node.data as {
+						left: Node
+						right: Node
+					};
+
+					if (value.left.type !== "identifier") {
+						throw new Error(`Invalid left hand side of assignment`);
+					}
+
+					const variable_name = value.left.data as string;
+					const variable = ctx.get_variable(variable_name);
+
+					if (!variable) {
+						throw new Error(`Undefined variable ${variable_name}`);
+					}
+
+					const new_value = visit_expression(value.right, ctx);
+
+					if (variable.type !== new_value.value_type)
+						throw new Error("Assignment doesn't match variable type");
+					
+					return new WAST.WASTSetLocalNode(variable.id, variable.name, new_value, "void");
+				}
 
         default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected an expression`);;
     }

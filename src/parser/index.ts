@@ -35,6 +35,8 @@ class AtiumParser extends Parser {
 					Literals
 				*/
 
+				this.addInfix("symbol:=",						1, this.binary("="));
+
 				this.addInfix("symbol:==", 					4, this.binary("=="));
 				this.addInfix("symbol:!=", 					4, this.binary("!="));
 

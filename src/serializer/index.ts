@@ -211,36 +211,10 @@ function write_section_10 (module_ctx: ModuleContext, function_nodes: Array<WAST
 				module_ctx.function_index_map,
 				node.locals
 			);
-			
-			if (node.body.length > 0) {
-					for (let i = 0; i < node.body.length - 1; i++) {
-							const subnode = node.body[i];
-							write_expression(ctx, subnode);
-							if (subnode.value_type !== "void") {
-									ctx.consume_any_value();
-									writer.writeUint8(Opcode.drop);
-							}
-					}
-				
-					{
-							const last_subnode = node.body[node.body.length - 1];
-							write_expression(ctx, last_subnode);
-					}
-			}
 
-			// NOTE if the return type is "void" we may need to throw away
-			// the last stack value
-			if (node.result === "void" && ctx.stack_depth > 0) {
-				writer.writeUint8(Opcode.drop);
-				ctx.consume_any_value();
-			}
-
-			const required_stack_depth = node.result === "void" ? 0 : 1;
-
-			if (ctx.stack_depth !== required_stack_depth)
-					throw new Error(`Expected ${required_stack_depth} values on the stack but only ${ctx.stack_depth} are present`);
-
+			write_expression(ctx, node.body);
 			writer.writeUint8(Opcode.end);
+			
 			const code_block_length = writer.getCurrentOffset() - code_block_start - 5;
 			writer.changeFixedSizeUVint(code_block_start, code_block_length);
 	}

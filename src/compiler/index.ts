@@ -100,11 +100,14 @@ function visit_global_statement(node: Node, ctx: Context): WAST.WASTStatementNod
             for (const variable of fn_decl.parameters) {
                 fn_wast.parameters.push(variable);
 						}
-
 						for (const node of data.body) {
-								const expr = visit_local_statement(node, ctx);
-								if (expr !== null)
-										fn_wast.body.push(expr);
+							const expr = visit_local_statement(node, ctx);
+							fn_wast.body.nodes.push(expr);
+							fn_wast.body.value_type = expr.value_type;
+						}
+
+						if (data.type === "void") {
+							fn_wast.body.consume_return_value();
 						}
 
 						const locals = ctx.environment.variables;
@@ -162,30 +165,25 @@ function is_type_exportable (type: AtiumType) {
 function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
     switch (node.type) {
         case "block": {
-            const wast_block = new WAST.WASTBlockNode;
+            const block_node = new WAST.WASTBlockNode;
 						const statements = node.data as Array<Node>;
-						
+
 						ctx.environment!.push_frame();
 
-            for (const stmt of statements) {
-                const result = visit_local_statement(stmt, ctx);
-                if (result !== null)
-                    wast_block.body.push(result);
-						}
+						let last_node;
 
-						const last = wast_block.body[wast_block.body.length - 1];
+            for (const stmt of statements) {
+							const result = visit_local_statement(stmt, ctx);
+							block_node.body.nodes.push(result);
+							last_node = result;
+						}
 
 						ctx.environment!.pop_frame();
 
-						if (last) {
-							wast_block.value_type = last.value_type;
-							if (typeof last.value_type !== "string")
-								throw new Error("Invalid value type!");
-						}
-						else {
-							wast_block.value_type = "void";
-						}
-            return wast_block;
+						const block_value_type = last_node ? last_node.value_type : "void";
+						block_node.value_type = block_value_type;
+
+            return block_node;
         }
         case "number": {
             return new WAST.WASTConstNode("f64", node.data as string);
@@ -255,81 +253,87 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 						exit after each iteration by default, so to continue a "branch" operation
 						must be executed. To emulate a while loop we use the following structure
 
-						(block 
-							(local temp)
-							(loop
+						(local temp)
+						(block (void)
+							(loop (void)
 								(if_br (eqz CONDITION) 1)
 								(local.set BLOCK)
 								(br 0)
 							)
-							(local.get temp)
 						)
+						(local.get temp)
 					*/
-					
+
 					// NOTE before starting we must know if the inner body returns a value
 					const while_body = visit_expression(value.block, ctx) as WAST.WASTBlockNode;
 					const return_value_type = while_body.value_type
 					const emits_value = return_value_type !== "void";
 
-					const root_block = new WAST.WASTBlockNode;
+					const node_list = new WAST.WASTNodeList;
 
 					// NOTE if we do return a value we need to add a temporary var to hold it
 					let temp_variable = null;
 					if (emits_value) {
 						temp_variable = ctx.environment!.declare_hidden("while_temp_variable", while_body.value_type);
-						const init_node = default_initialiser(return_value_type);
-						root_block.body.push(init_node);
+						const init_value_node = default_initialiser(return_value_type);
+						const init_node = new WAST.WASTSetLocalNode(temp_variable.id, temp_variable.name, init_value_node, "void");
+						node_list.nodes.push(init_node);
 					}
 
-					const loop_block = new WAST.WASTLoopNode;
-					root_block.body.push(loop_block);
-
-					// NOTE we need to massage the condition a bit to get what we want
 					{
-						let condition = visit_expression(value.condition, ctx);
+						const block_node = new WAST.WASTBlockNode;
+						const loop_block = new WAST.WASTLoopNode;
+						block_node.body.nodes.push(loop_block);
 
-						// NOTE we want to invert the condition. as an optmisation if it's
-						// already inverted (e.g. while !false {} ) then we just remove that
-						// inversion
-						if (condition instanceof WAST.WASTNotNode) {
-							condition = condition.inner;
+						// NOTE we need to massage the condition a bit to get what we want
+						{
+							let condition = visit_expression(value.condition, ctx);
+
+							// NOTE we want to invert the condition. as an optmisation if it's
+							// already inverted (e.g. while !false {} ) then we just remove that
+							// inversion
+							if (condition instanceof WAST.WASTNotNode) {
+								condition = condition.inner;
+							}
+							else {
+								// NOTE otherwise ensure that we have a boolean value then invert
+								// invert it
+								if (condition.value_type !== "boolean") {
+									condition = wrap_boolean_cast(condition);
+								}
+								condition = new WAST.WASTNotNode(condition);
+							}
+
+							// NOTE finally wrap the condition in a conditional branch Op
+							condition = new WAST.WASTConditionalBranchNode(condition, 1);
+							loop_block.body.push(condition);
+						}
+
+						// NOTE if we're emitting a value wrap the block in a set local
+						// to stash it in our temp var
+						if (emits_value) {
+							const set_temp_node = new WAST.WASTSetLocalNode(temp_variable!.id, temp_variable!.name, while_body, "void");
+							loop_block.body.push(set_temp_node);
 						}
 						else {
-							// NOTE otherwise ensure that we have a boolean value then invert
-							// invert it
-							if (condition.value_type !== "boolean") {
-								condition = wrap_boolean_cast(condition);
-							}
-							condition = new WAST.WASTNotNode(condition);
+							loop_block.body.push(while_body)
 						}
+						
+						// NOTE we need to add a branch 0 here to ensure the loop continues
+						loop_block.body.push(new WAST.WASTBranchNode(0));
 
-						// NOTE finally wrap the condition in a conditional branch Op
-						condition = new WAST.WASTConditionalBranchNode(condition, 1);
-						loop_block.body.push(condition);
+						node_list.nodes.push(block_node);
 					}
-
-					// NOTE if we're emitting a value wrap the block in a set local
-					// to stash it in our temp var
-					if (emits_value) {
-						const set_temp_node = new WAST.WASTSetLocalNode(temp_variable!.id, temp_variable!.name, while_body, "void");
-						loop_block.body.push(set_temp_node);
-					}
-					else {
-						loop_block.body.push(while_body)
-					}
-					
-					// NOTE we need to add a branch 0 here to ensure the loop continues
-					loop_block.body.push(new WAST.WASTBranchNode(0));
 					
 					// NOTE finally if we're emitting a value then read back our output
 					// from the temp variable
 					if (emits_value) {
 						const get_temp_node = new WAST.WASTGetLocalNode(temp_variable!.id, temp_variable!.name, return_value_type);
-						root_block.body.push(get_temp_node);
-						root_block.value_type = return_value_type;
+						node_list.nodes.push(get_temp_node);
+						node_list.value_type = get_temp_node.value_type;
 					}
 
-					return root_block;
+					return node_list;
 				}
         case "boolean": {
             const value = node.data as string;

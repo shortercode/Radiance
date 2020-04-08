@@ -6,6 +6,7 @@ export interface WASTNode {
 }
 
 export type WASTExpressionNode = WASTBlockNode | 
+	WASTNodeList |
 	WASTConstNode |
 	WASTGetLocalNode |
 	WASTSetLocalNode |
@@ -38,6 +39,8 @@ export type WASTStatementType = "function" |
 	"export";
 
 export type WASTExpressionType = WASTBinaryExpressionType |
+	"@list" |
+
 	"block" |
 	"const" |
 	"get_local" |
@@ -93,7 +96,7 @@ export class WASTFunctionNode implements WASTNode {
     name: string
     parameters: Array<Variable> = []
     result: AtiumType
-		body: Array<WASTExpressionNode> = []
+		body: WASTNodeList = new WASTNodeList
 		locals: Array<Variable> = []
 
     constructor (name: string, result: AtiumType) {
@@ -116,9 +119,24 @@ export class WASTMemoryNode implements WASTNode {
 
 export class WASTBlockNode implements WASTNode {
 		type: "block" = "block"
-		value_type: AtiumType = "void"
 
-    body: Array<WASTExpressionNode> = []
+		body: WASTNodeList = new WASTNodeList
+		
+		get value_type () {
+			return this.body.value_type;
+		}
+
+		set value_type (v: AtiumType) {
+			this.body.value_type = v;
+		}
+
+		get does_return_value () {
+			return this.value_type === "void"
+		}
+	
+		disable_return_value () {
+			this.value_type = "void";
+		}
 }
 
 export class WASTEqualsNode implements WASTNode {
@@ -385,5 +403,19 @@ export class WASTNotNode implements WASTNode {
 	constructor (inner: WASTExpressionNode) {
 		// TODO verify that the inner returns a boolean
 		this.inner = inner;
+	}
+}
+
+export class WASTNodeList implements WASTNode {
+	type: "@list" = "@list"
+	value_type: AtiumType = "void"
+	nodes: Array<WASTExpressionNode> = []
+
+	get does_return_value () {
+		return this.value_type === "void"
+	}
+
+	consume_return_value () {
+		this.value_type = "void";
 	}
 }

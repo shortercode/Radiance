@@ -20,10 +20,13 @@ import { write_loop_expression } from "./loop.js";
 import { write_br_expression } from "./br.js";
 import { write_br_if_expression } from "./br_if.js";
 import { write_not_expression } from "./not.js";
+import { write_list_expression } from "./list.js";
 
 type WriterFunction = (ctx: FunctionContext, node: WASTExpressionNode) => void
 
 const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
+	["@list", write_list_expression],
+
 	["add", write_add_expression],
 	["sub", write_sub_expression],
 	["multiply", write_multiply_expression],
@@ -54,4 +57,11 @@ export function write_expression(ctx: FunctionContext, node: WASTExpressionNode)
 	if (!writer)
 		throw new Error("Unknown expression type");
 	writer(ctx, node);
+}
+
+export function expression_writer(node: WASTExpressionNode) {
+	const writer = expression_types.get(node.type);
+	if (!writer)
+		throw new Error("Unknown expression type");
+	return writer;
 }

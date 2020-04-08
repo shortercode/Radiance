@@ -1,0 +1,25 @@
+# TODO
+
+-  [ ] Easy
+	- [ ] Type checking on function calls
+	- [ ] Logical operators ( and / or / not )
+	- [ ] Bitwise ( and / or )
+	- [ ] Bitshift
+	- [ ] Modulo / multiplication / division
+	- [ ] Exponentiation
+	- [ ] Unary negation
+	- [ ] Grouping
+	- [ ] Numerical hinting
+	- [ ] Explicit numerical type conversions
+	- [ ] Explicit return
+	- [ ] Break/contiue for loops
+	- [ ] Other loop types?
+	- [ ] Import functions from external
+- [ ] Hard
+	- [ ] Array types
+	- [ ] Structs
+	- [ ] Enums
+	- [ ] Pointers
+	- [ ] Temporary memory allocation
+	- [ ] Module system
+	- [ ] Heap memory allocation

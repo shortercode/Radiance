@@ -50,6 +50,15 @@ async function test () {
 		}
 	}
 
+	func fibonacci(n: f64) -> f64 {
+		if n <= 1 {
+			n
+		}
+		else {
+			fibonacci(n - 2) + fibonacci(n - 1)
+		}
+	}
+
 	func double(a: f64) -> f64 {
 		add(a, a)
 	}
@@ -61,6 +70,7 @@ async function test () {
 	export sub
 	export double
 	export noop
+	export fibonacci
 
 	`, "test program");
 	performance.mark("mark_2");
@@ -90,11 +100,15 @@ async function test () {
 
 	const { module, instance } = await WebAssembly.instantiate(binary);
 	
-	const { double, sub } = instance.exports;
+	const { double, sub, fibonacci } = instance.exports;
 
-	console.log((double as any)(13));
-	console.log((sub as any)(14, 8))
+	// console.log((double as any)(13));
+	// console.log((sub as any)(14, 8))
 	// console.log(add(12, 30));
+
+	for (let i = 0; i < 10; i++) {
+		console.log((fibonacci as any)(i));
+	}
 }
 
 main();

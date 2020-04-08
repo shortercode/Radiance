@@ -16,26 +16,46 @@ class AtiumParser extends Parser {
 
         this.addStatement("identifier:export", this.parseExport);
         this.addStatement("identifier:func", this.parseFunction);
-        this.addStatement("identifier:let", this.parseVariable);
+				this.addStatement("identifier:let", this.parseVariable);
+				
+				/*
+					Precedence order low to high
 
-				this.addInfix("symbol:+", 1, this.binary("+"));
-				this.addInfix("symbol:-", 1, this.binary("-"));
-				this.addInfix("symbol:==", 1, this.binary("=="));
-				this.addInfix("symbol:!=", 1, this.binary("!="));
-				this.addInfix("symbol:<", 1, this.binary("<"));
-				this.addInfix("symbol:>", 1, this.binary(">"));
-				this.addInfix("symbol:<=", 1, this.binary("<="));
-				this.addInfix("symbol:>=", 1, this.binary(">="));
-				this.addInfix("symbol:(", 1, this.parseCallExpression);
+					Assignment
+					Binary Logical ( and/or )
+					Bitwise
+					Equality
+					Comparison
+					Bitwise shift
+					Add/Sub
+					Mul/Div
+					Prefix
+					Function Call
+					Grouping
+					Literals
+				*/
 
-				this.addPrefix("identifier:if", 1, this.parseIfExpression);
-				this.addPrefix("symbol:{", 1, this.parseBlockExpression);
-				this.addPrefix("identifier:while", 1, this.parseWhileExpression);
+				this.addInfix("symbol:==", 					4, this.binary("=="));
+				this.addInfix("symbol:!=", 					4, this.binary("!="));
 
-        this.addPrefix("number:", 1, this.literal("number"));
-        this.addPrefix("identifier:", 1, this.literal("identifier"));
-        this.addPrefix("identifier:true", 1, this.literal("boolean"));
-        this.addPrefix("identifier:false", 1, this.literal("boolean"));
+				this.addInfix("symbol:<", 					5, this.binary("<"));
+				this.addInfix("symbol:>", 					5, this.binary(">"));
+				this.addInfix("symbol:<=", 					5, this.binary("<="));
+				this.addInfix("symbol:>=", 					5, this.binary(">="));
+
+				this.addInfix("symbol:+", 					7, this.binary("+"));
+				this.addInfix("symbol:-", 					7, this.binary("-"));
+				
+				this.addPrefix("identifier:if", 		9, this.parseIfExpression);
+				this.addPrefix("symbol:{", 					9, this.parseBlockExpression);
+				this.addPrefix("identifier:while", 	9, this.parseWhileExpression);
+
+				this.addInfix("symbol:(", 					10, this.parseCallExpression);
+
+        this.addPrefix("number:", 					12, this.literal("number"));
+        this.addPrefix("identifier:", 			12, this.literal("identifier"));
+        this.addPrefix("identifier:true", 	12, this.literal("boolean"));
+        this.addPrefix("identifier:false", 	12, this.literal("boolean"));
 		}
 		
 		parseCallExpression(tokens: Iterator<Token>, left: Node): Node {

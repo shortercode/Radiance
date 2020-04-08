@@ -12,44 +12,11 @@ async function main () {
 }
 
 const { PerformanceObserver, performance } = require('perf_hooks');
+const fs = require("fs").promises;
 
 async function test () {
 	performance.mark("mark_1");
 	const ast = Parser.parseProgram(`
-	func add (a: f64, b: f64) -> f64 {
-			let c: f64 = a + b
-			c
-	}
-
-	func is_zero (a: f64) -> boolean {
-		if a {
-			false
-		}
-		else {
-			true
-		}
-	}
-
-	func count (a: f64, b: f64) {
-		while false {
-			1
-		}
-	}
-
-	func dumb_conditional () {
-		if true {
-			{}
-		}
-	}
-
-	func sub (a: f64, b: f64) -> f64 {
-		{
-			a
-			a
-			a - b
-		}
-	}
-
 	func fibonacci(n: f64) -> f64 {
 		if n <= 1 {
 			n
@@ -59,18 +26,23 @@ async function test () {
 		}
 	}
 
-	func double(a: f64) -> f64 {
-		add(a, a)
+	func sub (a: f64, b: f64) -> f64 {
+		a - b
 	}
 
-	func noop(a: boolean) {
-		a
+	func count (a: f64) -> f64 {
+		let i: f64 = a
+		let value: f64 = 0
+		while i > 0 {
+			value = value + i
+			i = i - 1
+			value
+		}
 	}
 
-	export sub
-	export double
-	export noop
 	export fibonacci
+	export sub
+	export count
 
 	`, "test program");
 	performance.mark("mark_2");
@@ -98,16 +70,17 @@ async function test () {
 	console.log(`Output size ${binary.byteLength}`);
 	console.log(Buffer.from(binary).toString("hex"))
 
+	fs.writeFile("test.wasm", binary);
 	const { module, instance } = await WebAssembly.instantiate(binary);
 	
-	const { double, sub, fibonacci } = instance.exports;
+	const { double, sub, fibonacci, count } = instance.exports;
 
 	// console.log((double as any)(13));
 	// console.log((sub as any)(14, 8))
 	// console.log(add(12, 30));
 
 	for (let i = 0; i < 10; i++) {
-		console.log((fibonacci as any)(i));
+		console.log((count as any)(i));
 	}
 }
 

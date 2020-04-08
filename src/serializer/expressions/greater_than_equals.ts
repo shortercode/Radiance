@@ -4,9 +4,9 @@ import { FunctionContext } from "../FunctionContext.js";
 import { WASTExpressionNode, WASTBinaryExpressionNode } from "../../WASTNode.js";
 
 export function write_greater_than_equals_expression(ctx: FunctionContext, node: WASTExpressionNode) {
-	write_binary_prefix(ctx, node as WASTBinaryExpressionNode, "boolean");
+	const inner_type = write_binary_prefix(ctx, node as WASTBinaryExpressionNode);
 
-	switch (node.value_type) {
+	switch (inner_type) {
 		case "f32":
 			ctx.writer.writeUint8(Opcode.f32_ge);
 			break;

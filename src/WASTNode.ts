@@ -142,12 +142,11 @@ export class WASTBlockNode implements WASTNode {
 export class WASTEqualsNode implements WASTNode {
 		type: "equals" = "equals"
 
-		value_type: AtiumType
+		readonly value_type: AtiumType = "boolean"
 		left: WASTExpressionNode
 		right: WASTExpressionNode
 		
 		constructor (left: WASTExpressionNode, right: WASTExpressionNode) {
-			this.value_type = left.value_type;
 			this.left = left;
 			this.right = right;
 		}
@@ -156,12 +155,11 @@ export class WASTEqualsNode implements WASTNode {
 export class WASTNotEqualsNode implements WASTNode {
 	type: "not_equals" = "not_equals"
 
-	value_type: AtiumType
+	readonly value_type: AtiumType = "boolean"
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
 	constructor (left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.value_type = left.value_type;
 		this.left = left;
 		this.right = right;
 	}
@@ -170,12 +168,11 @@ export class WASTNotEqualsNode implements WASTNode {
 export class WASTLessThanNode implements WASTNode {
 	type: "less_than" = "less_than"
 
-	value_type: AtiumType
+	readonly value_type: AtiumType = "boolean"
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
 	constructor (left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.value_type = left.value_type;
 		this.left = left;
 		this.right = right;
 	}
@@ -184,12 +181,11 @@ export class WASTLessThanNode implements WASTNode {
 export class WASTGreaterThanNode implements WASTNode {
 	type: "greater_than" = "greater_than"
 
-	value_type: AtiumType
+	readonly value_type: AtiumType = "boolean"
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
 	constructor (left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.value_type = left.value_type;
 		this.left = left;
 		this.right = right;
 	}
@@ -198,12 +194,11 @@ export class WASTGreaterThanNode implements WASTNode {
 export class WASTLessThanEqualsNode implements WASTNode {
 	type: "less_than_equals" = "less_than_equals"
 
-	value_type: AtiumType
+	readonly value_type: AtiumType = "boolean"
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
 	constructor (left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.value_type = left.value_type;
 		this.left = left;
 		this.right = right;
 	}
@@ -212,12 +207,11 @@ export class WASTLessThanEqualsNode implements WASTNode {
 export class WASTGreaterThanEqualsNode implements WASTNode {
 	type: "greater_than_equals" = "greater_than_equals"
 
-	value_type: AtiumType
+	readonly value_type: AtiumType = "boolean"
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
 	constructor (left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.value_type = left.value_type;
 		this.left = left;
 		this.right = right;
 	}

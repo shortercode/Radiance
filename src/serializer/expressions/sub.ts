@@ -4,7 +4,7 @@ import { WASTSubNode, WASTExpressionNode, WASTBinaryExpressionNode } from "../..
 import { write_binary_prefix } from "./binary.js";
 
 export function write_sub_expression(ctx: FunctionContext, node: WASTExpressionNode) {
-	write_binary_prefix(ctx, node as WASTBinaryExpressionNode, node.value_type);
+	write_binary_prefix(ctx, node as WASTBinaryExpressionNode);
 
 	switch (node.value_type) {
 		case "f32":

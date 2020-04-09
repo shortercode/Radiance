@@ -8,10 +8,14 @@ export function is_numeric (type: AtiumType) {
 		case "f64":
 		case "i32":
 		case "i64":
-				return true;
+			return true;
 		default:
-				return false;
+			return false;
+	}
 }
+
+export function is_integer (type: AtiumType) {
+	return type === "i32" || type === "i64";
 }
 
 export function validate_atium_type(type: string): AtiumType {

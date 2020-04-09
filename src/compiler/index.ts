@@ -20,133 +20,154 @@ export default function (node: Node): WAST.WASTModuleNode {
 }
 
 function visit_module(node: Node, ctx: Context): WAST.WASTModuleNode {
-    /*
-        This is entry point to the compiler
-        the public exported function does some simple setup
-        and input verification but this actually creates the
-        module and recusively visits the source AST
-    */
+	/*
+		This is entry point to the compiler
+		the public exported function does some simple setup
+		and input verification but this actually creates the
+		module and recusively visits the source AST
+	*/
 
-    const module = new WAST.WASTModuleNode;
+	const module = new WAST.WASTModuleNode;
+	const statements = node.data as Array<Node>;
 
-    const statements = node.data as Array<Node>;
+	/*
+		Before processing the bulk of the AST we visit
+		the functions and create them so that they can
+		refer to each other in their bodies
+	*/
+	for (const stmt of statements) {
+		hoist_declaration(stmt, ctx);
+	}
 
-    /*
-        Before processing the bulk of the AST we visit
-        the functions and create them so that they can
-        refer to each other in their bodies
-    */
-    for (const stmt of statements) {
-        hoist_declaration(stmt, ctx);
-    }
+	for (const stmt of statements) {
+		const wast_stmts = visit_global_statement(stmt, ctx);
+		for (const wast_node of wast_stmts) {
+			module.statements.push(wast_node);
+		}
+	}
 
-    for (const stmt of statements) {
-        const wast_stmt = visit_global_statement(stmt, ctx);
-        module.statements.push(wast_stmt);
-    }
+	const memory_stmt = new WAST.WASTMemoryNode("main", 1);
 
-    const memory_stmt = new WAST.WASTMemoryNode("main", 1);
+	module.statements.push(memory_stmt);
 
-    module.statements.push(memory_stmt);
-
-    return module;
+	return module;
 }
 
 function hoist_declaration(node: Node, ctx: Context) {
-    switch (node.type) {
-        case "function": {
-            const data = node.data as {
-                name: string
-                type: string
-                parameters: Array<{ name: string, type: string }>
-                block: Node
-            }
+	switch (node.type) {
+		case "export_function":
+		case "function": {
+			const data = node.data as {
+				name: string
+				type: string
+				parameters: Array<{ name: string, type: string }>
+				block: Node
+			}
 
-						const parameters = data.parameters.map((param, index) => {
-							const type = validate_atium_type(param.type);
-							return new Variable(type, param.name, index);
-						});
+			const parameters = data.parameters.map((param, index) => {
+				const type = validate_atium_type(param.type);
+				return new Variable(type, param.name, index);
+			});
 
-            ctx.declare_function(data.name, validate_atium_type(data.type), parameters);
-            break;
-        }
-    }
+			ctx.declare_function(data.name, validate_atium_type(data.type), parameters);
+			break;
+		}
+	}
 }
 
-function visit_global_statement(node: Node, ctx: Context): WAST.WASTStatementNode {
-    switch (node.type) {
-        case "function": {
-            /*
-                NOTE prior to this "visit_declaration" has validated the
-                .type and .parameter.*.type are AtiumType so we can do a
-                direct cast here without the validation
-            */
-            const data = node.data as {
-                name: string
-                type: AtiumType
-								body: Array<Node>
-								parameters: Array<{ name: string, type: string }>
-            }
+function visit_global_statement(node: Node, ctx: Context): Array<WAST.WASTStatementNode> {
+	switch (node.type) {
+		case "function": {
+			const fn_wast = visit_function(node, ctx);
 
-						const fn_decl = ctx.globals.get(data.name);
+			return [fn_wast];
+		}
+		case "export": {
+			const data = node.data as {
+				name: string
+			};
+			
+			const export_wast = export_function(data.name, ctx);
 
-						if (!fn_decl)
-								throw new Error("Cannot locate function declaration");
-
-            const fn_wast = new WAST.WASTFunctionNode(data.name, data.type);
-
-            ctx.environment = new Environment(fn_decl.parameters);
-
-            for (const variable of fn_decl.parameters) {
-                fn_wast.parameters.push(variable);
-						}
-						for (const node of data.body) {
-							const expr = visit_local_statement(node, ctx);
-							fn_wast.body.nodes.push(expr);
-							fn_wast.body.value_type = expr.value_type;
-						}
-
-						if (data.type === "void") {
-							fn_wast.body.consume_return_value();
-						}
-
-						const locals = ctx.environment.variables;
-            ctx.environment = null;
-
-						for (const local of locals) {
-								fn_wast.locals.push(local);
-						}
-
-            return fn_wast;
-        }
-        case "export": {
-            const data = node.data as {
-                name: string
-            };
-            const fn = ctx.globals.get(data.name);
-
-            if (!fn)
-                throw new Error(`Cannot export ${data.name} as it is not available in the global scope`);
-
-            if (fn instanceof FunctionDeclaration) {
-                for (const { name, type } of fn.parameters) {
-                    if (is_type_exportable(type) === false) {
-                        throw new Error(`Cannot export ${data.name} because the parameter ${name} is not an exportable type`);
-                    }
-                }
-                if (is_type_exportable(fn.type) === false) {
-                    throw new Error(`Cannot export ${data.name} because the return type is not an exportable type`);
-                }
-            }
-            else
-                throw new Error(`Cannot export ${data.name} as it's not a function`);
-
-            return new WAST.WASTExportNode("function", data.name, data.name);
-        }
-        default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected a statement`);
-    }
+			return [export_wast];
+		}
+		case "export_function": {
+			const fn_wast = visit_function(node, ctx);
+			const export_wast = export_function(fn_wast.name, ctx);
+			
+			return [fn_wast, export_wast];
+		}
+		default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected a statement`);
+	}
 }
 
+function visit_function(node: Node, ctx: Context) {
+	/*
+			NOTE prior to this "visit_declaration" has validated the
+			.type and .parameter.*.type are AtiumType so we can do a
+			direct cast here without the validation
+	*/
+
+	const data = node.data as {
+		name: string
+		type: AtiumType
+		body: Array<Node>
+		parameters: Array<{ name: string, type: string }>
+	}
+
+	const fn_decl = ctx.globals.get(data.name);
+
+	if (!fn_decl)
+			throw new Error("Cannot locate function declaration");
+
+	const fn_wast = new WAST.WASTFunctionNode(data.name, data.type);
+
+	ctx.environment = new Environment(fn_decl.parameters);
+
+	for (const variable of fn_decl.parameters) {
+			fn_wast.parameters.push(variable);
+	}
+	for (const node of data.body) {
+		const expr = visit_local_statement(node, ctx);
+		fn_wast.body.nodes.push(expr);
+		fn_wast.body.value_type = expr.value_type;
+	}
+
+	if (data.type === "void") {
+		fn_wast.body.consume_return_value();
+	}
+
+	const locals = ctx.environment.variables;
+	ctx.environment = null;
+
+	for (const local of locals) {
+			fn_wast.locals.push(local);
+	}
+
+	return fn_wast;
+}
+
+function export_function(fn_name: string, ctx: Context) {
+	const fn = ctx.globals.get(fn_name);
+
+	if (!fn)
+		throw new Error(`Cannot export ${fn_name} as it is not available in the global scope`);
+
+	if (fn instanceof FunctionDeclaration) {
+			for (const { name, type } of fn.parameters) {
+					if (is_type_exportable(type) === false) {
+							throw new Error(`Cannot export ${fn_name} because the parameter ${name} is not an exportable type`);
+					}
+			}
+			if (is_type_exportable(fn.type) === false) {
+					throw new Error(`Cannot export ${fn_name} because the return type is not an exportable type`);
+			}
+	}
+	else
+			throw new Error(`Cannot export ${fn_name} as it's not a function`);
+
+	return new WAST.WASTExportNode("function", fn_name, fn_name);
+}
 function is_type_exportable (type: AtiumType) {
 		switch (type) {
 			case "i64":

@@ -17,7 +17,7 @@ const fs = require("fs").promises;
 async function test () {
 	performance.mark("mark_1");
 	const ast = Parser.parseProgram(`
-	func factorial (count: f64) -> f64 {
+	export func factorial (count: f64) -> f64 {
     let result: f64 = 1;
     let i: f64 = 0
     while i <= count {
@@ -26,7 +26,7 @@ async function test () {
     }
 	}
 
-	func fibonacci(n: f64) -> f64 {
+	export func fibonacci(n: f64) -> f64 {
 		if n <= 1 {
 			n
 			}
@@ -34,9 +34,6 @@ async function test () {
 					fibonacci(n - 2) + fibonacci(n - 1)
 			}
 	}
-
-	export factorial
-	export fibonacci
 	`, "test program");
 	performance.mark("mark_2");
 	// console.log("AST:");

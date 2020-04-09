@@ -2,6 +2,7 @@ import Parser from "../pratt/Parser.js";
 import Node from "../pratt/Node.js";
 import Iterator from "../pratt/Iterator.js";
 import Token from "../pratt/Token.js";
+import SyntaxError from "../pratt/SyntaxError.js";
 
 /*
     This class is the first stage of the process. It converts a text stream into an
@@ -153,9 +154,23 @@ class AtiumParser extends Parser {
     parseExport (tokens: Iterator<Token>): Node {
 				// NOTE previous token is the "identifier:}" read by statement matcher
         const start = tokens.previous()!.start;
-        const name = this.ensure(tokens, "identifier:");
-        const end = this.endStatement(tokens);
-        return new Node("export", start, end, { name });
+				const label = this.ensure(tokens, "identifier:");
+
+				const exportable_statements = new Set(["func"]); // NOTE will likely add memory, globals etc. later
+
+				if (exportable_statements.has(label)) {
+					switch (label) {
+						case "func": {
+							const fn = this.parseFunction(tokens);
+							return new Node("export_function", start, fn.end, fn.data);
+						}
+						default: throw new Error("Unreachable");
+					}
+				}
+				else {
+					const end = this.endStatement(tokens);
+        	return new Node("export", start, end, { name: label });
+				}
     }
 
     parseVariable (tokens: Iterator<Token>): Node {

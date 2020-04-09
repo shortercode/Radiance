@@ -17,33 +17,26 @@ const fs = require("fs").promises;
 async function test () {
 	performance.mark("mark_1");
 	const ast = Parser.parseProgram(`
+	func factorial (count: f64) -> f64 {
+    let result: f64 = 1;
+    let i: f64 = 0
+    while i <= count {
+        i = i + 1
+        result = result * i
+    }
+	}
+
 	func fibonacci(n: f64) -> f64 {
 		if n <= 1 {
 			n
-		}
-		else {
-			fibonacci(n - 2) + fibonacci(n - 1)
-		}
+			}
+			else {
+					fibonacci(n - 2) + fibonacci(n - 1)
+			}
 	}
 
-	func sub (a: f64, b: f64) -> f64 {
-		a - b
-	}
-
-	func count (a: f64) -> f64 {
-		let i: f64 = a
-		let value: f64 = 0
-		while i > 0 {
-			value = value + i
-			i = i - 1
-			value
-		}
-	}
-
+	export factorial
 	export fibonacci
-	export sub
-	export count
-
 	`, "test program");
 	performance.mark("mark_2");
 	// console.log("AST:");
@@ -73,14 +66,14 @@ async function test () {
 	fs.writeFile("test.wasm", binary);
 	const { module, instance } = await WebAssembly.instantiate(binary);
 	
-	const { double, sub, fibonacci, count } = instance.exports;
+	const { double, sub, fibonacci, count, factorial } = instance.exports;
 
 	// console.log((double as any)(13));
 	// console.log((sub as any)(14, 8))
 	// console.log(add(12, 30));
 
 	for (let i = 0; i < 10; i++) {
-		console.log((count as any)(i));
+		console.log((factorial as any)(i));
 	}
 }
 

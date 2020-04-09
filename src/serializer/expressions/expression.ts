@@ -21,6 +21,8 @@ import { write_br_expression } from "./br.js";
 import { write_br_if_expression } from "./br_if.js";
 import { write_not_expression } from "./not.js";
 import { write_list_expression } from "./list.js";
+import { write_divide_expression } from "./divide.js";
+import { write_tee_local_expression } from "./tee_local.js";
 
 type WriterFunction = (ctx: FunctionContext, node: WASTExpressionNode) => void
 
@@ -30,6 +32,7 @@ const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 	["add", write_add_expression],
 	["sub", write_sub_expression],
 	["multiply", write_multiply_expression],
+	["divide", write_divide_expression],
 
 	["equals", write_equals_expression],
 	["not_equals", write_not_equals_expression],
@@ -49,13 +52,14 @@ const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 	["br_if", write_br_if_expression],
 
 	["set_local", write_set_local_expression],
-	["get_local", write_get_local_expression]
+	["get_local", write_get_local_expression],
+	["tee_local", write_tee_local_expression]
 ]);
 
 export function write_expression(ctx: FunctionContext, node: WASTExpressionNode) {
 	const writer = expression_types.get(node.type);
 	if (!writer)
-		throw new Error("Unknown expression type");
+		throw new Error(`Unknown expression type ${node.type}`);
 	writer(ctx, node);
 }
 

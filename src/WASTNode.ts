@@ -9,6 +9,7 @@ export type WASTExpressionNode = WASTBlockNode |
 	WASTNodeList |
 	WASTConstNode |
 	WASTGetLocalNode |
+	WASTTeeLocalNode |
 	WASTSetLocalNode |
 	WASTLoadNode |
 	WASTStoreNode |
@@ -28,7 +29,8 @@ export type WASTBinaryExpressionNode = WASTEqualsNode |
 	WASTGreaterThanNode |
 	WASTAddNode |
 	WASTSubNode |
-	WASTMultiplyNode;
+	WASTMultiplyNode |
+	WASTDivideNode;
 
 export type WASTNodeType = WASTStatementType | 
 	WASTExpressionType |
@@ -44,6 +46,7 @@ export type WASTExpressionType = WASTBinaryExpressionType |
 	"block" |
 	"const" |
 	"get_local" |
+	"tee_local" |
 	"set_local" |
 	"load" |
 	"store" |
@@ -62,7 +65,8 @@ export type WASTBinaryExpressionType = "equals" |
 	"greater_than_equals" |
 	"add" |
 	"sub" |
-	"multiply";
+	"multiply" |
+	"divide";
 
 export type WASTStatementNode = WASTExportNode |
   WASTFunctionNode |
@@ -274,6 +278,20 @@ export class WASTMultiplyNode implements WASTNode {
     }
 }
 
+export class WASTDivideNode implements WASTNode {
+	type: "divide" = "divide"
+
+	value_type: AtiumType
+	left: WASTExpressionNode
+	right: WASTExpressionNode
+
+	constructor (type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
+			this.value_type = type;
+			this.left = left;
+			this.right = right;
+	}
+}
+
 export class WASTGetLocalNode implements WASTNode {
 		type: "get_local" = "get_local"
 		value_type: AtiumType
@@ -288,19 +306,34 @@ export class WASTGetLocalNode implements WASTNode {
     }
 }
 
+export class WASTTeeLocalNode implements WASTNode {
+	type: "tee_local" = "tee_local"
+	value_type: AtiumType
+
+	id: number
+	name: string
+	value: WASTExpressionNode
+
+	constructor (id: number, name: string, value: WASTExpressionNode, type: AtiumType) {
+			this.id = id;	
+			this.name = name;
+			this.value = value;
+			this.value_type = type;
+	}
+}
+
 export class WASTSetLocalNode implements WASTNode {
 		type: "set_local" = "set_local"
-		value_type: AtiumType
+		value_type: AtiumType = "void"
 
 		id: number
 		name: string
     value: WASTExpressionNode
 
-    constructor (id: number, name: string, value: WASTExpressionNode, type: AtiumType) {
+    constructor (id: number, name: string, value: WASTExpressionNode) {
 				this.id = id;	
 				this.name = name;
 				this.value = value;
-				this.value_type = type;
     }
 }
 

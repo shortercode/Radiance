@@ -276,7 +276,7 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 					if (emits_value) {
 						temp_variable = ctx.environment!.declare_hidden("while_temp_variable", while_body.value_type);
 						const init_value_node = default_initialiser(return_value_type);
-						const init_node = new WAST.WASTSetLocalNode(temp_variable.id, temp_variable.name, init_value_node, "void");
+						const init_node = new WAST.WASTSetLocalNode(temp_variable.id, temp_variable.name, init_value_node);
 						node_list.nodes.push(init_node);
 					}
 
@@ -312,7 +312,7 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 						// NOTE if we're emitting a value wrap the block in a set local
 						// to stash it in our temp var
 						if (emits_value) {
-							const set_temp_node = new WAST.WASTSetLocalNode(temp_variable!.id, temp_variable!.name, while_body, "void");
+							const set_temp_node = new WAST.WASTSetLocalNode(temp_variable!.id, temp_variable!.name, while_body);
 							loop_block.body.push(set_temp_node);
 						}
 						else {
@@ -490,6 +490,40 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 
 					return new WAST.WASTSubNode(left.value_type, left, right);
 				}
+				case "*": {
+					const data = node.data as {
+							left: Node
+							right: Node
+					};
+					
+					const left = visit_expression(data.left, ctx);
+					const right = visit_expression(data.right, ctx);
+					
+					if (left.value_type !== right.value_type)
+						throw new Error(`Mismatched operand types for operation "*" ${left.value_type} * ${right.value_type}`);
+					
+					if (is_numeric(left.value_type) === false)
+						throw new Error(`Unable to perform operation "*" on non-numeric type`);
+
+					return new WAST.WASTMultiplyNode(left.value_type, left, right);
+				}
+				case "/": {
+					const data = node.data as {
+							left: Node
+							right: Node
+					};
+					
+					const left = visit_expression(data.left, ctx);
+					const right = visit_expression(data.right, ctx);
+					
+					if (left.value_type !== right.value_type)
+						throw new Error(`Mismatched operand types for operation "/" ${left.value_type} / ${right.value_type}`);
+					
+					if (is_numeric(left.value_type) === false)
+						throw new Error(`Unable to perform operation "/" on non-numeric type`);
+
+					return new WAST.WASTDivideNode(left.value_type, left, right);
+				}
 				case "=": {
 					const value = node.data as {
 						left: Node
@@ -512,7 +546,7 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 					if (variable.type !== new_value.value_type)
 						throw new Error("Assignment doesn't match variable type");
 					
-					return new WAST.WASTSetLocalNode(variable.id, variable.name, new_value, "void");
+					return new WAST.WASTTeeLocalNode(variable.id, variable.name, new_value, variable.type);
 				}
 
         default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected an expression`);;
@@ -536,7 +570,7 @@ function visit_local_statement(node: Node, ctx: Context): WAST.WASTExpressionNod
 						if (value.value_type !== type)
 							throw new Error("Initialiser type doesn't match variable type");
 						
-            return new WAST.WASTSetLocalNode(variable.id, data.name, value, "void");
+            return new WAST.WASTSetLocalNode(variable.id, data.name, value);
         }
         default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected a statement`);
     }

@@ -545,6 +545,23 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 
 					return new WAST.WASTDivideNode(left.value_type, left, right);
 				}
+				case "%": {
+					const data = node.data as {
+							left: Node
+							right: Node
+					};
+					
+					const left = visit_expression(data.left, ctx);
+					const right = visit_expression(data.right, ctx);
+					
+					if (left.value_type !== right.value_type)
+						throw new Error(`Mismatched operand types for operation "%" ${left.value_type} % ${right.value_type}`);
+					
+					if (is_numeric(left.value_type) === false)
+						throw new Error(`Unable to perform operation "%" on non-numeric type`);
+
+					return new WAST.WASTModuloNode(left.value_type, left, right);
+				}
 				case "=": {
 					const value = node.data as {
 						left: Node

@@ -30,6 +30,7 @@ export type WASTBinaryExpressionNode = WASTEqualsNode |
 	WASTAddNode |
 	WASTSubNode |
 	WASTMultiplyNode |
+	WASTModuloNode |
 	WASTDivideNode;
 
 export type WASTNodeType = WASTStatementType | 
@@ -66,7 +67,8 @@ export type WASTBinaryExpressionType = "equals" |
 	"add" |
 	"sub" |
 	"multiply" |
-	"divide";
+	"divide" |
+	"modulo";
 
 export type WASTStatementNode = WASTExportNode |
   WASTFunctionNode |
@@ -280,6 +282,20 @@ export class WASTMultiplyNode implements WASTNode {
 
 export class WASTDivideNode implements WASTNode {
 	type: "divide" = "divide"
+
+	value_type: AtiumType
+	left: WASTExpressionNode
+	right: WASTExpressionNode
+
+	constructor (type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
+			this.value_type = type;
+			this.left = left;
+			this.right = right;
+	}
+}
+
+export class WASTModuloNode implements WASTNode {
+	type: "modulo" = "modulo"
 
 	value_type: AtiumType
 	left: WASTExpressionNode

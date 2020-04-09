@@ -1,6 +1,6 @@
 import * as WAST from "../WASTNode.js"
 import Node from "../pratt/Node.js";
-import { AtiumType, validate_atium_type, is_numeric } from "./AtiumType.js";
+import { AtiumType, validate_atium_type, is_numeric, is_integer } from "./AtiumType.js";
 import { Context } from "./Context.js";
 import { FunctionDeclaration } from "./FunctionDeclaration.js";
 import { Environment } from "./Environment.js";
@@ -557,8 +557,8 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 					if (left.value_type !== right.value_type)
 						throw new Error(`Mismatched operand types for operation "%" ${left.value_type} % ${right.value_type}`);
 					
-					if (is_numeric(left.value_type) === false)
-						throw new Error(`Unable to perform operation "%" on non-numeric type`);
+					if (is_integer(left.value_type) === false)
+						throw new Error(`Unable to perform operation "%" on non-integer type`);
 
 					return new WAST.WASTModuloNode(left.value_type, left, right);
 				}

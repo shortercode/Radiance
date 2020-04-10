@@ -5,7 +5,7 @@
 	- [ ] Logical operators ( and / or / not )
 	- [ ] Bitwise ( and / or )
 	- [ ] Bitshift
-	- [ ] Modulo / multiplication / division
+	- [X] Modulo / multiplication / division
 	- [ ] Exponentiation
 	- [ ] Unary negation
 	- [ ] Grouping
@@ -15,6 +15,10 @@
 	- [ ] Break/contiue for loops
 	- [ ] Other loop types?
 	- [ ] Import functions from external
+	- [X] Inline export syntax
+	- [ ] Export memory
+	- [ ] Add reserved names list to variable declaration
+	- [ ] Add global variables
 - [ ] Hard
 	- [ ] Array types
 	- [ ] Structs

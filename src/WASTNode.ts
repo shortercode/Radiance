@@ -398,10 +398,10 @@ export class WASTConditionalNode implements WASTNode {
 
 		value_type: AtiumType
 		condition: WASTExpressionNode
-		then_branch: WASTBlockNode
-		else_branch: WASTBlockNode | null
+		then_branch: WASTNodeList
+		else_branch: WASTNodeList
 
-		constructor(type: AtiumType, condition: WASTExpressionNode, then_branch: WASTBlockNode, else_branch: WASTBlockNode | null) {
+		constructor(type: AtiumType, condition: WASTExpressionNode, then_branch: WASTNodeList, else_branch: WASTNodeList) {
 			this.value_type = type;
 			this.condition = condition;
 			this.then_branch = then_branch;

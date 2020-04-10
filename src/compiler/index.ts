@@ -190,7 +190,7 @@ function is_type_exportable (type: AtiumType) {
 function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 	switch (node.type) {
 		case "block": {
-			visit_block_expression(ctx, node);
+			return visit_block_expression(ctx, node);
 		}
 		case "number": {
 			return new WAST.WASTConstNode("f64", node.data as string);
@@ -259,13 +259,20 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 			const { type, left, right } = visit_integer_binary_expression(ctx, node);
 			return new WAST.WASTModuloNode(type, left, right);
 		}
+
+		case "and": {
+			return visit_logical_and_expression(ctx, node);
+		}
+		case "or": {
+			return  visit_logical_or_expression(ctx, node);
+		}
 		
 		default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected an expression`);;
 	}		
 }
 
 function visit_block_expression (ctx: Context, node: Node) {
-	const block_node = new WAST.WASTBlockNode;
+	const node_list = new WAST.WASTNodeList;
 	const statements = node.data as Array<Node>;
 	
 	ctx.environment!.push_frame();
@@ -274,21 +281,16 @@ function visit_block_expression (ctx: Context, node: Node) {
 	
 	for (const stmt of statements) {
 		const result = visit_local_statement(stmt, ctx);
-		block_node.body.nodes.push(result);
+		node_list.nodes.push(result);
 		last_node = result;
 	}
-	
-	// TODO often we don't actually need a WASTBlockNode as a WASTNodeList will
-	// suffice. However, the serializer will not know when this is appropriate
-	// hence the change will need to be made here
-	
 	
 	ctx.environment!.pop_frame();
 	
 	const block_value_type = last_node ? last_node.value_type : "void";
-	block_node.value_type = block_value_type;
+	node_list.value_type = block_value_type;
 	
-	return block_node;
+	return node_list;
 }
 
 function visit_call_expression (ctx: Context, node: Node) {
@@ -309,11 +311,20 @@ function visit_call_expression (ctx: Context, node: Node) {
 	}
 	const args: Array<WAST.WASTExpressionNode> = [];
 	
-	// TODO check params vs arguments here!
-	
-	for (const arg of value.arguments) {
+	const arg_count = value.arguments.length;
+	const param_count = fn.parameters.length;
+
+	if (arg_count != param_count) {
+		throw new Error(`Function ${function_name} expects ${param_count} arguments but ${arg_count} were given`);
+	}
+
+	for (let i = 0; i < param_count; i++) {
+		const arg = value.arguments[i];
+		const param = fn.parameters[i];
 		const expr = visit_expression(arg, ctx);
-		if (expr !== null)
+		if (expr.value_type !== param.type) {
+			throw new Error(`Expected ${param.type} but recieved ${expr.value_type}`);
+		}
 		args.push(expr);
 	}
 	
@@ -326,23 +337,24 @@ function visit_if_expression (ctx: Context, node: Node) {
 		thenBranch: Node
 		elseBranch: Node | null
 	};
-	
+
 	let condition = visit_expression(value.condition, ctx);
-	
 	condition = ensure_expression_emits_boolean(condition);
 	
-	const then_branch = visit_expression(value.thenBranch, ctx) as WAST.WASTBlockNode;
+	const then_branch = visit_expression(value.thenBranch, ctx) as WAST.WASTNodeList;
 	let value_type = then_branch.value_type;
-	let else_branch = null;
-	
+
 	if (value.elseBranch !== null) {
-		else_branch = visit_expression(value.elseBranch, ctx) as WAST.WASTBlockNode;
+		const else_branch = visit_expression(value.elseBranch, ctx) as WAST.WASTNodeList;
 		if (else_branch.value_type !== value_type) {
 			value_type = "void";
 		}
+		return new WAST.WASTConditionalNode(value_type, condition, then_branch, else_branch);
 	}
-	
-	return new WAST.WASTConditionalNode(value_type, condition, then_branch, else_branch);
+	else {
+		const else_branch = new WAST.WASTNodeList;
+		return new WAST.WASTConditionalNode(value_type, condition, then_branch, else_branch);
+	}
 }
 
 function visit_while_loop_expression (ctx: Context, node: Node) {
@@ -485,6 +497,48 @@ function visit_assignment_expression (ctx: Context, node: Node) {
 	return new WAST.WASTTeeLocalNode(variable.id, variable.name, new_value, variable.type);
 }
 
+function visit_logical_and_expression (ctx: Context, node: Node) {
+	const {left, right } = visit_boolean_binary_expression(ctx, node);
+
+	/*
+	(left)
+	(if
+		(right)
+	else
+		false
+	end)
+	*/
+
+	const then_branch = new WAST.WASTNodeList;
+	then_branch.nodes.push(right);
+	const else_branch = new WAST.WASTNodeList;
+	const false_node = new WAST.WASTConstNode("boolean", "0");
+	else_branch.nodes.push(false_node);
+
+	return new WAST.WASTConditionalNode("boolean", left, then_branch, else_branch);
+}
+
+function visit_logical_or_expression (ctx: Context, node: Node) {
+	const {left, right } = visit_boolean_binary_expression(ctx, node);
+
+	/*
+	(left)
+	(if
+		true
+	else
+		(right)
+	end)
+	*/
+
+	const then_branch = new WAST.WASTNodeList;
+	const true_node = new WAST.WASTConstNode("boolean", "1"); 
+	then_branch.nodes.push(true_node);
+	const else_branch = new WAST.WASTNodeList;
+	else_branch.nodes.push(right);
+
+	return new WAST.WASTConditionalNode("boolean", left, then_branch, else_branch);
+}
+
 function visit_numeric_binary_expression (ctx: Context, node: Node) {
 	const result = visit_binary_expresson(ctx, node);
 	const type = result.type;
@@ -507,6 +561,17 @@ function visit_integer_binary_expression (ctx: Context, node: Node) {
 	}
 	
 	return result;
+}
+
+function visit_boolean_binary_expression (ctx: Context, node: Node) {
+	const result = visit_binary_expresson(ctx, node);
+	const left = ensure_expression_emits_boolean(result.left);
+	const right = ensure_expression_emits_boolean(result.right);
+
+	return {
+		left,
+		right
+	};
 }
 
 function visit_binary_expresson (ctx: Context, node: Node) {

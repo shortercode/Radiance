@@ -201,6 +201,9 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 		case "call": {
 			return visit_call_expression(ctx, node);
 		}
+		case "not": {
+			return visit_not_expression(ctx, node);
+		}
 		case "if": {
 			return visit_if_expression(ctx, node);
 		}
@@ -370,6 +373,15 @@ function visit_call_expression (ctx: Context, node: Node) {
 	return new WAST.WASTCallNode(function_name, fn.type, args)
 }
 
+function visit_not_expression (ctx: Context, node: Node) {
+	const value = node.data as {
+		subnode: Node
+	};
+
+	const inner = visit_expression(value.subnode, ctx);
+	return invert_boolean_expression(inner);
+}
+
 function visit_if_expression (ctx: Context, node: Node) {
 	const value = node.data as {
 		condition: Node
@@ -442,19 +454,7 @@ function visit_while_loop_expression (ctx: Context, node: Node) {
 		// NOTE we need to massage the condition a bit to get what we want
 		{
 			let condition = visit_expression(value.condition, ctx);
-			
-			// NOTE we want to invert the condition. as an optmisation if it's
-			// already inverted (e.g. while !false {} ) then we just remove that
-			// inversion
-			if (condition instanceof WAST.WASTNotNode) {
-				condition = condition.inner;
-			}
-			else {
-				// NOTE otherwise ensure that we have a boolean value then invert
-				// invert it
-				condition = ensure_expression_emits_boolean(condition);
-				condition = new WAST.WASTNotNode(condition);
-			}
+			condition = invert_boolean_expression(condition);
 			
 			// NOTE finally wrap the condition in a conditional branch Op
 			condition = new WAST.WASTConditionalBranchNode(condition, 1);
@@ -486,6 +486,21 @@ function visit_while_loop_expression (ctx: Context, node: Node) {
 	}
 	
 	return node_list;
+}
+
+function invert_boolean_expression (expr: WAST.WASTExpressionNode) {
+	// NOTE as an optmisation if it's
+	// already inverted (e.g. while !false {} ) then we just remove that
+	// inversion
+	if (expr instanceof WAST.WASTNotNode) {
+		return expr.inner;
+	}
+	else {
+		// NOTE otherwise ensure that we have a boolean value then invert
+		// invert it
+		const boolean_expr = ensure_expression_emits_boolean(expr);
+		return new WAST.WASTNotNode(boolean_expr);
+	}
 }
 
 function visit_boolean_expression (ctx: Context, node: Node) {

@@ -192,6 +192,9 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 		case "block": {
 			return visit_block_expression(ctx, node);
 		}
+		case "grouping": {
+			return visit_group_expression(ctx, node);
+		}
 		case "number": {
 			return new WAST.WASTConstNode("f64", node.data as string);
 		}
@@ -307,6 +310,24 @@ function visit_block_expression (ctx: Context, node: Node) {
 	
 	const block_value_type = last_node ? last_node.value_type : "void";
 	node_list.value_type = block_value_type;
+	
+	return node_list;
+}
+
+function visit_group_expression (ctx: Context, node: Node) {
+	const node_list = new WAST.WASTNodeList;
+	const expressions = node.data as Array<Node>;
+	
+	let last_node;
+	
+	for (const stmt of expressions) {
+		const result = visit_expression(stmt, ctx);
+		node_list.nodes.push(result);
+		last_node = result;
+	}
+	
+	const group_value_type = last_node ? last_node.value_type : "void";
+	node_list.value_type = group_value_type;
 	
 	return node_list;
 }

@@ -22,18 +22,19 @@ class AtiumParser extends Parser {
 		/*
 		Precedence order low to high
 		
-		Assignment
-		Binary Logical ( and/or )
-		Bitwise
-		Equality
-		Comparison
-		Bitwise shift
-		Add/Sub
-		Mul/Div
-		Prefix
-		Function Call
-		Grouping
-		Literals
+		1. Assignment
+		2. Binary Logical ( and/or )
+		3. Equality
+		4. Comparison
+		5. Add/Sub/Bitwise OR
+		6. Mul/Div/Bitwise AND
+		7. Bitwise shift
+
+		8. Prefix
+		9. Function Call
+		10. Grouping
+		11. Literals
+		
 		*/
 		
 		this.addInfix("symbol:=",						1, this.binary("="));
@@ -41,37 +42,38 @@ class AtiumParser extends Parser {
 		this.addInfix("identifier:and",			2, this.binary("and"));
 		this.addInfix("identifier:or",			2, this.binary("or"));
 		
-		this.addInfix("symbol:|",						3, this.binary("|"));
-		this.addInfix("symbol:&",						3, this.binary("&"));
+		this.addInfix("symbol:==", 					3, this.binary("=="));
+		this.addInfix("symbol:!=", 					3, this.binary("!="));
 		
-		this.addInfix("symbol:==", 					4, this.binary("=="));
-		this.addInfix("symbol:!=", 					4, this.binary("!="));
-		
-		this.addInfix("symbol:<", 					5, this.binary("<"));
-		this.addInfix("symbol:>", 					5, this.binary(">"));
-		this.addInfix("symbol:<=", 					5, this.binary("<="));
-		this.addInfix("symbol:>=", 					5, this.binary(">="));
+		this.addInfix("symbol:<", 					4, this.binary("<"));
+		this.addInfix("symbol:>", 					4, this.binary(">"));
+		this.addInfix("symbol:<=", 					4, this.binary("<="));
+		this.addInfix("symbol:>=", 					4, this.binary(">="));
 
-		this.addInfix("symbol:<<",					6, this.binary("<<"));
-		this.addInfix("symbol:>>",					6, this.binary(">>"));
+		this.addInfix("symbol:+", 					5, this.binary("+"));
+		this.addInfix("symbol:-", 					5, this.binary("-"));
+		this.addInfix("symbol:|",						5, this.binary("|"));
 		
-		this.addInfix("symbol:+", 					7, this.binary("+"));
-		this.addInfix("symbol:-", 					7, this.binary("-"));
+		this.addInfix("symbol:*",						6, this.binary("*"));
+		this.addInfix("symbol:/",						6, this.binary("/"));
+		this.addInfix("symbol:%",						6, this.binary("%"));
+		this.addInfix("symbol:&",						6, this.binary("&"));
+
+		this.addInfix("symbol:<<",					7, this.binary("<<"));
+		this.addInfix("symbol:>>",					7, this.binary(">>"));
 		
-		this.addInfix("symbol:*",						8, this.binary("*"));
-		this.addInfix("symbol:/",						8, this.binary("/"));
-		this.addInfix("symbol:%",						8, this.binary("%"));
+		this.addPrefix("identifier:if", 		8, this.parseIfExpression);
+		this.addPrefix("symbol:{", 					8, this.parseBlockExpression);
+		this.addPrefix("identifier:while", 	8, this.parseWhileExpression);
 		
-		this.addPrefix("identifier:if", 		9, this.parseIfExpression);
-		this.addPrefix("symbol:{", 					9, this.parseBlockExpression);
-		this.addPrefix("identifier:while", 	9, this.parseWhileExpression);
+		this.addInfix("symbol:(", 					9, this.parseCallExpression);
+
+		this.addPrefix("symbol:(",					10, this.parseGrouping);
 		
-		this.addInfix("symbol:(", 					10, this.parseCallExpression);
-		
-		this.addPrefix("number:", 					12, this.literal("number"));
-		this.addPrefix("identifier:", 			12, this.literal("identifier"));
-		this.addPrefix("identifier:true", 	12, this.literal("boolean"));
-		this.addPrefix("identifier:false", 	12, this.literal("boolean"));
+		this.addPrefix("number:", 					11, this.literal("number"));
+		this.addPrefix("identifier:", 			11, this.literal("identifier"));
+		this.addPrefix("identifier:true", 	11, this.literal("boolean"));
+		this.addPrefix("identifier:false", 	11, this.literal("boolean"));
 	}
 	
 	parseCallExpression(tokens: Iterator<Token>, left: Node): Node {
@@ -98,6 +100,32 @@ class AtiumParser extends Parser {
 		// NOTE previous token is the "symbol:)" read above
 		const end = tokens.previous()!.end;
 		return new Node("call", start, end, { callee: left, arguments: values });
+	}
+
+	parseGrouping(tokens: Iterator<Token>): Node {
+		const start = tokens.previous()!.start;
+		
+		const values: Array<Node> = [];
+		
+		if (!this.match(tokens, "symbol:)")) {
+			while (tokens.incomplete()) {
+				const sub_expression = this.parseExpression(tokens);
+				values.push(sub_expression);
+				
+				if (this.match(tokens, "symbol:,")) {
+					tokens.next();
+				}
+				else {
+					break;
+				}
+			}
+		}
+		
+		this.ensure(tokens, "symbol:)");
+		
+		// NOTE previous token is the "symbol:)" read above
+		const end = tokens.previous()!.end;
+		return new Node("group", start, end, { expressions: values });
 	}
 	
 	parseWhileExpression(tokens: Iterator<Token>): Node {

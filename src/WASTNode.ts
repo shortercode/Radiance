@@ -31,7 +31,11 @@ export type WASTBinaryExpressionNode = WASTEqualsNode |
 	WASTSubNode |
 	WASTMultiplyNode |
 	WASTModuloNode |
-	WASTDivideNode;
+	WASTDivideNode |
+	WASTLeftShiftNode |
+	WASTRightShiftNode |
+	WASTBitwiseAndNode |
+	WASTBitwiseOrNode;
 
 export type WASTNodeType = WASTStatementType | 
 	WASTExpressionType |
@@ -68,7 +72,11 @@ export type WASTBinaryExpressionType = "equals" |
 	"sub" |
 	"multiply" |
 	"divide" |
-	"modulo";
+	"modulo" |
+	"left_shift" |
+	"right_shift" |
+	"bitwise_or" |
+	"bitwise_and";
 
 export type WASTStatementNode = WASTExportNode |
   WASTFunctionNode |
@@ -460,5 +468,61 @@ export class WASTNodeList implements WASTNode {
 
 	consume_return_value () {
 		this.value_type = "void";
+	}
+}
+
+export class WASTLeftShiftNode implements WASTNode {
+	type: "left_shift" = "left_shift"
+	value_type: AtiumType
+
+	left: WASTExpressionNode
+	right: WASTExpressionNode
+
+	constructor (type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
+			this.value_type = type;
+			this.left = left;
+			this.right = right;
+	}
+}
+
+export class WASTRightShiftNode implements WASTNode {
+	type: "right_shift" = "right_shift"
+	value_type: AtiumType
+	
+	left: WASTExpressionNode
+	right: WASTExpressionNode
+
+	constructor (type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
+			this.value_type = type;
+			this.left = left;
+			this.right = right;
+	}
+}
+
+export class WASTBitwiseOrNode implements WASTNode {
+	type: "bitwise_or" = "bitwise_or"
+	value_type: AtiumType
+	
+	left: WASTExpressionNode
+	right: WASTExpressionNode
+
+	constructor (type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
+			this.value_type = type;
+			this.left = left;
+			this.right = right;
+	}
+}
+
+export class WASTBitwiseAndNode implements WASTNode {
+	type: "bitwise_and" = "bitwise_and"
+	value_type: AtiumType
+	
+	left: WASTExpressionNode
+	right: WASTExpressionNode
+
+	constructor (type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
+			this.value_type = type;
+			this.left = left;
+			this.right = right;
 	}
 }

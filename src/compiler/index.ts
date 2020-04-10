@@ -266,6 +266,24 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 		case "or": {
 			return  visit_logical_or_expression(ctx, node);
 		}
+
+		case "|": {
+			return visit_bitwise_or_expression(ctx, node);
+		}
+		case "&": {
+			return visit_bitwise_and_expression(ctx, node);
+		}
+
+		case "<<": {
+			const { type, left, right } = visit_integer_binary_expression(ctx, node);
+
+			return new WAST.WASTLeftShiftNode(type, left, right);
+		}
+		case ">>": {
+			const { type, left, right } = visit_integer_binary_expression(ctx, node);
+			
+			return new WAST.WASTRightShiftNode(type, left, right);
+		}
 		
 		default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected an expression`);;
 	}		
@@ -537,6 +555,30 @@ function visit_logical_or_expression (ctx: Context, node: Node) {
 	else_branch.nodes.push(right);
 
 	return new WAST.WASTConditionalNode("boolean", left, then_branch, else_branch);
+}
+
+function visit_bitwise_or_expression (ctx: Context, node: Node) {
+	const { left, right, type } = visit_binary_expresson(ctx, node);
+	const operand = node.type;
+	const is_valid_type = is_integer(type) || type === "boolean";
+
+	if (is_valid_type === false) {
+		throw new Error(`Unable to perform operation ${operand} on non-integer or non-boolean types ${type} ${type}`);
+	}
+
+	return new WAST.WASTBitwiseOrNode(type, left, right);
+}
+
+function visit_bitwise_and_expression (ctx: Context, node: Node) {
+	const { left, right, type } = visit_binary_expresson(ctx, node);
+	const operand = node.type;
+	const is_valid_type = is_integer(type) || type === "boolean";
+
+	if (is_valid_type === false) {
+		throw new Error(`Unable to perform operation ${operand} on non-integer or non-boolean types ${type} ${type}`);
+	}
+
+	return new WAST.WASTBitwiseAndNode(type, left, right);
 }
 
 function visit_numeric_binary_expression (ctx: Context, node: Node) {

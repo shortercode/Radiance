@@ -23,6 +23,10 @@ import { write_not_expression } from "./not.js";
 import { write_list_expression } from "./list.js";
 import { write_divide_expression } from "./divide.js";
 import { write_tee_local_expression } from "./tee_local.js";
+import { write_shift_left_expression } from "./left_shift.js";
+import { write_shift_right_expression } from "./right_shift.js";
+import { write_bitwise_and_expression } from "./bitwise_and.js";
+import { write_bitwise_or_expression } from "./bitwise_or.js";
 
 type WriterFunction = (ctx: FunctionContext, node: WASTExpressionNode) => void
 
@@ -53,7 +57,12 @@ const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 	
 	["set_local", write_set_local_expression],
 	["get_local", write_get_local_expression],
-	["tee_local", write_tee_local_expression]
+	["tee_local", write_tee_local_expression],
+
+	["left_shift", write_shift_left_expression],
+	["right_shift", write_shift_right_expression],
+	["bitwise_and", write_bitwise_and_expression],
+	["bitwise_or", write_bitwise_or_expression]
 ]);
 
 export function write_expression(ctx: FunctionContext, node: WASTExpressionNode) {

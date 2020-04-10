@@ -2,13 +2,13 @@
 
 -  [ ] Easy
 	- [ ] Type checking on function calls
-	- [ ] Logical operators ( and / or / not )
-	- [ ] Bitwise ( and / or )
-	- [ ] Bitshift
+	- [X] Logical operators ( and / or / not )
+	- [X] Bitwise ( and / or )
+	- [X] Bitshift
 	- [X] Modulo / multiplication / division
 	- [ ] Exponentiation
 	- [ ] Unary negation
-	- [ ] Grouping
+	- [X] Grouping
 	- [ ] Numerical hinting
 	- [ ] Explicit numerical type conversions
 	- [ ] Explicit return

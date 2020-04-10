@@ -246,9 +246,7 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 
 						let condition = visit_expression(value.condition, ctx);
 
-						if (condition.value_type !== "boolean") {
-							condition = wrap_boolean_cast(condition);
-						}
+						condition = ensure_expression_emits_boolean(condition);
 
 						const then_branch = visit_expression(value.thenBranch, ctx) as WAST.WASTBlockNode;
 						let value_type = then_branch.value_type;
@@ -319,9 +317,7 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 							else {
 								// NOTE otherwise ensure that we have a boolean value then invert
 								// invert it
-								if (condition.value_type !== "boolean") {
-									condition = wrap_boolean_cast(condition);
-								}
+								condition = ensure_expression_emits_boolean(condition);
 								condition = new WAST.WASTNotNode(condition);
 							}
 
@@ -588,7 +584,7 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 				}
 
         default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected an expression`);;
-    }
+			}		
 }
 
 function visit_local_statement(node: Node, ctx: Context): WAST.WASTExpressionNode {
@@ -612,6 +608,15 @@ function visit_local_statement(node: Node, ctx: Context): WAST.WASTExpressionNod
         }
         default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected a statement`);
     }
+}
+
+function ensure_expression_emits_boolean(expr: WAST.WASTExpressionNode): WAST.WASTExpressionNode {
+	if (expr.value_type !== "boolean") {
+		return wrap_boolean_cast(expr);
+	}
+	else {
+		return expr;
+	}
 }
 
 function wrap_boolean_cast(expr: WAST.WASTExpressionNode): WAST.WASTExpressionNode {

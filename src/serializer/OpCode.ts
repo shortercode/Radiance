@@ -12,16 +12,16 @@ export enum Opcode {
 	return = 0x0F,
 	call = 0x10,
 	call_indirect = 0x11,
-
+	
 	drop = 0x1A,
 	select = 0x1B,
-
+	
 	local_get = 0x20,
 	local_set = 0x21,
 	local_tee = 0x22,
 	global_get = 0x23,
 	global_set = 0x24,
-
+	
 	i32_load = 0x28,
 	i64_load = 0x29,
 	f32_load = 0x2A,
@@ -47,12 +47,12 @@ export enum Opcode {
 	i64_store32 = 0x3E,
 	memory_size = 0x3F,
 	memory_grow = 0x40,
-
+	
 	i32_const = 0x41,
 	i64_const = 0x42,
 	f32_const = 0x43,
 	f64_const = 0x44,
-
+	
 	i32_eqz = 0x45,
 	i32_eq = 0x46,
 	i32_ne = 0x47,
@@ -64,7 +64,7 @@ export enum Opcode {
 	i32_le_u = 0x4D,
 	i32_ge_s = 0x4E,
 	i32_ge_u = 0x4F,
-
+	
 	i64_eqz = 0x50,
 	i64_eq = 0x51,
 	i64_ne = 0x52,
@@ -76,21 +76,21 @@ export enum Opcode {
 	i64_le_u = 0x58,
 	i64_ge_s = 0x59,
 	i64_ge_u = 0x5A,
-
+	
 	f32_eq = 0x5B,
 	f32_ne = 0x5C,
 	f32_lt = 0x5D,
 	f32_gt = 0x5E,
 	f32_le = 0x5F,
 	f32_ge = 0x60,
-
+	
 	f64_eq = 0x61,
 	f64_ne = 0x62,
 	f64_lt = 0x63,
 	f64_gt = 0x64,
 	f64_le = 0x65,
 	f64_ge = 0x66,
-
+	
 	i32_clz = 0x67,
 	i32_ctz = 0x68,
 	i32_popcnt = 0x69,
@@ -109,7 +109,7 @@ export enum Opcode {
 	i32_shr_u = 0x76,
 	i32_rotl = 0x77,
 	i32_rotr = 0x78,
-
+	
 	i64_clz = 0x79,
 	i64_ctz = 0x7A,
 	i64_popcnt = 0x7B,
@@ -128,7 +128,7 @@ export enum Opcode {
 	i64_shr_u = 0x88,
 	i64_rotl = 0x89,
 	i64_rotr = 0x8A,
-
+	
 	f32_abs = 0x8B,
 	f32_neg = 0x8C,
 	f32_ceil = 0x8D,
@@ -143,7 +143,7 @@ export enum Opcode {
 	f32_min = 0x96,
 	f32_max = 0x97,
 	f32_copysign = 0x98,
-
+	
 	f64_abs = 0x99,
 	f64_neg = 0x9A,
 	f64_ceil = 0x9B,
@@ -158,7 +158,7 @@ export enum Opcode {
 	f64_min = 0xA4,
 	f64_max = 0xA5,
 	f64_copysign = 0xA6,
-
+	
 	i32_wrap_i64 = 0xA7,
 	i32_trunc_f32_s = 0xA8,
 	i32_trunc_f32_u = 0xA9,

@@ -8,18 +8,21 @@ export class Context {
 	environment: Environment | null = null
 	
 	declare_variable (name: string, type: AtiumType): Variable {
-		if (this.environment === null)
-		throw new Error("Cannot declare global variable");
+		if (this.environment === null) {
+			throw new Error("Cannot declare global variable");
+		}
 		
 		return this.environment.declare(name, type);
 	}
 	
 	declare_function (name: string, type: AtiumType, parameters: Array<Variable>) {
-		if (this.environment !== null)
-		throw new Error("Cannot declare local function");
+		if (this.environment !== null) {
+			throw new Error("Cannot declare local function");
+		}
 		
-		if (this.globals.has(name))
-		throw new Error(`Global ${name} already exists`);
+		if (this.globals.has(name)) {
+			throw new Error(`Global ${name} already exists`);
+		}
 		
 		const fn = new FunctionDeclaration(type, parameters);
 		

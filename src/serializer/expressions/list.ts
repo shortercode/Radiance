@@ -4,13 +4,13 @@ import { Opcode } from "../OpCode";
 import { write_expression } from "./expression";
 
 export function write_list_expression(ctx: FunctionContext, node: WASTExpressionNode) {
-
+	
 	const list_node = node as WASTNodeList;
 	const statements = list_node.nodes;
-
+	
 	if (statements.length === 0)
-		return;
-
+	return;
+	
 	for (let i = 0; i < statements.length - 1; i++) {
 		const subnode = statements[i];
 		write_expression(ctx, subnode);
@@ -19,7 +19,7 @@ export function write_list_expression(ctx: FunctionContext, node: WASTExpression
 			ctx.writer.writeUint8(Opcode.drop);
 		}
 	}
-
+	
 	{
 		const last_subnode = statements[statements.length - 1];
 		write_expression(ctx, last_subnode);
@@ -30,12 +30,12 @@ export function write_list_expression(ctx: FunctionContext, node: WASTExpression
 			ctx.writer.writeUint8(Opcode.drop);
 		}
 	}
-
+	
 	if (list_node.value_type === "void") {
-			if (ctx.stack_depth !== 0)
-					throw new Error(`Expected no values on the stack, but found ${ctx.stack_depth}`);
+		if (ctx.stack_depth !== 0)
+		throw new Error(`Expected no values on the stack, but found ${ctx.stack_depth}`);
 	}
 	else if (ctx.stack_depth !== 1) {
-			throw new Error(`Expected 1 values on the stack, but found ${ctx.stack_depth}`);
+		throw new Error(`Expected 1 values on the stack, but found ${ctx.stack_depth}`);
 	}
 }

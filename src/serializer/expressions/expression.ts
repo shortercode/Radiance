@@ -28,12 +28,12 @@ type WriterFunction = (ctx: FunctionContext, node: WASTExpressionNode) => void
 
 const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 	["@list", write_list_expression],
-
+	
 	["add", write_add_expression],
 	["sub", write_sub_expression],
 	["multiply", write_multiply_expression],
 	["divide", write_divide_expression],
-
+	
 	["equals", write_equals_expression],
 	["not_equals", write_not_equals_expression],
 	["less_than", write_less_than_expression],
@@ -41,31 +41,29 @@ const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 	["greater_than_equals", write_greater_than_equals_expression],
 	["less_than_equals", write_less_than_equals_expression],
 	["not", write_not_expression],
-
+	
 	["if", write_if_expression],
 	["block", write_block_expression],
 	["const", write_const_expression],
 	["call", write_call_expression],
 	["loop", write_loop_expression],
-
+	
 	["br", write_br_expression],
 	["br_if", write_br_if_expression],
-
+	
 	["set_local", write_set_local_expression],
 	["get_local", write_get_local_expression],
 	["tee_local", write_tee_local_expression]
 ]);
 
 export function write_expression(ctx: FunctionContext, node: WASTExpressionNode) {
-	const writer = expression_types.get(node.type);
-	if (!writer)
-		throw new Error(`Unknown expression type ${node.type}`);
-	writer(ctx, node);
+	return expression_writer(node)(ctx, node);
 }
 
 export function expression_writer(node: WASTExpressionNode) {
 	const writer = expression_types.get(node.type);
-	if (!writer)
+	if (!writer) {
 		throw new Error("Unknown expression type");
+	}
 	return writer;
 }

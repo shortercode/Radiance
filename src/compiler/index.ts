@@ -14,8 +14,9 @@ serialises this WebAssembly AST into a binary file.
 
 export default function (node: Node): WAST.WASTModuleNode {
 	const ctx: Context = new Context;
-	if (node.type !== "module")
-	throw new Error(`Invalid node type ${node.type} expected a module`);
+	if (node.type !== "module") {
+		throw new Error(`Invalid node type ${node.type} expected a module`);
+	}
 	return visit_module(node, ctx);
 }
 
@@ -151,8 +152,9 @@ function visit_function(node: Node, ctx: Context) {
 function export_function(fn_name: string, ctx: Context) {
 	const fn = ctx.globals.get(fn_name);
 	
-	if (!fn)
-	throw new Error(`Cannot export ${fn_name} as it is not available in the global scope`);
+	if (!fn) {
+		throw new Error(`Cannot export ${fn_name} as it is not available in the global scope`);
+	}
 	
 	if (fn instanceof FunctionDeclaration) {
 		for (const { name, type } of fn.parameters) {
@@ -188,406 +190,344 @@ function is_type_exportable (type: AtiumType) {
 function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 	switch (node.type) {
 		case "block": {
-			const block_node = new WAST.WASTBlockNode;
-			const statements = node.data as Array<Node>;
-			
-			ctx.environment!.push_frame();
-			
-			let last_node;
-			
-			for (const stmt of statements) {
-				const result = visit_local_statement(stmt, ctx);
-				block_node.body.nodes.push(result);
-				last_node = result;
-			}
-			
-			ctx.environment!.pop_frame();
-			
-			const block_value_type = last_node ? last_node.value_type : "void";
-			block_node.value_type = block_value_type;
-			
-			return block_node;
+			visit_block_expression(ctx, node);
 		}
 		case "number": {
 			return new WAST.WASTConstNode("f64", node.data as string);
 		}
 		case "call": {
-			const value = node.data as {
-				callee: Node,
-				arguments: Array<Node>
-			};
-			
-			if (value.callee.type !== "identifier") {
-				throw new Error(`${value.callee.type} is not a function`);
-			}
-			
-			const function_name = value.callee.data as string;
-			const fn = ctx.globals.get(function_name);
-			
-			if (!fn) {
-				throw new Error(`Undefined function ${function_name}`);
-			}
-			const args: Array<WAST.WASTExpressionNode> = [];
-			
-			// TODO check params vs arguments here!
-			
-			for (const arg of value.arguments) {
-				const expr = visit_expression(arg, ctx);
-				if (expr !== null)
-				args.push(expr);
-			}
-			
-			return new WAST.WASTCallNode(function_name, fn.type, args)
+			return visit_call_expression(ctx, node);
 		}
 		case "if": {
-			const value = node.data as {
-				condition: Node
-				thenBranch: Node
-				elseBranch: Node | null
-			};
-			
-			let condition = visit_expression(value.condition, ctx);
-			
-			condition = ensure_expression_emits_boolean(condition);
-			
-			const then_branch = visit_expression(value.thenBranch, ctx) as WAST.WASTBlockNode;
-			let value_type = then_branch.value_type;
-			let else_branch = null;
-			
-			if (value.elseBranch !== null) {
-				else_branch = visit_expression(value.elseBranch, ctx) as WAST.WASTBlockNode;
-				if (else_branch.value_type !== value_type) {
-					value_type = "void";
-				}
-			}
-			
-			return new WAST.WASTConditionalNode(value_type, condition, then_branch, else_branch);
+			return visit_if_expression(ctx, node);
 		}
 		case "while": {
-			const value = node.data as {
-				condition: Node
-				block: Node
-			};
-			
-			/*
-			NOTE WASM doesn't have a "while" instruction only a "loop". Curiously loops
-			exit after each iteration by default, so to continue a "branch" operation
-			must be executed. To emulate a while loop we use the following structure
-			
-			(local temp)
-			(block (void)
-			(loop (void)
-			(if_br (eqz CONDITION) 1)
-			(local.set BLOCK)
-			(br 0)
-			)
-			)
-			(local.get temp)
-			*/
-			
-			// NOTE before starting we must know if the inner body returns a value
-			const while_body = visit_expression(value.block, ctx) as WAST.WASTBlockNode;
-			const return_value_type = while_body.value_type
-			const emits_value = return_value_type !== "void";
-			
-			const node_list = new WAST.WASTNodeList;
-			
-			// NOTE if we do return a value we need to add a temporary var to hold it
-			let temp_variable = null;
-			if (emits_value) {
-				temp_variable = ctx.environment!.declare_hidden("while_temp_variable", while_body.value_type);
-				const init_value_node = default_initialiser(return_value_type);
-				const init_node = new WAST.WASTSetLocalNode(temp_variable.id, temp_variable.name, init_value_node);
-				node_list.nodes.push(init_node);
-			}
-			
-			{
-				const block_node = new WAST.WASTBlockNode;
-				const loop_block = new WAST.WASTLoopNode;
-				block_node.body.nodes.push(loop_block);
-				
-				// NOTE we need to massage the condition a bit to get what we want
-				{
-					let condition = visit_expression(value.condition, ctx);
-					
-					// NOTE we want to invert the condition. as an optmisation if it's
-					// already inverted (e.g. while !false {} ) then we just remove that
-					// inversion
-					if (condition instanceof WAST.WASTNotNode) {
-						condition = condition.inner;
-					}
-					else {
-						// NOTE otherwise ensure that we have a boolean value then invert
-						// invert it
-						condition = ensure_expression_emits_boolean(condition);
-						condition = new WAST.WASTNotNode(condition);
-					}
-					
-					// NOTE finally wrap the condition in a conditional branch Op
-					condition = new WAST.WASTConditionalBranchNode(condition, 1);
-					loop_block.body.push(condition);
-				}
-				
-				// NOTE if we're emitting a value wrap the block in a set local
-				// to stash it in our temp var
-				if (emits_value) {
-					const set_temp_node = new WAST.WASTSetLocalNode(temp_variable!.id, temp_variable!.name, while_body);
-					loop_block.body.push(set_temp_node);
-				}
-				else {
-					loop_block.body.push(while_body)
-				}
-				
-				// NOTE we need to add a branch 0 here to ensure the loop continues
-				loop_block.body.push(new WAST.WASTBranchNode(0));
-				
-				node_list.nodes.push(block_node);
-			}
-			
-			// NOTE finally if we're emitting a value then read back our output
-			// from the temp variable
-			if (emits_value) {
-				const get_temp_node = new WAST.WASTGetLocalNode(temp_variable!.id, temp_variable!.name, return_value_type);
-				node_list.nodes.push(get_temp_node);
-				node_list.value_type = get_temp_node.value_type;
-			}
-			
-			return node_list;
+			return visit_while_loop_expression(ctx, node);
 		}
 		case "boolean": {
-			const value = node.data as string;
-			if (value === "false") {
-				return new WAST.WASTConstNode("boolean", "0");
-			}
-			else if (value === "true") {
-				return new WAST.WASTConstNode("boolean", "1");
-			}
-			else {
-				throw new Error(`Invalid boolean value`);
-			}
+			return visit_boolean_expression(ctx, node);
 		}
 		case "identifier": {
-			const name = node.data as string;
-			const variable = ctx.get_variable(name);
-			if (!variable)  {
-				throw new Error(`Undefined variable ${name}`);
-			}
-			return new WAST.WASTGetLocalNode(variable.id, name, variable.type);
+			return visit_identifier_expression(ctx, node);
 		}
+		case "=": {
+			return visit_assignment_expression(ctx, node);
+		}
+		
 		case "==": {
-			const data = node.data as {
-				left: Node
-				right: Node
-			};
-			
-			const left = visit_expression(data.left, ctx);
-			const right = visit_expression(data.right, ctx);
-			
-			if (left.value_type !== right.value_type)
-			throw new Error(`Mismatched operand types for operation "==" ${left.value_type} == ${right.value_type}`);
-			
-			if (is_numeric(left.value_type) === false)
-			throw new Error(`Unable to perform operation "==" on non-numeric type`);
-			
+			const { left, right } = visit_numeric_binary_expression(ctx, node);
 			return new WAST.WASTEqualsNode(left, right);
 		}
 		case "!=": {
-			const data = node.data as {
-				left: Node
-				right: Node
-			};
-			
-			const left = visit_expression(data.left, ctx);
-			const right = visit_expression(data.right, ctx);
-			
-			if (left.value_type !== right.value_type)
-			throw new Error(`Mismatched operand types for operation "==" ${left.value_type} == ${right.value_type}`);
-			
-			if (is_numeric(left.value_type) === false)
-			throw new Error(`Unable to perform operation "==" on non-numeric type`);
-			
+			const { left, right } = visit_numeric_binary_expression(ctx, node);
 			return new WAST.WASTNotEqualsNode(left, right);
 		}
 		case "<": {
-			const data = node.data as {
-				left: Node
-				right: Node
-			};
-			
-			const left = visit_expression(data.left, ctx);
-			const right = visit_expression(data.right, ctx);
-			
-			if (left.value_type !== right.value_type)
-			throw new Error(`Mismatched operand types for operation "==" ${left.value_type} == ${right.value_type}`);
-			
-			if (is_numeric(left.value_type) === false)
-			throw new Error(`Unable to perform operation "==" on non-numeric type`);
-			
+			const { left, right } = visit_numeric_binary_expression(ctx, node);
 			return new WAST.WASTLessThanNode(left, right);
 		}
 		case ">": {
-			const data = node.data as {
-				left: Node
-				right: Node
-			};
-			
-			const left = visit_expression(data.left, ctx);
-			const right = visit_expression(data.right, ctx);
-			
-			if (left.value_type !== right.value_type)
-			throw new Error(`Mismatched operand types for operation "==" ${left.value_type} == ${right.value_type}`);
-			
-			if (is_numeric(left.value_type) === false)
-			throw new Error(`Unable to perform operation "==" on non-numeric type`);
-			
+			const { left, right } = visit_numeric_binary_expression(ctx, node);
 			return new WAST.WASTGreaterThanNode(left, right);
 		}
 		case "<=": {
-			const data = node.data as {
-				left: Node
-				right: Node
-			};
-			
-			const left = visit_expression(data.left, ctx);
-			const right = visit_expression(data.right, ctx);
-			
-			if (left.value_type !== right.value_type)
-			throw new Error(`Mismatched operand types for operation "==" ${left.value_type} == ${right.value_type}`);
-			
-			if (is_numeric(left.value_type) === false)
-			throw new Error(`Unable to perform operation "==" on non-numeric type`);
-			
+			const { left, right } = visit_numeric_binary_expression(ctx, node);
 			return new WAST.WASTLessThanEqualsNode(left, right);
 		}
 		case ">=": {
-			const data = node.data as {
-				left: Node
-				right: Node
-			};
-			
-			const left = visit_expression(data.left, ctx);
-			const right = visit_expression(data.right, ctx);
-			
-			if (left.value_type !== right.value_type)
-			throw new Error(`Mismatched operand types for operation "==" ${left.value_type} == ${right.value_type}`);
-			
-			if (is_numeric(left.value_type) === false)
-			throw new Error(`Unable to perform operation "==" on non-numeric type`);
-			
+			const { left, right } = visit_numeric_binary_expression(ctx, node);
 			return new WAST.WASTGreaterThanEqualsNode(left, right);
 		}
+		
 		case "+": {
-			const data = node.data as {
-				left: Node
-				right: Node
-			};
-			
-			const left = visit_expression(data.left, ctx);
-			const right = visit_expression(data.right, ctx);
-			
-			if (left.value_type !== right.value_type)
-			throw new Error(`Mismatched operand types for operation "+" ${left.value_type} + ${right.value_type}`);
-			
-			if (is_numeric(left.value_type) === false)
-			throw new Error(`Unable to perform operation "+" on non-numeric type`);
-			
-			return new WAST.WASTAddNode(left.value_type, left, right);
+			const { type, left, right } = visit_numeric_binary_expression(ctx, node);
+			return new WAST.WASTAddNode(type, left, right);
 		}
 		case "-": {
-			const data = node.data as {
-				left: Node
-				right: Node
-			};
-			
-			const left = visit_expression(data.left, ctx);
-			const right = visit_expression(data.right, ctx);
-			
-			if (left.value_type !== right.value_type)
-			throw new Error(`Mismatched operand types for operation "-" ${left.value_type} - ${right.value_type}`);
-			
-			if (is_numeric(left.value_type) === false)
-			throw new Error(`Unable to perform operation "-" on non-numeric type`);
-			
-			return new WAST.WASTSubNode(left.value_type, left, right);
+			const { type, left, right } = visit_numeric_binary_expression(ctx, node);
+			return new WAST.WASTSubNode(type, left, right);
 		}
 		case "*": {
-			const data = node.data as {
-				left: Node
-				right: Node
-			};
-			
-			const left = visit_expression(data.left, ctx);
-			const right = visit_expression(data.right, ctx);
-			
-			if (left.value_type !== right.value_type)
-			throw new Error(`Mismatched operand types for operation "*" ${left.value_type} * ${right.value_type}`);
-			
-			if (is_numeric(left.value_type) === false)
-			throw new Error(`Unable to perform operation "*" on non-numeric type`);
-			
-			return new WAST.WASTMultiplyNode(left.value_type, left, right);
+			const { type, left, right } = visit_numeric_binary_expression(ctx, node);
+			return new WAST.WASTMultiplyNode(type, left, right);
 		}
 		case "/": {
-			const data = node.data as {
-				left: Node
-				right: Node
-			};
-			
-			const left = visit_expression(data.left, ctx);
-			const right = visit_expression(data.right, ctx);
-			
-			if (left.value_type !== right.value_type)
-			throw new Error(`Mismatched operand types for operation "/" ${left.value_type} / ${right.value_type}`);
-			
-			if (is_numeric(left.value_type) === false)
-			throw new Error(`Unable to perform operation "/" on non-numeric type`);
-			
-			return new WAST.WASTDivideNode(left.value_type, left, right);
+			const { type, left, right } = visit_numeric_binary_expression(ctx, node);
+			return new WAST.WASTDivideNode(type, left, right);
 		}
 		case "%": {
-			const data = node.data as {
-				left: Node
-				right: Node
-			};
-			
-			const left = visit_expression(data.left, ctx);
-			const right = visit_expression(data.right, ctx);
-			
-			if (left.value_type !== right.value_type)
-			throw new Error(`Mismatched operand types for operation "%" ${left.value_type} % ${right.value_type}`);
-			
-			if (is_integer(left.value_type) === false)
-			throw new Error(`Unable to perform operation "%" on non-integer type`);
-			
-			return new WAST.WASTModuloNode(left.value_type, left, right);
-		}
-		case "=": {
-			const value = node.data as {
-				left: Node
-				right: Node
-			};
-			
-			if (value.left.type !== "identifier") {
-				throw new Error(`Invalid left hand side of assignment`);
-			}
-			
-			const variable_name = value.left.data as string;
-			const variable = ctx.get_variable(variable_name);
-			
-			if (!variable) {
-				throw new Error(`Undefined variable ${variable_name}`);
-			}
-			
-			const new_value = visit_expression(value.right, ctx);
-			
-			if (variable.type !== new_value.value_type)
-			throw new Error("Assignment doesn't match variable type");
-			
-			return new WAST.WASTTeeLocalNode(variable.id, variable.name, new_value, variable.type);
+			const { type, left, right } = visit_integer_binary_expression(ctx, node);
+			return new WAST.WASTModuloNode(type, left, right);
 		}
 		
 		default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected an expression`);;
 	}		
+}
+
+function visit_block_expression (ctx: Context, node: Node) {
+	const block_node = new WAST.WASTBlockNode;
+	const statements = node.data as Array<Node>;
+	
+	ctx.environment!.push_frame();
+	
+	let last_node;
+	
+	for (const stmt of statements) {
+		const result = visit_local_statement(stmt, ctx);
+		block_node.body.nodes.push(result);
+		last_node = result;
+	}
+	
+	// TODO often we don't actually need a WASTBlockNode as a WASTNodeList will
+	// suffice. However, the serializer will not know when this is appropriate
+	// hence the change will need to be made here
+	
+	
+	ctx.environment!.pop_frame();
+	
+	const block_value_type = last_node ? last_node.value_type : "void";
+	block_node.value_type = block_value_type;
+	
+	return block_node;
+}
+
+function visit_call_expression (ctx: Context, node: Node) {
+	const value = node.data as {
+		callee: Node,
+		arguments: Array<Node>
+	};
+	
+	if (value.callee.type !== "identifier") {
+		throw new Error(`${value.callee.type} is not a function`);
+	}
+	
+	const function_name = value.callee.data as string;
+	const fn = ctx.globals.get(function_name);
+	
+	if (!fn) {
+		throw new Error(`Undefined function ${function_name}`);
+	}
+	const args: Array<WAST.WASTExpressionNode> = [];
+	
+	// TODO check params vs arguments here!
+	
+	for (const arg of value.arguments) {
+		const expr = visit_expression(arg, ctx);
+		if (expr !== null)
+		args.push(expr);
+	}
+	
+	return new WAST.WASTCallNode(function_name, fn.type, args)
+}
+
+function visit_if_expression (ctx: Context, node: Node) {
+	const value = node.data as {
+		condition: Node
+		thenBranch: Node
+		elseBranch: Node | null
+	};
+	
+	let condition = visit_expression(value.condition, ctx);
+	
+	condition = ensure_expression_emits_boolean(condition);
+	
+	const then_branch = visit_expression(value.thenBranch, ctx) as WAST.WASTBlockNode;
+	let value_type = then_branch.value_type;
+	let else_branch = null;
+	
+	if (value.elseBranch !== null) {
+		else_branch = visit_expression(value.elseBranch, ctx) as WAST.WASTBlockNode;
+		if (else_branch.value_type !== value_type) {
+			value_type = "void";
+		}
+	}
+	
+	return new WAST.WASTConditionalNode(value_type, condition, then_branch, else_branch);
+}
+
+function visit_while_loop_expression (ctx: Context, node: Node) {
+	const value = node.data as {
+		condition: Node
+		block: Node
+	};
+	
+	/*
+	NOTE WASM doesn't have a "while" instruction only a "loop". Curiously loops
+	exit after each iteration by default, so to continue a "branch" operation
+	must be executed. To emulate a while loop we use the following structure
+	
+	(local temp)
+	(block (void)
+	(loop (void)
+	(if_br (eqz CONDITION) 1)
+	(local.set BLOCK)
+	(br 0)
+	)
+	)
+	(local.get temp)
+	*/
+	
+	// NOTE before starting we must know if the inner body returns a value
+	const while_body = visit_expression(value.block, ctx) as WAST.WASTBlockNode;
+	const return_value_type = while_body.value_type
+	const emits_value = return_value_type !== "void";
+	
+	const node_list = new WAST.WASTNodeList;
+	
+	// NOTE if we do return a value we need to add a temporary var to hold it
+	let temp_variable = null;
+	if (emits_value) {
+		temp_variable = ctx.environment!.declare_hidden("while_temp_variable", while_body.value_type);
+		const init_value_node = default_initialiser(return_value_type);
+		const init_node = new WAST.WASTSetLocalNode(temp_variable.id, temp_variable.name, init_value_node);
+		node_list.nodes.push(init_node);
+	}
+	
+	{
+		const block_node = new WAST.WASTBlockNode;
+		const loop_block = new WAST.WASTLoopNode;
+		block_node.body.nodes.push(loop_block);
+		
+		// NOTE we need to massage the condition a bit to get what we want
+		{
+			let condition = visit_expression(value.condition, ctx);
+			
+			// NOTE we want to invert the condition. as an optmisation if it's
+			// already inverted (e.g. while !false {} ) then we just remove that
+			// inversion
+			if (condition instanceof WAST.WASTNotNode) {
+				condition = condition.inner;
+			}
+			else {
+				// NOTE otherwise ensure that we have a boolean value then invert
+				// invert it
+				condition = ensure_expression_emits_boolean(condition);
+				condition = new WAST.WASTNotNode(condition);
+			}
+			
+			// NOTE finally wrap the condition in a conditional branch Op
+			condition = new WAST.WASTConditionalBranchNode(condition, 1);
+			loop_block.body.push(condition);
+		}
+		
+		// NOTE if we're emitting a value wrap the block in a set local
+		// to stash it in our temp var
+		if (emits_value) {
+			const set_temp_node = new WAST.WASTSetLocalNode(temp_variable!.id, temp_variable!.name, while_body);
+			loop_block.body.push(set_temp_node);
+		}
+		else {
+			loop_block.body.push(while_body)
+		}
+		
+		// NOTE we need to add a branch 0 here to ensure the loop continues
+		loop_block.body.push(new WAST.WASTBranchNode(0));
+		
+		node_list.nodes.push(block_node);
+	}
+	
+	// NOTE finally if we're emitting a value then read back our output
+	// from the temp variable
+	if (emits_value) {
+		const get_temp_node = new WAST.WASTGetLocalNode(temp_variable!.id, temp_variable!.name, return_value_type);
+		node_list.nodes.push(get_temp_node);
+		node_list.value_type = get_temp_node.value_type;
+	}
+	
+	return node_list;
+}
+
+function visit_boolean_expression (ctx: Context, node: Node) {
+	const value = node.data as string;
+	if (value === "false") {
+		return new WAST.WASTConstNode("boolean", "0");
+	}
+	else if (value === "true") {
+		return new WAST.WASTConstNode("boolean", "1");
+	}
+	else {
+		throw new Error(`Invalid boolean value`);
+	}
+}
+
+function visit_identifier_expression (ctx: Context, node: Node) {
+	const name = node.data as string;
+	const variable = ctx.get_variable(name);
+	if (!variable)  {
+		throw new Error(`Undefined variable ${name}`);
+	}
+	return new WAST.WASTGetLocalNode(variable.id, name, variable.type);
+}
+
+function visit_assignment_expression (ctx: Context, node: Node) {
+	const value = node.data as {
+		left: Node
+		right: Node
+	};
+	
+	if (value.left.type !== "identifier") {
+		throw new Error(`Invalid left hand side of assignment`);
+	}
+	
+	const variable_name = value.left.data as string;
+	const variable = ctx.get_variable(variable_name);
+	
+	if (!variable) {
+		throw new Error(`Undefined variable ${variable_name}`);
+	}
+	
+	const new_value = visit_expression(value.right, ctx);
+	
+	if (variable.type !== new_value.value_type) {
+		throw new Error("Assignment doesn't match variable type");
+	}
+	
+	return new WAST.WASTTeeLocalNode(variable.id, variable.name, new_value, variable.type);
+}
+
+function visit_numeric_binary_expression (ctx: Context, node: Node) {
+	const result = visit_binary_expresson(ctx, node);
+	const type = result.type;
+	const operand = node.type;
+	
+	if (is_numeric(result.type) === false) {
+		throw new Error(`Unable to perform operation ${operand} on non-numeric types ${type} ${type}`);
+	}
+	
+	return result;
+}
+
+function visit_integer_binary_expression (ctx: Context, node: Node) {
+	const result = visit_binary_expresson(ctx, node);
+	const type = result.type;
+	const operand = node.type;
+	
+	if (is_integer(result.type) === false) {
+		throw new Error(`Unable to perform operation ${operand} on non-integer types ${type} ${type}`);
+	}
+	
+	return result;
+}
+
+function visit_binary_expresson (ctx: Context, node: Node) {
+	const data = node.data as {
+		left: Node
+		right: Node
+	};
+	
+	const left = visit_expression(data.left, ctx);
+	const right = visit_expression(data.right, ctx);
+	
+	const operand = node.type;
+	if (left.value_type !== right.value_type) {
+		throw new Error(`Mismatched operand types for (${operand} ${left.value_type}  ${right.value_type})`);
+	}
+	
+	return {
+		type: left.value_type,
+		left,
+		right
+	};
 }
 
 function visit_local_statement(node: Node, ctx: Context): WAST.WASTExpressionNode {

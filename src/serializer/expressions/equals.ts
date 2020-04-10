@@ -8,17 +8,17 @@ export function write_equals_expression(ctx: FunctionContext, node: WASTExpressi
 	
 	switch (inner_type) {
 		case "f32":
-			ctx.writer.writeUint8(Opcode.f32_eq);
-			break;
+		ctx.writer.writeUint8(Opcode.f32_eq);
+		break;
 		case "f64":
-			ctx.writer.writeUint8(Opcode.f64_eq);
-			break;
+		ctx.writer.writeUint8(Opcode.f64_eq);
+		break;
 		case "boolean":
 		case "i32":
-			ctx.writer.writeUint8(Opcode.i32_eq);
-			break;
+		ctx.writer.writeUint8(Opcode.i32_eq);
+		break;
 		case "i64":
-			ctx.writer.writeUint8(Opcode.i64_eq);
-			break;
+		ctx.writer.writeUint8(Opcode.i64_eq);
+		break;
 	}
 }

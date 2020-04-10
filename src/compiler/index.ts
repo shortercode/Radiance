@@ -583,7 +583,7 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 					return new WAST.WASTTeeLocalNode(variable.id, variable.name, new_value, variable.type);
 				}
 
-        default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected an expression`);;
+        default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected an expression`);
 			}		
 }
 

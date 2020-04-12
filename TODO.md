@@ -1,7 +1,7 @@
 # TODO
 
 -  [ ] Easy
-	- [ ] Type checking on function calls
+	- [X] Type checking on function calls
 	- [X] Logical operators ( and / or / not )
 	- [X] Bitwise ( and / or )
 	- [X] Bitshift
@@ -23,6 +23,7 @@
 	- [ ] Array types
 	- [ ] Structs
 	- [ ] Enums
+	- [ ] Generics
 	- [ ] Pointers
 	- [ ] Temporary memory allocation
 	- [ ] Module system

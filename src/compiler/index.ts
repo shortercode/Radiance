@@ -26,8 +26,28 @@ function type_assert(condition: boolean, position: WAST.SourceReference, str: st
 	}
 }
 
+function syntax_assert(condition: boolean, position: WAST.SourceReference, str: string) {
+	if (condition === false) {
+		syntax_error(position, str);
+	}
+}
+
+function compiler_assert(condition: boolean, position: WAST.SourceReference, str: string) {
+	if (condition === false) {
+		compiler_error(position, str);
+	}
+}
+
 function type_error(position: WAST.SourceReference, str: string): never {
 	throw new Error(`TypeError @ ln ${position.start[0]}: ${str}`);
+}
+
+function syntax_error(position: WAST.SourceReference, str: string): never {
+	throw new Error(`SyntaxError @ ln ${position.start[0]}: ${str}`);
+}
+
+function compiler_error(position: WAST.SourceReference, str: string): never {
+	throw new Error(`CompilerError @ ln ${position.start[0]}: ${str}`);
 }
 
 function visit_module(node: Node, ctx: Context): WAST.WASTModuleNode {
@@ -58,6 +78,10 @@ function visit_module(node: Node, ctx: Context): WAST.WASTModuleNode {
 		}
 	}
 	
+	/*
+	The memory statement doesn't have a position in the source
+	so we pass an "unknown" position reference
+	*/
 	const unknown_ref = WAST.SourceReference.unknown();
 	const memory_stmt = new WAST.WASTMemoryNode(unknown_ref, "main", 1);
 	
@@ -81,8 +105,10 @@ function hoist_declaration(node: Node, ctx: Context) {
 				const type = parse_type(param.type);
 				return new Variable(type, param.name, index);
 			});
+
+			const return_type = parse_type(data.type);
 			
-			ctx.declare_function(data.name, parse_type(data.type), parameters);
+			ctx.declare_function(data.name, return_type, parameters);
 			break;
 		}
 	}
@@ -92,7 +118,7 @@ function visit_global_statement(node: Node, ctx: Context): Array<WAST.WASTStatem
 	const source_ref = WAST.SourceReference.from_node(node);
 	switch (node.type) {
 		case "function": {
-			const fn_wast = visit_function(node, ctx);
+			const fn_wast = visit_function(node, ctx, source_ref);
 			
 			return [fn_wast];
 		}
@@ -106,7 +132,7 @@ function visit_global_statement(node: Node, ctx: Context): Array<WAST.WASTStatem
 			return [export_wast];
 		}
 		case "export_function": {
-			const fn_wast = visit_function(node, ctx);
+			const fn_wast = visit_function(node, ctx, source_ref);
 			const export_wast = export_function(source_ref, fn_wast.name, ctx);
 			
 			return [fn_wast, export_wast];
@@ -115,7 +141,7 @@ function visit_global_statement(node: Node, ctx: Context): Array<WAST.WASTStatem
 	}
 }
 
-function visit_function(node: Node, ctx: Context) {
+function visit_function(node: Node, ctx: Context, ref: WAST.SourceReference) {
 	/*
 	NOTE prior to this "visit_declaration" has validated the
 	.type and .parameter.*.type are AtiumType so we can do a
@@ -128,14 +154,13 @@ function visit_function(node: Node, ctx: Context) {
 		body: Array<Node>
 		parameters: Array<{ name: string, type: string }>
 	}
-	
-	const fn_decl = ctx.globals.get(data.name);
-	
-	if (!fn_decl) {
-		throw new Error("Cannot locate function declaration");
-	}
+	/*
+	WARN this SHOULD always be defined but this unwrap should have a
+	compiler_assert to check that it is defined still
+	*/
+	const fn_decl = ctx.globals.get(data.name)!; 
+	compiler_assert(fn_decl instanceof FunctionDeclaration, ref, "Cannot locate function declaration");
 
-	const ref = WAST.SourceReference.from_node(node);
 	const fn_wast = new WAST.WASTFunctionNode(ref, data.name, fn_decl.type);
 	
 	ctx.environment = new Environment(fn_decl.parameters);
@@ -155,11 +180,12 @@ function visit_function(node: Node, ctx: Context) {
 	}
 	
 	const locals = ctx.environment.variables;
-	ctx.environment = null;
-	
+
 	for (const local of locals) {
 		fn_wast.locals.push(local);
 	}
+
+	ctx.environment = null;
 	
 	return fn_wast;
 }
@@ -617,11 +643,8 @@ function visit_bitwise_or_expression (ref: WAST.SourceReference, ctx: Context, n
 function visit_bitwise_and_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
 	const { left, right, type } = visit_binary_expresson(ctx, node);
 	const operand = node.type;
-	const is_valid_type = type.is_integer() || type.is_boolean();
-
-	if (is_valid_type === false) {
-		throw new Error(`Unable to perform operation ${operand} on non-integer or non-boolean types ${type} ${type}`);
-	}
+	
+	type_assert(type.is_integer() || type.is_boolean(), WAST.SourceReference.from_node(node), `Unable to perform operation ${operand} on non-integer or non-boolean types ${type} ${type}`);
 
 	return new WAST.WASTBitwiseAndNode(ref, type, left, right);
 }
@@ -631,10 +654,8 @@ function visit_numeric_binary_expression (ctx: Context, node: Node) {
 	const type = result.type;
 	const operand = node.type;
 	
-	if (result.type.is_numeric() === false) {
-		throw new Error(`Unable to perform operation ${operand} on non-numeric types ${type} ${type}`);
-	}
-	
+	type_assert(result.type.is_numeric(), WAST.SourceReference.from_node(node),`Unable to perform operation ${operand} on non-numeric types ${type} ${type}`);
+
 	return result;
 }
 
@@ -643,9 +664,7 @@ function visit_integer_binary_expression (ctx: Context, node: Node) {
 	const type = result.type;
 	const operand = node.type;
 	
-	if (result.type.is_integer() === false) {
-		throw new Error(`Unable to perform operation ${operand} on non-integer types ${type} ${type}`);
-	}
+	type_assert(result.type.is_integer(), WAST.SourceReference.from_node(node),`Unable to perform operation ${operand} on non-integer types ${type} ${type}`);
 	
 	return result;
 }
@@ -671,7 +690,7 @@ function visit_binary_expresson (ctx: Context, node: Node) {
 	const right = visit_expression(data.right, ctx);
 	
 	const operand = node.type;
-	type_assert(left.value_type.equals(right.value_type), WAST.SourceReference.from_node(node), `mismatched operand types for (${operand} ${left.value_type.name}  ${right.value_type.name})`)
+	type_assert(left.value_type.equals(right.value_type), WAST.SourceReference.from_node(node), `Mismatched operand types for (${operand} ${left.value_type.name}  ${right.value_type.name})`)
 	
 	return {
 		type: left.value_type,
@@ -698,7 +717,7 @@ function visit_local_statement(ref: WAST.SourceReference, node: Node, ctx: Conte
 			
 			return new WAST.WASTSetLocalNode(ref, variable.id, data.name, value);
 		}
-		default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected a statement`);
+		default: compiler_error(ref, `Invalid node type ${node.type} @ ${node.start} expected a statement`);
 	}
 }
 
@@ -729,5 +748,5 @@ function default_initialiser(ref: WAST.SourceReference, value_type: AtiumType): 
 		return new WAST.WASTConstNode(ref, value_type, "0");
 	}
 
-	type_error(ref, `unable to zero initialise`);
+	compiler_error(ref, `Unable to zero initialise`);
 }

@@ -385,7 +385,7 @@ function visit_if_expression (ref: WAST.SourceReference, ctx: Context, node: Nod
 
 	if (value.elseBranch !== null) {
 		const else_branch = visit_expression(value.elseBranch, ctx) as WAST.WASTNodeList;
-		if (else_branch.value_type !== value_type) {
+		if (else_branch.value_type.equals(value_type) === false) {
 			value_type = parse_type("void");
 		}
 		return new WAST.WASTConditionalNode(ref, value_type, condition, then_branch, else_branch);
@@ -529,6 +529,7 @@ function visit_assignment_expression (ref: WAST.SourceReference, ctx: Context, n
 	
 	const new_value = visit_expression(value.right, ctx);
 	
+	// TODO improve error message
 	type_assert(variable.type.equals(new_value.value_type), ref, `Assignment value doesn't match variable type`);
 	
 	return new WAST.WASTTeeLocalNode(ref, variable.id, variable.name, new_value, variable.type);
@@ -584,7 +585,7 @@ function visit_bitwise_or_expression (ref: WAST.SourceReference, ctx: Context, n
 	const { left, right, type } = visit_binary_expresson(ctx, node);
 	const operand = node.type;
 
-	type_assert(type.is_integer() || type.is_boolean(), ref, `Unable to perform operation ${operand} on non-integer or non-boolean types ${type} ${type}`);
+	type_assert(type.is_integer() || type.is_boolean(), ref, `Unable to perform operation ${operand} on non-integer or non-boolean types ${type.name} ${type.name}`);
 
 	return new WAST.WASTBitwiseOrNode(ref, type, left, right);
 }
@@ -593,7 +594,7 @@ function visit_bitwise_and_expression (ref: WAST.SourceReference, ctx: Context, 
 	const { left, right, type } = visit_binary_expresson(ctx, node);
 	const operand = node.type;
 	
-	type_assert(type.is_integer() || type.is_boolean(), ref, `Unable to perform operation ${operand} on non-integer or non-boolean types ${type} ${type}`);
+	type_assert(type.is_integer() || type.is_boolean(), ref, `Unable to perform operation ${operand} on non-integer or non-boolean types ${type.name} ${type.name}`);
 
 	return new WAST.WASTBitwiseAndNode(ref, type, left, right);
 }
@@ -603,7 +604,7 @@ function visit_numeric_binary_expression (ctx: Context, node: Node) {
 	const type = result.type;
 	const operand = node.type;
 	
-	type_assert(result.type.is_numeric(), WAST.SourceReference.from_node(node),`Unable to perform operation ${operand} on non-numeric types ${type} ${type}`);
+	type_assert(result.type.is_numeric(), node,`Unable to perform operation ${operand} on non-numeric types ${type.name} ${type.name}`);
 
 	return result;
 }
@@ -613,7 +614,7 @@ function visit_integer_binary_expression (ctx: Context, node: Node) {
 	const type = result.type;
 	const operand = node.type;
 	
-	type_assert(result.type.is_integer(), WAST.SourceReference.from_node(node),`Unable to perform operation ${operand} on non-integer types ${type} ${type}`);
+	type_assert(result.type.is_integer(), node,`Unable to perform operation ${operand} on non-integer types ${type.name} ${type.name}`);
 	
 	return result;
 }
@@ -639,7 +640,7 @@ function visit_binary_expresson (ctx: Context, node: Node) {
 	const right = visit_expression(data.right, ctx);
 	
 	const operand = node.type;
-	type_assert(left.value_type.equals(right.value_type), WAST.SourceReference.from_node(node), `Mismatched operand types for (${operand} ${left.value_type.name}  ${right.value_type.name})`)
+	type_assert(left.value_type.equals(right.value_type), node, `Mismatched operand types for (${operand} ${left.value_type.name}  ${right.value_type.name})`)
 	
 	return {
 		type: left.value_type,
@@ -662,11 +663,11 @@ function visit_local_statement(ref: WAST.SourceReference, node: Node, ctx: Conte
 			const variable = ctx.declare_variable(data.name, type);
 			const value = visit_expression(data.initial, ctx);
 			
-			type_assert(value.value_type.equals(type), WAST.SourceReference.from_node(node), "Initialiser type doesn't match variable type");
+			type_assert(value.value_type.equals(type), node, "Initialiser type doesn't match variable type");
 			
 			return new WAST.WASTSetLocalNode(ref, variable.id, data.name, value);
 		}
-		default: compiler_error(ref, `Invalid node type ${node.type} @ ${node.start} expected a statement`);
+		default: compiler_error(ref, `Invalid node type ${node.type} expected a statement`);
 	}
 }
 

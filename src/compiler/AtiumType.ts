@@ -1,3 +1,6 @@
+import { compiler_error } from "./error";
+import { SourceReference } from "../WASTNode";
+
 export enum PrimativeTypes {
 	f32,
 	f64,
@@ -20,7 +23,7 @@ const numeric_types = new Set([
 	...float_types
 ]);
 
-export type AtiumType = PrimativeAtiumType;
+export type AtiumType = PrimativeAtiumType | TupleAtiumType;
 
 class PrimativeAtiumType {
 	private readonly type: PrimativeTypes
@@ -32,7 +35,10 @@ class PrimativeAtiumType {
 	}
 
 	equals (other: AtiumType): boolean {
-		return this.type === other.type;
+		if (other instanceof PrimativeAtiumType) {
+			return this.type === other.type;
+		}
+		return false;
 	}
 
 	is_numeric (): boolean {
@@ -61,7 +67,66 @@ class PrimativeAtiumType {
 
 	is_exportable (): boolean {
 		return this.type !== PrimativeTypes.i64;
-	}	
+	}
+}
+
+// NOTE if we ever introduce type aliasing then we need to ensure that a tuple cannot recursively hold itself
+// otherwise it could have infinite size
+
+class TupleAtiumType {
+	private readonly types: Array<AtiumType>
+	readonly name: string
+
+	constructor (types: Array<AtiumType>, name: string) {
+		this.types = types;
+		this.name = name;
+	}
+
+	equals (other: AtiumType): boolean {
+		if (other instanceof TupleAtiumType) {
+			const a = this.types;
+			const b = other.types;
+
+			if (a.length !== b.length) {
+				return false;
+			}
+
+			for (let i = 0; i < length; i++) {
+				if (a[i].equals(b[i]) === false) {
+					return false;
+				}
+			}
+		}
+		return false;
+	}
+
+	is_numeric (): boolean {
+		return false;
+	}
+
+	is_integer (): boolean {
+		return false;
+	}
+
+	is_float (): boolean {
+		return false;
+	}
+
+	wasm_type (): PrimativeTypes {
+		compiler_error(SourceReference.unknown(), `Tuples do not have a wasm_type primative equivilent`);
+	}
+
+	is_boolean (): boolean {
+		return false;
+	}
+
+	is_void (): boolean {
+		return false;
+	}
+
+	is_exportable (): boolean {
+		return false;
+	}
 }
 
 function validate_primative_type (str: string): PrimativeTypes {

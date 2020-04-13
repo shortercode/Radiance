@@ -5,6 +5,7 @@ import { Context } from "./Context.js";
 import { FunctionDeclaration } from "./FunctionDeclaration.js";
 import { Environment } from "./Environment.js";
 import { Variable } from "./Variable.js";
+import { compiler_error, type_error, compiler_assert, syntax_assert, type_assert, syntax_error } from "./error.js";
 
 /*
 This class is the second stage of the process after the parser. It performs type validation
@@ -14,40 +15,8 @@ serialises this WebAssembly AST into a binary file.
 
 export default function (node: Node): WAST.WASTModuleNode {
 	const ctx: Context = new Context;
-	if (node.type !== "module") {
-		throw new Error(`Invalid node type ${node.type} expected a module`);
-	}
+	compiler_assert(node.type === "module", node, `Invalid node type ${node.type} expected a module`);
 	return visit_module(node, ctx);
-}
-
-function type_assert(condition: boolean, position: WAST.SourceReference, str: string) {
-	if (condition === false) {
-		type_error(position, str);
-	}
-}
-
-function syntax_assert(condition: boolean, position: WAST.SourceReference, str: string) {
-	if (condition === false) {
-		syntax_error(position, str);
-	}
-}
-
-function compiler_assert(condition: boolean, position: WAST.SourceReference, str: string) {
-	if (condition === false) {
-		compiler_error(position, str);
-	}
-}
-
-function type_error(position: WAST.SourceReference, str: string): never {
-	throw new Error(`TypeError @ ln ${position.start[0]}: ${str}`);
-}
-
-function syntax_error(position: WAST.SourceReference, str: string): never {
-	throw new Error(`SyntaxError @ ln ${position.start[0]}: ${str}`);
-}
-
-function compiler_error(position: WAST.SourceReference, str: string): never {
-	throw new Error(`CompilerError @ ln ${position.start[0]}: ${str}`);
 }
 
 function visit_module(node: Node, ctx: Context): WAST.WASTModuleNode {
@@ -137,7 +106,7 @@ function visit_global_statement(node: Node, ctx: Context): Array<WAST.WASTStatem
 			
 			return [fn_wast, export_wast];
 		}
-		default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected a statement`);
+		default: compiler_error(source_ref, `Invalid node type ${node.type} expected a statement`)
 	}
 }
 
@@ -193,22 +162,16 @@ function visit_function(node: Node, ctx: Context, ref: WAST.SourceReference) {
 function export_function(source_ref: WAST.SourceReference, fn_name: string, ctx: Context) {
 	const fn = ctx.globals.get(fn_name);
 	
-	if (!fn) {
-		throw new Error(`Cannot export ${fn_name} as it is not available in the global scope`);
-	}
+	syntax_assert(ctx.globals.has(fn_name), source_ref, `Cannot export undeclared function ${fn_name}`);
 	
 	if (fn instanceof FunctionDeclaration) {
 		for (const { name, type } of fn.parameters) {
-			if (type.is_exportable() === false) {
-				throw new Error(`Cannot export ${fn_name} because the parameter ${name} is not an exportable type`);
-			}
+			syntax_assert(type.is_exportable(), source_ref, `Cannot export function ${fn_name} because the parameter ${name} is not an exportable type`);
 		}
-		if (fn.type.is_exportable() === false) {
-			throw new Error(`Cannot export ${fn_name} because the return type is not an exportable type`);
-		}
+		syntax_assert(fn.type.is_exportable(), source_ref, `Cannot export function ${fn_name} because the return value is not an exportable type`);
 	}
 	else {
-		throw new Error(`Cannot export ${fn_name} as it's not a function`);
+		syntax_error(source_ref, `Cannot export ${fn_name} as it's not a function`);
 	}
 	
 	return new WAST.WASTExportNode(source_ref, "function", fn_name, fn_name);
@@ -320,7 +283,7 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 			return new WAST.WASTRightShiftNode(source_ref, type, left, right);
 		}
 		
-		default: throw new Error(`Invalid node type ${node.type} @ ${node.start} expected an expression`);;
+		default: compiler_error(source_ref, `Invalid node type ${node.type} expected an expression`);
 	}		
 }
 
@@ -371,32 +334,27 @@ function visit_call_expression (ref: WAST.SourceReference, ctx: Context, node: N
 		arguments: Array<Node>
 	};
 	
-	if (value.callee.type !== "identifier") {
-		throw new Error(`${value.callee.type} is not a function`);
-	}
+	type_assert(value.callee.type === "identifier", ref, `${value.callee.type} is not a function`);
 	
 	const function_name = value.callee.data as string;
-	const fn = ctx.globals.get(function_name);
+	const fn = ctx.globals.get(function_name)!;
 	
-	if (!fn) {
-		throw new Error(`Undefined function ${function_name}`);
-	}
+	syntax_assert(fn instanceof FunctionDeclaration, ref, `Cannot call undeclared function ${function_name}`)
+
 	const args: Array<WAST.WASTExpressionNode> = [];
 	
 	const arg_count = value.arguments.length;
 	const param_count = fn.parameters.length;
 
-	if (arg_count != param_count) {
-		throw new Error(`Function ${function_name} expects ${param_count} arguments but ${arg_count} were given`);
-	}
+	syntax_assert(arg_count === param_count, ref, `Function ${function_name} expects ${param_count} arguments but ${arg_count} were given`);
 
 	for (let i = 0; i < param_count; i++) {
 		const arg = value.arguments[i];
 		const param = fn.parameters[i];
 		const expr = visit_expression(arg, ctx);
-		if (expr.value_type !== param.type) {
-			throw new Error(`Expected ${param.type} but recieved ${expr.value_type}`);
-		}
+
+		type_assert(expr.value_type.equals(param.type), ref, `Argument of type ${arg.type} is not assignable to parameter of type ${param.type}`);
+		
 		args.push(expr);
 	}
 	
@@ -543,16 +501,16 @@ function visit_boolean_expression (ref: WAST.SourceReference, ctx: Context, node
 		return new WAST.WASTConstNode(ref, type, "1");
 	}
 	else {
-		throw new Error(`Invalid boolean value`);
+		compiler_error(ref, "Invalid boolean value");
 	}
 }
 
 function visit_identifier_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
 	const name = node.data as string;
-	const variable = ctx.get_variable(name);
-	if (!variable)  {
-		throw new Error(`Undefined variable ${name}`);
-	}
+	const variable = ctx.get_variable(name)!;
+
+	syntax_assert(variable !== null, ref, `Use of undeclared variable ${name}`);
+
 	return new WAST.WASTGetLocalNode(ref, variable.id, name, variable.type);
 }
 
@@ -562,22 +520,16 @@ function visit_assignment_expression (ref: WAST.SourceReference, ctx: Context, n
 		right: Node
 	};
 	
-	if (value.left.type !== "identifier") {
-		throw new Error(`Invalid left hand side of assignment`);
-	}
+	syntax_assert(value.left.type === "identifier", ref, `Invalid left hand side of assignment`);
 	
 	const variable_name = value.left.data as string;
-	const variable = ctx.get_variable(variable_name);
+	const variable = ctx.get_variable(variable_name)!;
 	
-	if (!variable) {
-		throw new Error(`Undefined variable ${variable_name}`);
-	}
+	syntax_assert(variable !== null, ref, `Unable to assign to undeclared variable ${variable_name}`);
 	
 	const new_value = visit_expression(value.right, ctx);
 	
-	if (variable.type !== new_value.value_type) {
-		throw new Error("Assignment doesn't match variable type");
-	}
+	type_assert(variable.type.equals(new_value.value_type), ref, `Assignment value doesn't match variable type`);
 	
 	return new WAST.WASTTeeLocalNode(ref, variable.id, variable.name, new_value, variable.type);
 }
@@ -631,11 +583,8 @@ function visit_logical_or_expression (ref: WAST.SourceReference, ctx: Context, n
 function visit_bitwise_or_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
 	const { left, right, type } = visit_binary_expresson(ctx, node);
 	const operand = node.type;
-	const is_valid_type = type.is_integer() || type.is_boolean();
 
-	if (is_valid_type === false) {
-		throw new Error(`Unable to perform operation ${operand} on non-integer or non-boolean types ${type} ${type}`);
-	}
+	type_assert(type.is_integer() || type.is_boolean(), ref, `Unable to perform operation ${operand} on non-integer or non-boolean types ${type} ${type}`);
 
 	return new WAST.WASTBitwiseOrNode(ref, type, left, right);
 }
@@ -644,7 +593,7 @@ function visit_bitwise_and_expression (ref: WAST.SourceReference, ctx: Context, 
 	const { left, right, type } = visit_binary_expresson(ctx, node);
 	const operand = node.type;
 	
-	type_assert(type.is_integer() || type.is_boolean(), WAST.SourceReference.from_node(node), `Unable to perform operation ${operand} on non-integer or non-boolean types ${type} ${type}`);
+	type_assert(type.is_integer() || type.is_boolean(), ref, `Unable to perform operation ${operand} on non-integer or non-boolean types ${type} ${type}`);
 
 	return new WAST.WASTBitwiseAndNode(ref, type, left, right);
 }

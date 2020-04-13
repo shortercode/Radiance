@@ -27,6 +27,7 @@ import { write_shift_left_expression } from "./left_shift.js";
 import { write_shift_right_expression } from "./right_shift.js";
 import { write_bitwise_and_expression } from "./bitwise_and.js";
 import { write_bitwise_or_expression } from "./bitwise_or.js";
+import { compiler_assert } from "../../compiler/error.js";
 
 type WriterFunction = (ctx: FunctionContext, node: WASTExpressionNode) => void
 
@@ -71,8 +72,6 @@ export function write_expression(ctx: FunctionContext, node: WASTExpressionNode)
 
 export function expression_writer(node: WASTExpressionNode) {
 	const writer = expression_types.get(node.type);
-	if (!writer) {
-		throw new Error("Unknown expression type");
-	}
-	return writer;
+	compiler_assert(typeof writer === "function", node.source, `Unknown expression type ${node.type}`);
+	return writer!;
 }

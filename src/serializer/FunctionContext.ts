@@ -1,12 +1,12 @@
 import { Writer } from "./Writer.js";
-import { AtiumType } from "../compiler/AtiumType.js";
+import { AtiumType, PrimativeTypes } from "../compiler/AtiumType.js";
 import { Variable } from "../compiler/Variable.js";
 
 export class FunctionContext {
 	readonly writer: Writer
 	readonly variable_lookup: Map<number, number> = new Map
 	readonly function_lookup: Map<string, number>
-	private value_stack: Array<AtiumType> = []
+	private value_stack: Array<PrimativeTypes> = []
 	
 	constructor (writer: Writer, function_lookup: Map<string, number>, locals: Array<Variable>) {
 		this.writer = writer;
@@ -17,7 +17,7 @@ export class FunctionContext {
 		}
 	}
 	
-	consume_value (type: AtiumType) {
+	consume_value (type: PrimativeTypes) {
 		const value = this.value_stack.pop();
 		if (!value) {
 			throw new Error("Unable to consume value; nothing on the stack");
@@ -34,7 +34,7 @@ export class FunctionContext {
 		}
 	}
 	
-	push_value (type: AtiumType) {
+	push_value (type: PrimativeTypes) {
 		this.value_stack.push(type);
 	}
 	

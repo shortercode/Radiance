@@ -5,8 +5,9 @@ import { Opcode } from "./OpCode";
 import { FunctionContext } from "./FunctionContext";
 import { write_value_type } from "./write_value_type";
 import { write_expression } from "./expressions/expression";
-import { WASTModuleNode, WASTStatementNode, WASTMemoryNode, WASTExportNode, WASTFunctionNode } from "../WASTNode";
+import { WASTModuleNode, WASTStatementNode, WASTMemoryNode, WASTExportNode, WASTFunctionNode, SourceReference } from "../WASTNode";
 import { ModuleContext } from "./ModuleContext";
+import { compiler_assert } from "../compiler/error";
 
 export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 	
@@ -99,7 +100,7 @@ function write_section_1 (module_ctx: ModuleContext, function_nodes: Array<WASTF
 			write_value_type(writer, parameter.type);
 		}
 		
-		if (function_node.result === "void") {
+		if (function_node.result.is_void()) {
 			writer.writeUVint(0);
 		}
 		else {
@@ -131,11 +132,11 @@ function write_section_5 (module_ctx: ModuleContext, memory_nodes: Array<WASTMem
 	const writer = module_ctx.writer;
 	const section_offset = write_section_header(writer, 5);
 	
-	// TODO should assert that there is only 1 memory node
+	const count = memory_nodes.length;
+	compiler_assert(count < 2, SourceReference.unknown(), `Cannot have more than 1 memory node`);	
+	writer.writeUVint(count);
 	
-	writer.writeUVint(memory_nodes.length);
-	
-	for (let i = 0; i < memory_nodes.length; i++) {
+	for (let i = 0; i < count; i++) {
 		const node = memory_nodes[i];
 		write_unbounded_limit(writer, node.size);
 		module_ctx.memory_index_map.set(node.name, i);

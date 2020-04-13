@@ -2,6 +2,7 @@ import { WASTExpressionNode, WASTBlockNode, WASTNodeList } from "../../WASTNode"
 import { FunctionContext } from "../FunctionContext";
 import { Opcode } from "../OpCode";
 import { write_expression } from "./expression";
+import { compiler_assert } from "../../compiler/error";
 
 export function write_list_expression(ctx: FunctionContext, node: WASTExpressionNode) {
 	
@@ -14,7 +15,7 @@ export function write_list_expression(ctx: FunctionContext, node: WASTExpression
 	for (let i = 0; i < statements.length - 1; i++) {
 		const subnode = statements[i];
 		write_expression(ctx, subnode);
-		if (subnode.value_type !== "void") {
+		if (subnode.value_type.is_void() === false) {
 			ctx.consume_any_value();
 			ctx.writer.writeUint8(Opcode.drop);
 		}
@@ -23,19 +24,18 @@ export function write_list_expression(ctx: FunctionContext, node: WASTExpression
 	{
 		const last_subnode = statements[statements.length - 1];
 		write_expression(ctx, last_subnode);
-		const has_value = last_subnode.value_type !== "void";
-		const does_not_emit_value = list_node.value_type === "void"
+		const has_value = last_subnode.value_type.is_void() === false;
+		const does_not_emit_value = list_node.value_type.is_void();
 		if (has_value && does_not_emit_value) {
-			ctx.consume_value(last_subnode.value_type);
+			ctx.consume_value(last_subnode.value_type.wasm_type());
 			ctx.writer.writeUint8(Opcode.drop);
 		}
 	}
 	
-	if (list_node.value_type === "void") {
-		if (ctx.stack_depth !== 0)
-		throw new Error(`Expected no values on the stack, but found ${ctx.stack_depth}`);
+	if (list_node.value_type.is_void()) {
+		compiler_assert(ctx.stack_depth === 0, list_node.source, `Expected no values on the stack, but found ${ctx.stack_depth}`);
 	}
-	else if (ctx.stack_depth !== 1) {
-		throw new Error(`Expected 1 values on the stack, but found ${ctx.stack_depth}`);
+	else {
+		compiler_assert(ctx.stack_depth === 1, list_node.source, `Expected 1 value on the stack, but found ${ctx.stack_depth}`);
 	}
 }

@@ -76,8 +76,9 @@ function hoist_declaration(node: Node, ctx: Context) {
 			});
 
 			const return_type = parse_type(data.type);
+			const ref = WAST.SourceReference.from_node(node);
 			
-			ctx.declare_function(data.name, return_type, parameters);
+			ctx.declare_function(ref, data.name, return_type, parameters);
 			break;
 		}
 	}
@@ -97,14 +98,16 @@ function visit_global_statement(node: Node, ctx: Context): Array<WAST.WASTStatem
 			};
 			
 			const export_wast = export_function(source_ref, data.name, ctx);
+			const wrapper_fn_node = wrap_exported_function(source_ref, data.name, ctx);
 			
-			return [export_wast];
+			return [export_wast, wrapper_fn_node];
 		}
 		case "export_function": {
 			const fn_wast = visit_function(node, ctx, source_ref);
 			const export_wast = export_function(source_ref, fn_wast.name, ctx);
-			
-			return [fn_wast, export_wast];
+			const wrapper_fn_node = wrap_exported_function(source_ref, fn_wast.name, ctx);
+
+			return [fn_wast, export_wast, wrapper_fn_node];
 		}
 		default: compiler_error(source_ref, `Invalid node type ${node.type} expected a statement`)
 	}
@@ -162,7 +165,7 @@ function visit_function(node: Node, ctx: Context, ref: WAST.SourceReference) {
 function export_function(source_ref: WAST.SourceReference, fn_name: string, ctx: Context) {
 	const fn = ctx.globals.get(fn_name);
 	
-	syntax_assert(ctx.globals.has(fn_name), source_ref, `Cannot export undeclared function ${fn_name}`);
+	syntax_assert(typeof fn !== "undefined", source_ref, `Cannot export undeclared function ${fn_name}`);
 	
 	if (fn instanceof FunctionDeclaration) {
 		for (const { name, type } of fn.parameters) {
@@ -173,8 +176,56 @@ function export_function(source_ref: WAST.SourceReference, fn_name: string, ctx:
 	else {
 		syntax_error(source_ref, `Cannot export ${fn_name} as it's not a function`);
 	}
-	
+
 	return new WAST.WASTExportNode(source_ref, "function", fn_name, fn.id);
+}
+
+// TODO below is very similar to visit_function so this can probably be DRYed out
+function wrap_exported_function(ref: WAST.SourceReference, name: string, ctx: Context) {
+	const fn = ctx.globals.get(name)!;
+	
+	syntax_assert(typeof fn !== "undefined", ref, `Cannot export undeclared function ${name}`);
+
+	const wrapper_fn_decl = ctx.declare_hidden_function(name, fn.type, fn.parameters);
+	const fn_wast = new WAST.WASTFunctionNode(ref, wrapper_fn_decl.id, name, wrapper_fn_decl.type);
+	
+	ctx.environment = new Environment(wrapper_fn_decl.parameters);
+	
+	for (const variable of wrapper_fn_decl.parameters) {
+		fn_wast.parameters.push(variable);
+	}
+
+	const args: Array<WAST.WASTExpressionNode> = [];
+
+	for (const param of wrapper_fn_decl.parameters) {
+		args.push(new WAST.WASTGetLocalNode(ref, param.id, param.name, param.type));
+	}
+
+	const call_node = new WAST.WASTCallNode(ref, fn.id, name, fn.type, args);
+
+	// TODO this is intended to allow functions called by the host environment to
+	// include a prefix/postfix template, but we dont' do this yet. The idea being
+	// that we can use a bump allocator for malloc which resets once we exit to the
+	// host environment
+	fn_wast.body.nodes.push(
+		call_node
+	);
+
+	fn_wast.body.value_type = call_node.value_type;
+	
+	if (wrapper_fn_decl.type.is_void()) {
+		fn_wast.body.consume_return_value();
+	}
+	
+	const locals = ctx.environment.variables;
+
+	for (const local of locals) {
+		fn_wast.locals.push(local);
+	}
+
+	ctx.environment = null;
+	
+	return fn_wast;
 }
 
 function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {

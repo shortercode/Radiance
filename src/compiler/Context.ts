@@ -2,6 +2,8 @@ import { FunctionDeclaration } from "./FunctionDeclaration.js";
 import { Environment } from "./Environment.js";
 import { AtiumType } from "./AtiumType.js";
 import { Variable } from "./Variable.js";
+import { syntax_assert } from "./error.js";
+import { SourceReference } from "../WASTNode.js";
 
 export class Context {
 	globals: Map<string, FunctionDeclaration> = new Map
@@ -17,20 +19,22 @@ export class Context {
 		return this.environment.declare(name, type);
 	}
 	
-	declare_function (name: string, type: AtiumType, parameters: Array<Variable>) {
-		if (this.environment !== null) {
-			throw new Error("Cannot declare local function");
-		}
+	declare_function (ref: SourceReference, name: string, type: AtiumType, parameters: Array<Variable>) {
+		syntax_assert(this.environment === null, ref, `Cannot declare function ${name} because it's in a local scope`);
+		syntax_assert(this.globals.has(name) === false, ref, `Global ${name} already exists`)
+
+		const fn = this.declare_hidden_function(name, type, parameters);
 		
-		if (this.globals.has(name)) {
-			throw new Error(`Global ${name} already exists`);
-		}
+		this.globals.set(name, fn);
+	}
+
+	declare_hidden_function (name: string, type: AtiumType, parameters: Array<Variable>) {
 		const index = this.function_index;
 		const fn = new FunctionDeclaration(index, type, parameters);
 
 		this.function_index += 1;
-		
-		this.globals.set(name, fn);
+
+		return fn;
 	}
 	
 	get_variable (name: string): Variable | null {

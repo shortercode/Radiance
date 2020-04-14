@@ -66,6 +66,7 @@ WASTExpressionType |
 "module";
 
 export type WASTStatementType = "function" | 
+"table" |
 "memory" |
 "export";
 
@@ -103,6 +104,7 @@ export type WASTBinaryExpressionType = "equals" |
 "bitwise_and";
 
 export type WASTStatementNode = WASTExportNode |
+WASTTableNode |
 WASTFunctionNode |
 WASTMemoryNode;
 
@@ -132,6 +134,18 @@ export class WASTExportNode implements WASTNode {
 		this.name = name;
 		this.target = target;
 		this.target_type = type;
+	}
+}
+
+export class WASTTableNode implements WASTNode {
+	type: "table" = "table"
+	source: SourceReference
+
+	elements: Array<WASTFunctionNode>
+
+	constructor (source: SourceReference, elements: Array<WASTFunctionNode>) {
+		this.source = source;
+		this.elements = elements;
 	}
 }
 

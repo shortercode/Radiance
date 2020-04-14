@@ -1,11 +1,11 @@
 import { Writer } from "./Writer";
 import { Variable } from "../compiler/Variable";
-import { AtiumType } from "../compiler/AtiumType";
+import { AtiumType, I32_TYPE } from "../compiler/AtiumType";
 import { Opcode } from "./OpCode";
 import { FunctionContext } from "./FunctionContext";
 import { write_value_type } from "./write_value_type";
 import { write_expression } from "./expressions/expression";
-import { WASTModuleNode, WASTStatementNode, WASTMemoryNode, WASTExportNode, WASTFunctionNode, SourceReference } from "../WASTNode";
+import { WASTModuleNode, WASTStatementNode, WASTMemoryNode, WASTExportNode, WASTFunctionNode, SourceReference, WASTTableNode, WASTNodeList, WASTConstNode } from "../WASTNode";
 import { ModuleContext } from "./ModuleContext";
 import { compiler_assert } from "../compiler/error";
 
@@ -19,14 +19,34 @@ export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 	const {
 		function_nodes,
 		memory_nodes,
-		export_nodes
+		export_nodes,
+		table_nodes
 	} = seperate_statement_nodes(ast.statements);
+
+	const requires_exports = export_nodes.length > 0;
+	const requires_tables = table_nodes.length > 0;
+	const requires_memory = memory_nodes.length > 0;
+	const requires_function = function_nodes.length > 0;
 	
-	write_section_1(module_ctx, function_nodes);
-	write_section_3(module_ctx, function_nodes);
-	write_section_5(module_ctx, memory_nodes);
-	write_section_7(module_ctx, export_nodes);
-	write_section_10(module_ctx, function_nodes);
+	if (requires_function) {
+		write_section_1(module_ctx, function_nodes);
+		write_section_3(module_ctx, function_nodes);
+	}
+	if (requires_tables) {
+		write_section_4(module_ctx, table_nodes);
+	}
+	if (requires_memory) {
+		write_section_5(module_ctx, memory_nodes);
+	}
+	if (requires_exports) {
+		write_section_7(module_ctx, export_nodes);
+	}
+	if (requires_tables) {
+		write_section_9(module_ctx, table_nodes);
+	}
+	if (requires_function) {
+		write_section_10(module_ctx, function_nodes);
+	}
 	
 	return writer.complete();
 }
@@ -35,6 +55,7 @@ function seperate_statement_nodes (statements: Array<WASTStatementNode>) {
 	const function_nodes: Array<WASTFunctionNode> = [];
 	const memory_nodes: Array<WASTMemoryNode> = [];
 	const export_nodes: Array<WASTExportNode> = [];
+	const table_nodes: Array<WASTTableNode> = [];
 	
 	for (const node of statements) {
 		switch (node.type) {
@@ -43,6 +64,9 @@ function seperate_statement_nodes (statements: Array<WASTStatementNode>) {
 			break;
 			case "function":
 			function_nodes.push(node);
+			break;
+			case "table":
+			table_nodes.push(node);
 			break;
 			case "memory":
 			memory_nodes.push(node);
@@ -53,7 +77,8 @@ function seperate_statement_nodes (statements: Array<WASTStatementNode>) {
 	return {
 		function_nodes,
 		memory_nodes,
-		export_nodes
+		export_nodes,
+		table_nodes
 	};
 }
 
@@ -127,6 +152,25 @@ function write_section_3 (module_ctx: ModuleContext, function_nodes: Array<WASTF
 	finish_section_header(writer, section_offset);
 }
 
+function write_section_4 (module_ctx: ModuleContext, table_nodes: Array<WASTTableNode>) {
+	// Section 4 - Table
+	const writer = module_ctx.writer;
+	const section_offset = write_section_header(writer, 4);
+	
+	const count = table_nodes.length;
+	compiler_assert(count < 2, SourceReference.unknown(), `Cannot have more than 1 table node`);	
+	writer.writeUVint(count);
+	
+	for (let i = 0; i < count; i++) {
+		const node = table_nodes[i];
+		const count = node.elements.length;
+		writer.writeUint8(0x70); // table element type function ( only type ATM )
+		write_bounded_limit(writer, count, count);
+	}
+	
+	finish_section_header(writer, section_offset);
+}
+
 function write_section_5 (module_ctx: ModuleContext, memory_nodes: Array<WASTMemoryNode>) {
 	// Section 5 - Memory AKA memory block declaration
 	const writer = module_ctx.writer;
@@ -175,6 +219,51 @@ function write_section_7 (module_ctx: ModuleContext, export_nodes: Array<WASTExp
 			break;
 			default:
 			throw new Error("Invalid export type");
+		}
+	}
+	
+	finish_section_header(writer, section_offset);
+}
+
+function write_section_9 (module_ctx: ModuleContext, table_nodes: Array<WASTTableNode>) {
+	// Section 9 - Element AKA table contents
+	const writer = module_ctx.writer;
+	const section_offset = write_section_header(writer, 9);
+	
+	const count = table_nodes.length;
+	compiler_assert(count < 2, SourceReference.unknown(), `Cannot have more than 1 table node`);	
+	writer.writeUVint(count);
+
+	const empty_function_context = new FunctionContext(writer, new Map, []);
+	
+	for (let i = 0; i < count; i++) {
+		const node = table_nodes[i];
+		writer.writeUVint(i);
+
+		/*
+		We have to write an expression here to designate the offset of this Table element segment,
+		but we are using them very simply with only 1 segment that start at 0. Hence we have to
+		construct a small nodelist containing a single constant (0) and serialise it
+		*/
+		{
+			const unknown_reference = SourceReference.unknown();
+			const offset_list_expr = new WASTNodeList(unknown_reference);
+			const offset_const_expr = new WASTConstNode(unknown_reference, I32_TYPE, "0");
+
+			offset_list_expr.nodes.push(offset_const_expr);
+			offset_list_expr.value_type = I32_TYPE;
+
+			write_expression(empty_function_context, offset_list_expr);
+		}
+
+		const elements = node.elements;
+		writer.writeUVint(elements.length);
+		for (const fn of elements) {
+			const index = module_ctx.function_index_map.get(fn.id);
+			if (typeof index !== "number") {
+				throw new Error(`Cannot export unknown function ${fn.name}`);
+			}
+			writer.writeUVint(index);
 		}
 	}
 	

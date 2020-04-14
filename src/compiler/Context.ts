@@ -6,6 +6,8 @@ import { Variable } from "./Variable.js";
 export class Context {
 	globals: Map<string, FunctionDeclaration> = new Map
 	environment: Environment | null = null
+
+	private function_index = 0
 	
 	declare_variable (name: string, type: AtiumType): Variable {
 		if (this.environment === null) {
@@ -23,8 +25,10 @@ export class Context {
 		if (this.globals.has(name)) {
 			throw new Error(`Global ${name} already exists`);
 		}
-		
-		const fn = new FunctionDeclaration(type, parameters);
+		const index = this.function_index;
+		const fn = new FunctionDeclaration(index, type, parameters);
+
+		this.function_index += 1;
 		
 		this.globals.set(name, fn);
 	}

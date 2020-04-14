@@ -52,7 +52,7 @@ function visit_module(node: Node, ctx: Context): WAST.WASTModuleNode {
 	so we pass an "unknown" position reference
 	*/
 	const unknown_ref = WAST.SourceReference.unknown();
-	const memory_stmt = new WAST.WASTMemoryNode(unknown_ref, "main", 1);
+	const memory_stmt = new WAST.WASTMemoryNode(unknown_ref, 0,"main", 1);
 	
 	module.statements.push(memory_stmt);
 	
@@ -130,7 +130,7 @@ function visit_function(node: Node, ctx: Context, ref: WAST.SourceReference) {
 	const fn_decl = ctx.globals.get(data.name)!; 
 	compiler_assert(fn_decl instanceof FunctionDeclaration, ref, "Cannot locate function declaration");
 
-	const fn_wast = new WAST.WASTFunctionNode(ref, data.name, fn_decl.type);
+	const fn_wast = new WAST.WASTFunctionNode(ref, fn_decl.id, data.name, fn_decl.type);
 	
 	ctx.environment = new Environment(fn_decl.parameters);
 	
@@ -174,7 +174,7 @@ function export_function(source_ref: WAST.SourceReference, fn_name: string, ctx:
 		syntax_error(source_ref, `Cannot export ${fn_name} as it's not a function`);
 	}
 	
-	return new WAST.WASTExportNode(source_ref, "function", fn_name, fn_name);
+	return new WAST.WASTExportNode(source_ref, "function", fn_name, fn.id);
 }
 
 function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
@@ -358,7 +358,7 @@ function visit_call_expression (ref: WAST.SourceReference, ctx: Context, node: N
 		args.push(expr);
 	}
 	
-	return new WAST.WASTCallNode(ref, function_name, fn.type, args)
+	return new WAST.WASTCallNode(ref, fn.id, function_name, fn.type, args)
 }
 
 function visit_not_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {

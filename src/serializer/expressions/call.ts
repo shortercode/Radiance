@@ -6,7 +6,7 @@ import { FunctionContext } from "../FunctionContext";
 export function write_call_expression(ctx: FunctionContext, node: WASTExpressionNode) {
 	const call_node = node as WASTCallNode;
 	
-	const function_id = ctx.function_lookup.get(call_node.name);
+	const function_id = ctx.function_lookup.get(call_node.id);
 	
 	if (typeof function_id !== "number") {
 		throw new Error(`Cannot find function ${call_node.name}`);

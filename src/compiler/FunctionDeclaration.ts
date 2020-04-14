@@ -4,10 +4,11 @@ import { Variable } from "./Variable.js";
 export class FunctionDeclaration {
 	type: AtiumType
 	parameters: Array<Variable>
-	locals: Array<AtiumType> = []
+	readonly id: number
 	
-	constructor (type: AtiumType, parameters: Array<Variable>) {
+	constructor (index: number, type: AtiumType, parameters: Array<Variable>) {
 		this.type = type;
+		this.id = index;
 		this.parameters = parameters;
 	}
 }

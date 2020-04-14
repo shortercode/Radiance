@@ -121,7 +121,7 @@ function write_section_3 (module_ctx: ModuleContext, function_nodes: Array<WASTF
 	
 	for (let i = 0; i < function_nodes.length; i++) {
 		writer.writeUVint(i);
-		module_ctx.function_index_map.set(function_nodes[i].name, i);
+		module_ctx.function_index_map.set(function_nodes[i].id, i);
 	}
 	
 	finish_section_header(writer, section_offset);
@@ -139,7 +139,7 @@ function write_section_5 (module_ctx: ModuleContext, memory_nodes: Array<WASTMem
 	for (let i = 0; i < count; i++) {
 		const node = memory_nodes[i];
 		write_unbounded_limit(writer, node.size);
-		module_ctx.memory_index_map.set(node.name, i);
+		module_ctx.memory_index_map.set(node.id, i);
 	}
 	
 	finish_section_header(writer, section_offset);
@@ -159,16 +159,18 @@ function write_section_7 (module_ctx: ModuleContext, export_nodes: Array<WASTExp
 			case "function": {
 				writer.writeUint8(0);
 				const index = module_ctx.function_index_map.get(node.target);
-				if (typeof index !== "number")
-				throw new Error(`Cannot export unknown function ${node.target}`);
+				if (typeof index !== "number") {
+					throw new Error(`Cannot export unknown function ${node.target}`);
+				}
 				writer.writeUVint(index);
 				break;
 			}
 			case "memory":
 			writer.writeUint8(2);
 			const index = module_ctx.memory_index_map.get(node.target);
-			if (typeof index !== "number")
-			throw new Error(`Cannot export unknown memory ${node.target}`);
+			if (typeof index !== "number") {
+				throw new Error(`Cannot export unknown memory ${node.target}`);
+			}
 			writer.writeUVint(index);
 			break;
 			default:
@@ -209,7 +211,7 @@ function write_section_10 (module_ctx: ModuleContext, function_nodes: Array<WAST
 		
 		const locals = node.locals;
 		const fn_map = module_ctx.function_index_map;
-		const ctx = new FunctionContext(writer,	fn_map,locals);
+		const ctx = new FunctionContext(writer,	fn_map, locals);
 		
 		write_expression(ctx, node.body);
 		writer.writeUint8(Opcode.end);

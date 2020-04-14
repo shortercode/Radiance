@@ -124,10 +124,10 @@ export class WASTExportNode implements WASTNode {
 	source: SourceReference
 	
 	name: string
-	target: string
+	target: number
 	target_type: ExportType
 	
-	constructor (source: SourceReference, type: ExportType, name: string, target: string) {
+	constructor (source: SourceReference, type: ExportType, name: string, target: number) {
 		this.source = source;
 		this.name = name;
 		this.target = target;
@@ -140,14 +140,16 @@ export class WASTFunctionNode implements WASTNode {
 	source: SourceReference
 	
 	name: string
+	id: number
 	parameters: Array<Variable> = []
 	result: AtiumType
 	body: WASTNodeList
 	locals: Array<Variable> = []
 	
-	constructor (source: SourceReference, name: string, result: AtiumType) {
+	constructor (source: SourceReference, id: number, name: string, result: AtiumType) {
 		this.source = source;
 		this.name = name;
+		this.id = id;
 		this.result = result;
 		this.body = new WASTNodeList(source);
 	}
@@ -159,8 +161,10 @@ export class WASTMemoryNode implements WASTNode {
 	
 	name: string
 	size: number
+	id: number
 	
-	constructor (source: SourceReference, name: string, size: number) {
+	constructor (source: SourceReference, id: number, name: string, size: number) {
+		this.id = id;
 		this.source = source;
 		this.name = name;
 		this.size = size;
@@ -473,10 +477,12 @@ export class WASTCallNode implements WASTNode {
 	
 	value_type: AtiumType
 	name: string
+	id: number
 	arguments: Array<WASTExpressionNode>
 	
-	constructor (source: SourceReference, name: string, type: AtiumType, args: Array<WASTExpressionNode>) {
+	constructor (source: SourceReference, id: number, name: string, type: AtiumType, args: Array<WASTExpressionNode>) {
 		this.source = source;
+		this.id = id;
 		this.name = name;
 		this.value_type = type;
 		this.arguments = args;

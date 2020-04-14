@@ -5,10 +5,10 @@ import { Variable } from "../compiler/Variable.js";
 export class FunctionContext {
 	readonly writer: Writer
 	readonly variable_lookup: Map<number, number> = new Map
-	readonly function_lookup: Map<string, number>
+	readonly function_lookup: Map<number, number>
 	private value_stack: Array<PrimativeTypes> = []
 	
-	constructor (writer: Writer, function_lookup: Map<string, number>, locals: Array<Variable>) {
+	constructor (writer: Writer, function_lookup: Map<number, number>, locals: Array<Variable>) {
 		this.writer = writer;
 		this.function_lookup = function_lookup;
 		let index = 0;

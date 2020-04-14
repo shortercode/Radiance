@@ -30,7 +30,7 @@ export class Context {
 
 	declare_hidden_function (name: string, type: AtiumType, parameters: Array<Variable>) {
 		const index = this.function_index;
-		const fn = new FunctionDeclaration(index, type, parameters);
+		const fn = new FunctionDeclaration(name, index, type, parameters);
 
 		this.function_index += 1;
 

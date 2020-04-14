@@ -1,6 +1,6 @@
 import * as WAST from "../WASTNode.js"
 import Node from "../pratt/Node.js";
-import { AtiumType, parse_type } from "./AtiumType.js";
+import { AtiumType, parse_type, F64_TYPE, VOID_TYPE, BOOL_TYPE, TypePattern } from "./AtiumType.js";
 import { Context } from "./Context.js";
 import { FunctionDeclaration } from "./FunctionDeclaration.js";
 import { Environment } from "./Environment.js";
@@ -65,8 +65,8 @@ function hoist_declaration(node: Node, ctx: Context) {
 		case "function": {
 			const data = node.data as {
 				name: string
-				type: string
-				parameters: Array<{ name: string, type: string }>
+				type: TypePattern
+				parameters: Array<{ name: string, type: TypePattern }>
 				block: Node
 			}
 			
@@ -187,7 +187,7 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 			return visit_group_expression(source_ref, ctx, node);
 		}
 		case "number": {
-			const type = parse_type("f64");
+			const type = F64_TYPE;
 			return new WAST.WASTConstNode(source_ref, type, node.data as string);
 		}
 		case "call": {
@@ -304,7 +304,7 @@ function visit_block_expression (ref: WAST.SourceReference, ctx: Context, node: 
 	
 	ctx.environment!.pop_frame();
 	
-	const block_value_type = last_node ? last_node.value_type : parse_type("void");
+	const block_value_type = last_node ? last_node.value_type : VOID_TYPE;
 	node_list.value_type = block_value_type;
 	
 	return node_list;
@@ -322,7 +322,7 @@ function visit_group_expression (ref: WAST.SourceReference, ctx: Context, node: 
 		last_node = result;
 	}
 	
-	const group_value_type = last_node ? last_node.value_type : parse_type("void");
+	const group_value_type = last_node ? last_node.value_type : VOID_TYPE;
 	node_list.value_type = group_value_type;
 	
 	return node_list;
@@ -386,7 +386,7 @@ function visit_if_expression (ref: WAST.SourceReference, ctx: Context, node: Nod
 	if (value.elseBranch !== null) {
 		const else_branch = visit_expression(value.elseBranch, ctx) as WAST.WASTNodeList;
 		if (else_branch.value_type.equals(value_type) === false) {
-			value_type = parse_type("void");
+			value_type = VOID_TYPE;
 		}
 		return new WAST.WASTConditionalNode(ref, value_type, condition, then_branch, else_branch);
 	}
@@ -493,7 +493,7 @@ function invert_boolean_expression (ref: WAST.SourceReference, expr: WAST.WASTEx
 
 function visit_boolean_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
 	const value = node.data as string;
-	const type = parse_type("boolean");
+	const type = BOOL_TYPE
 	if (value === "false") {
 		return new WAST.WASTConstNode(ref, type, "0");
 	}
@@ -547,7 +547,7 @@ function visit_logical_and_expression (ref: WAST.SourceReference, ctx: Context, 
 	end)
 	*/
 
-	const boolean_type = parse_type("boolean");
+	const boolean_type = BOOL_TYPE;
 
 	const then_branch = new WAST.WASTNodeList(ref);
 	then_branch.nodes.push(right);
@@ -570,7 +570,7 @@ function visit_logical_or_expression (ref: WAST.SourceReference, ctx: Context, n
 	end)
 	*/
 	
-	const boolean_type = parse_type("boolean");
+	const boolean_type = BOOL_TYPE;
 
 	const then_branch = new WAST.WASTNodeList(ref);
 	const true_node = new WAST.WASTConstNode(ref, boolean_type, "1"); 
@@ -656,14 +656,14 @@ function visit_local_statement(ref: WAST.SourceReference, node: Node, ctx: Conte
 		case "variable": {
 			const data = node.data as {
 				name: string
-				type: string
+				type: TypePattern
 				initial: Node
 			};
 			const type = parse_type(data.type);
 			const variable = ctx.declare_variable(data.name, type);
 			const value = visit_expression(data.initial, ctx);
 			
-			type_assert(value.value_type.equals(type), node, "Initialiser type doesn't match variable type");
+			type_assert(value.value_type.equals(type), node, `Initialiser type ${type.name} doesn't match variable type ${value.value_type.name}`);
 			
 			return new WAST.WASTSetLocalNode(ref, variable.id, data.name, value);
 		}

@@ -129,21 +129,43 @@ class TupleAtiumType {
 	}
 }
 
-function validate_primative_type (str: string): PrimativeTypes {
-	switch (str) {
+export type TypePattern = { style: "tuple", types: Array<TypePattern> } | { style: "class", type: string };
+
+function validate_primative_type (name: string): PrimativeTypes {
+	switch (name) {
 		case "f32":
 		case "f64":
 		case "i32":
 		case "i64":
 		case "void":
 		case "boolean":
-		return PrimativeTypes[str];
+		return PrimativeTypes[name];
 		default:
-		throw new Error(`Cannot parse type "${str}" as primative type`);
+		throw new Error(`Cannot parse type "${name}" as primative type`);
 	}
 }
 
-export function parse_type (str: string) {
-	const type_name = validate_primative_type(str);
-	return new PrimativeAtiumType(type_name, str);
+function type_pattern_name (pattern: TypePattern): string {
+	if (pattern.style === "class") {
+		return pattern.type;
+	}
+	else {
+		return `(${pattern.types.join(",")})`;
+	}
 }
+
+export function parse_type (pattern: TypePattern): AtiumType {
+	const name = type_pattern_name(pattern);
+	if (pattern.style === "class") {
+		const type_enum = validate_primative_type(pattern.type);
+		return new PrimativeAtiumType(type_enum, name);
+	}
+	else {
+		const types: Array<AtiumType> = pattern.types.map(type => parse_type(type));
+		return new TupleAtiumType(types, name);
+	}
+}
+
+export const BOOL_TYPE = new PrimativeAtiumType(PrimativeTypes.boolean, "boolean");
+export const VOID_TYPE = new PrimativeAtiumType(PrimativeTypes.void, "void");
+export const F64_TYPE = new PrimativeAtiumType(PrimativeTypes.f64, "f64");

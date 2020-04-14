@@ -1,5 +1,5 @@
 import { Variable } from "./compiler/Variable.js";
-import { AtiumType, parse_type } from "./compiler/AtiumType.js";
+import { AtiumType, VOID_TYPE, BOOL_TYPE } from "./compiler/AtiumType.js";
 import ParserNode from "./pratt/Node.js";
 
 export interface WASTNode {
@@ -191,7 +191,7 @@ export class WASTBlockNode implements WASTNode {
 	}
 	
 	disable_return_value () {
-		this.value_type = parse_type("void");
+		this.value_type = VOID_TYPE;
 	}
 }
 
@@ -199,7 +199,7 @@ export class WASTEqualsNode implements WASTNode {
 	type: "equals" = "equals"
 	source: SourceReference
 	
-	readonly value_type: AtiumType = parse_type("boolean")
+	readonly value_type: AtiumType = BOOL_TYPE
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
@@ -214,7 +214,7 @@ export class WASTNotEqualsNode implements WASTNode {
 	type: "not_equals" = "not_equals"
 	source: SourceReference
 	
-	readonly value_type: AtiumType = parse_type("boolean")
+	readonly value_type: AtiumType = BOOL_TYPE
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
@@ -229,7 +229,7 @@ export class WASTLessThanNode implements WASTNode {
 	type: "less_than" = "less_than"
 	source: SourceReference
 	
-	readonly value_type: AtiumType = parse_type("boolean")
+	readonly value_type: AtiumType = BOOL_TYPE
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
@@ -244,7 +244,7 @@ export class WASTGreaterThanNode implements WASTNode {
 	type: "greater_than" = "greater_than"
 	source: SourceReference
 	
-	readonly value_type: AtiumType = parse_type("boolean")
+	readonly value_type: AtiumType = BOOL_TYPE
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
@@ -259,7 +259,7 @@ export class WASTLessThanEqualsNode implements WASTNode {
 	type: "less_than_equals" = "less_than_equals"
 	source: SourceReference
 	
-	readonly value_type: AtiumType = parse_type("boolean")
+	readonly value_type: AtiumType = BOOL_TYPE
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
@@ -274,7 +274,7 @@ export class WASTGreaterThanEqualsNode implements WASTNode {
 	type: "greater_than_equals" = "greater_than_equals"
 	source: SourceReference
 	
-	readonly value_type: AtiumType = parse_type("boolean")
+	readonly value_type: AtiumType = BOOL_TYPE
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
@@ -423,7 +423,7 @@ export class WASTSetLocalNode implements WASTNode {
 	type: "set_local" = "set_local"
 	source: SourceReference
 	
-	value_type: AtiumType = parse_type("void")
+	value_type: AtiumType = VOID_TYPE
 	
 	id: number
 	name: string
@@ -505,7 +505,7 @@ export class WASTLoopNode implements WASTNode {
 	type: "loop" = "loop"
 	source: SourceReference
 	
-	value_type: AtiumType = parse_type("void")
+	value_type: AtiumType = VOID_TYPE
 	body: Array<WASTExpressionNode> = []
 
 	constructor (source: SourceReference) {
@@ -517,7 +517,7 @@ export class WASTBranchNode implements WASTNode {
 	type: "br" = "br"
 	source: SourceReference
 	
-	value_type: AtiumType = parse_type("void")
+	value_type: AtiumType = VOID_TYPE
 	index: number
 	
 	constructor (source: SourceReference, index: number) {
@@ -530,7 +530,7 @@ export class WASTConditionalBranchNode implements WASTNode {
 	type: "br_if" = "br_if"
 	source: SourceReference
 	
-	value_type: AtiumType = parse_type("void")
+	value_type: AtiumType = VOID_TYPE
 	index: number = 0
 	condition: WASTExpressionNode
 	
@@ -545,7 +545,7 @@ export class WASTNotNode implements WASTNode {
 	type: "not" = "not"
 	source: SourceReference
 	
-	readonly value_type: AtiumType = parse_type("boolean")
+	readonly value_type: AtiumType = BOOL_TYPE
 	inner: WASTExpressionNode
 	
 	constructor (source: SourceReference, inner: WASTExpressionNode) {
@@ -560,7 +560,7 @@ export class WASTNodeList implements WASTNode {
 	type: "@list" = "@list"
 	source: SourceReference
 	
-	value_type: AtiumType = parse_type("void");
+	value_type: AtiumType = VOID_TYPE;
 	nodes: Array<WASTExpressionNode> = []
 
 	constructor (source: SourceReference) {
@@ -572,7 +572,7 @@ export class WASTNodeList implements WASTNode {
 	}
 	
 	consume_return_value () {
-		this.value_type = parse_type("void");
+		this.value_type = VOID_TYPE;
 	}
 }
 

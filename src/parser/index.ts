@@ -3,6 +3,7 @@ import Node from "../pratt/Node.js";
 import Iterator from "../pratt/Iterator.js";
 import Token from "../pratt/Token.js";
 import SyntaxError from "../pratt/SyntaxError.js";
+import { TypePattern } from "../compiler/AtiumType.js";
 
 /*
 This class is the first stage of the process. It converts a text stream into an
@@ -10,6 +11,7 @@ Atium AST ready to be processed. This validates the basic syntax but does not
 do any static analsis on the source at this stage.
 */
 
+const VOID_TYPE_PATTERN: TypePattern = { style: "class", type: "void" };
 
 class AtiumParser extends Parser {
 	constructor () {
@@ -171,7 +173,7 @@ class AtiumParser extends Parser {
 		const name = this.ensure(tokens, "identifier:");
 		const parameters = this.parseParameterBlock(tokens);
 		
-		let returnType = "void";
+		let returnType: TypePattern = VOID_TYPE_PATTERN;
 		
 		if (this.match(tokens, "symbol:->")) {
 			tokens.next();
@@ -269,8 +271,8 @@ class AtiumParser extends Parser {
 		return new Node("block", start, end, statements); 
 	}
 	
-	parseParameterBlock (tokens: Iterator<Token>): Array<{ name: string, type: string }> {
-		const values: Array<{ name: string, type: string }> = [];
+	parseParameterBlock (tokens: Iterator<Token>): Array<{ name: string, type: TypePattern }> {
+		const values: Array<{ name: string, type: TypePattern }> = [];
 		
 		this.ensure(tokens, "symbol:(")
 		
@@ -299,9 +301,35 @@ class AtiumParser extends Parser {
 		return values;
 	}
 	
-	parseType(tokens: Iterator<Token>) {
-		return this.ensure(tokens, "identifier:");
+	parseType(tokens: Iterator<Token>): TypePattern {
+		if (this.match(tokens, "symbol:(")) {
+			tokens.next();
+			const types = [];
+
+			while (tokens.incomplete() && this.match(tokens, "symbol:)") === false) {
+				types.push(this.parseType(tokens));
+				if (this.match(tokens, "symbol:,")) {
+					tokens.next();
+				}
+				else {
+					break;
+				}
+			}
+
+			return {
+				style: "tuple",
+				types
+			}
+		}
+		else {
+			const type = this.ensure(tokens, "identifier:");
+			return {
+				style: "class",
+				type
+			};
+		}
 	}
 }
+
 
 export default new AtiumParser;

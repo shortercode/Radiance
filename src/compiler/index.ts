@@ -64,8 +64,10 @@ function visit_module(node: Node, ctx: Context): WAST.WASTModuleNode {
 	}
 
 	const memory_stmt = new WAST.WASTMemoryNode(ref, 0,"main", 1);
-	
-	module.statements.push(memory_stmt);
+	// TODO ensure that we don't have a naming collision with other exports
+	const export_memory_stmt = new WAST.WASTExportNode(ref, "memory", "memory", memory_stmt.id);
+
+	module.statements.push(memory_stmt, export_memory_stmt);
 	
 	return module;
 }

@@ -6,8 +6,8 @@ export default class CharIterator extends Iterator<string> {
 
     constructor (str: string) {
         super (str);
-        this.previousPosition = [0, 0];
-        this.currentPosition = [0, 0];
+        this.previousPosition = [1, 0];
+        this.currentPosition = [1, 0];
     }
     next () {
         const ret = super.next();

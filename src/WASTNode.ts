@@ -519,11 +519,13 @@ export class WASTLoadNode implements WASTNode {
 	
 	value_type: AtiumType
 	location: WASTExpressionNode
+	offset: number
 	
-	constructor (source: SourceReference, type: AtiumType, location: WASTExpressionNode) {
+	constructor (source: SourceReference, type: AtiumType, location: WASTExpressionNode, offset: number) {
 		this.source = source;
 		this.value_type = type;
 		this.location = location;
+		this.offset = offset;
 	}
 }
 

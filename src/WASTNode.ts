@@ -35,6 +35,8 @@ WASTConstNode |
 WASTGetLocalNode |
 WASTTeeLocalNode |
 WASTSetLocalNode |
+WASTGetGlobalNode |
+WASTSetGlobalNode |
 WASTLoadNode |
 WASTStoreNode |
 WASTCallNode |
@@ -68,6 +70,7 @@ WASTExpressionType |
 export type WASTStatementType = "function" | 
 "table" |
 "memory" |
+"global" |
 "export";
 
 export type WASTExpressionType = WASTBinaryExpressionType |
@@ -78,6 +81,8 @@ export type WASTExpressionType = WASTBinaryExpressionType |
 "get_local" |
 "tee_local" |
 "set_local" |
+"get_global" |
+"set_global" |
 "load" |
 "store" |
 "if" |
@@ -105,6 +110,7 @@ export type WASTBinaryExpressionType = "equals" |
 
 export type WASTStatementNode = WASTExportNode |
 WASTTableNode |
+WASTGlobalNode |
 WASTFunctionNode |
 WASTMemoryNode;
 
@@ -146,6 +152,23 @@ export class WASTTableNode implements WASTNode {
 	constructor (source: SourceReference, elements: Array<WASTFunctionNode>) {
 		this.source = source;
 		this.elements = elements;
+	}
+}
+
+export class WASTGlobalNode implements WASTNode {
+	type: "global" = "global"
+	source: SourceReference
+
+	value_type: AtiumType
+	mutable: boolean = true
+	id: number
+	initialiser: WASTNodeList
+
+	constructor (source: SourceReference, id: number, type: AtiumType, init: WASTNodeList) {
+		this.source = source;
+		this.id = id;
+		this.value_type = type;
+		this.initialiser = init;
 	}
 }
 
@@ -455,6 +478,41 @@ export class WASTSetLocalNode implements WASTNode {
 	}
 }
 
+export class WASTGetGlobalNode implements WASTNode {
+	type: "get_global" = "get_global"
+	source: SourceReference
+	
+	value_type: AtiumType
+	
+	id: number
+	name: string
+	
+	constructor (source: SourceReference, id: number, name: string, type: AtiumType) {
+		this.source = source;
+		this.id = id;
+		this.name = name;
+		this.value_type = type;
+	}
+}
+
+export class WASTSetGlobalNode implements WASTNode {
+	type: "set_global" = "set_global"
+	source: SourceReference
+	
+	value_type: AtiumType = VOID_TYPE
+	
+	id: number
+	name: string
+	value: WASTExpressionNode
+	
+	constructor (source: SourceReference, id: number, name: string, value: WASTExpressionNode) {
+		this.source = source;
+		this.id = id;	
+		this.name = name;
+		this.value = value;
+	}
+}
+
 export class WASTLoadNode implements WASTNode {
 	type: "load" = "load"
 	source: SourceReference
@@ -476,12 +534,14 @@ export class WASTStoreNode implements WASTNode {
 	value_type: AtiumType
 	location: WASTExpressionNode
 	value: WASTExpressionNode
+	offset: number
 	
-	constructor (source: SourceReference, type: AtiumType, location: WASTExpressionNode, value: WASTExpressionNode) {
+	constructor (source: SourceReference, type: AtiumType, location: WASTExpressionNode, offset: number, value: WASTExpressionNode) {
 		this.source = source;
 		this.value_type = type;
 		this.location = location;
 		this.value = value;
+		this.offset = offset;
 	}
 }
 

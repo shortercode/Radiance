@@ -13,8 +13,8 @@ export function write_store_expression(ctx: FunctionContext, node: WASTExpressio
 	write_expression(ctx, location_expression);
 	write_expression(ctx, value_expression);
 	
-	ctx.consume_value(value_expression.value_type.wasm_type());
-	ctx.consume_value(PrimativeTypes.i32);
+	ctx.consume_value(value_expression.value_type.wasm_type(), node.source);
+	ctx.consume_value(PrimativeTypes.i32, node.source);
 	
 	switch (value_expression.value_type.wasm_type()) {
 		case PrimativeTypes.f32:

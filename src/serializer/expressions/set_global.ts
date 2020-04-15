@@ -13,7 +13,7 @@ export function write_set_global_expression(ctx: FunctionContext, node: WASTExpr
 	const subnode = set_global_node.value;
 	write_expression(ctx, subnode);
 
-	ctx.consume_value(subnode.value_type.wasm_type());
+	ctx.consume_value(subnode.value_type.wasm_type(), node.source);
 	
 	ctx.writer.writeUint8(Opcode.global_set);
 	ctx.writer.writeUVint(global_id!);

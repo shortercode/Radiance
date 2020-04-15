@@ -11,7 +11,7 @@ export function write_load_expression(ctx: FunctionContext, node: WASTExpression
 	
 	write_expression(ctx, location_expression);
 	
-	ctx.consume_value(PrimativeTypes.i32);
+	ctx.consume_value(PrimativeTypes.i32, node.source);
 	
 	switch (load_node.value_type.wasm_type()) {
 		case PrimativeTypes.f32:

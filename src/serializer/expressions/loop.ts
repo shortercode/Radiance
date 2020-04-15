@@ -15,7 +15,7 @@ export function write_loop_expression(ctx: FunctionContext, node: WASTExpression
 	for (const subnode of loop_statements) {
 		write_expression(ctx, subnode);
 		if (subnode.value_type.is_void() === false) {
-			ctx.consume_any_value();
+			ctx.consume_any_value(node.source);
 			ctx.writer.writeUint8(Opcode.drop);
 		}
 	}

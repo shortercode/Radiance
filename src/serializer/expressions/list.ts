@@ -16,7 +16,7 @@ export function write_list_expression(ctx: FunctionContext, node: WASTExpression
 		const subnode = statements[i];
 		write_expression(ctx, subnode);
 		if (subnode.value_type.is_void() === false) {
-			ctx.consume_any_value();
+			ctx.consume_any_value(node.source);
 			ctx.writer.writeUint8(Opcode.drop);
 		}
 	}
@@ -27,7 +27,7 @@ export function write_list_expression(ctx: FunctionContext, node: WASTExpression
 		const has_value = last_subnode.value_type.is_void() === false;
 		const does_not_emit_value = list_node.value_type.is_void();
 		if (has_value && does_not_emit_value) {
-			ctx.consume_value(last_subnode.value_type.wasm_type());
+			ctx.consume_value(last_subnode.value_type.wasm_type(), node.source);
 			ctx.writer.writeUint8(Opcode.drop);
 		}
 	}

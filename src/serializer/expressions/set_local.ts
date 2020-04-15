@@ -13,7 +13,7 @@ export function write_set_local_expression(ctx: FunctionContext, node: WASTExpre
 	const subnode = set_local_node.value;
 	write_expression(ctx, subnode);
 	
-	ctx.consume_value(subnode.value_type.wasm_type());
+	ctx.consume_value(subnode.value_type.wasm_type(), node.source);
 	
 	ctx.writer.writeUint8(Opcode.local_set);
 	ctx.writer.writeUVint(local_id!);

@@ -14,7 +14,7 @@ export function write_call_expression(ctx: FunctionContext, node: WASTExpression
 	
 	for (const arg of call_node.arguments) {
 		write_expression(ctx, arg);
-		ctx.consume_value(arg.value_type.wasm_type());
+		ctx.consume_value(arg.value_type.wasm_type(), node.source);
 	}
 	
 	if (call_node.value_type.is_void() === false) {

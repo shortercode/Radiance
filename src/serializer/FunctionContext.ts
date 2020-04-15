@@ -1,6 +1,8 @@
 import { Writer } from "./Writer.js";
 import { PrimativeTypes, get_primative_name } from "../compiler/AtiumType.js";
 import { Variable } from "../compiler/Variable.js";
+import { SourceReference } from "../WASTNode.js";
+import { compiler_assert } from "../compiler/error.js";
 
 export class FunctionContext {
 	readonly writer: Writer
@@ -20,21 +22,15 @@ export class FunctionContext {
 		}
 	}
 	
-	consume_value (type: PrimativeTypes) {
-		const value = this.value_stack.pop();
-		if (!value) {
-			throw new Error("Unable to consume value; nothing on the stack");
-		}
-		if (type !== null && value !== type) {
-			throw new Error(`Unable to consume value; expected ${get_primative_name(type)} but is ${get_primative_name(value)}`);
-		}
+	consume_value (type: PrimativeTypes, ref: SourceReference) {
+		const value = this.value_stack.pop()!;
+		compiler_assert(typeof value !== "undefined", ref, "Unable to consume value; nothing on the stack");
+		compiler_assert(value === type, ref, `Unable to consume value; expected ${get_primative_name(type)} but is ${get_primative_name(value)}`);
 	}
 	
-	consume_any_value() {
+	consume_any_value(ref: SourceReference) {
 		const value = this.value_stack.pop();
-		if (!value) {
-			throw new Error("Unable to consume value; nothing on the stack");
-		}
+		compiler_assert(typeof value !== "undefined", ref, "Unable to consume value; nothing on the stack");
 	}
 	
 	push_value (type: PrimativeTypes) {

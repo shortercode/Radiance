@@ -13,8 +13,8 @@ export function write_binary_prefix(ctx: FunctionContext, node: WASTBinaryExpres
 	
 	compiler_assert(left_value_type.equals(right_value_type), node.source, `Mismatched types in Binary expression (${node.type} (${left_value_type.name})(${right_value_type.name})`);
 	
-	ctx.consume_value(left_value_type.wasm_type());
-	ctx.consume_value(right_value_type.wasm_type());
+	ctx.consume_value(left_value_type.wasm_type(), node.source);
+	ctx.consume_value(right_value_type.wasm_type(), node.source);
 	ctx.push_value(node.value_type.wasm_type());
 	
 	return left_value_type

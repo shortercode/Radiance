@@ -28,6 +28,8 @@ import { write_shift_right_expression } from "./right_shift.js";
 import { write_bitwise_and_expression } from "./bitwise_and.js";
 import { write_bitwise_or_expression } from "./bitwise_or.js";
 import { compiler_assert } from "../../compiler/error.js";
+import { write_get_global_expression } from "./get_global.js";
+import { write_set_global_expression } from "./set_global.js";
 
 type WriterFunction = (ctx: FunctionContext, node: WASTExpressionNode) => void
 
@@ -59,6 +61,9 @@ const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 	["set_local", write_set_local_expression],
 	["get_local", write_get_local_expression],
 	["tee_local", write_tee_local_expression],
+
+	["get_global", write_get_global_expression],
+	["set_global", write_set_global_expression],
 
 	["left_shift", write_shift_left_expression],
 	["right_shift", write_shift_right_expression],

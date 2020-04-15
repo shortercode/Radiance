@@ -5,7 +5,7 @@ import { Opcode } from "./OpCode";
 import { FunctionContext } from "./FunctionContext";
 import { write_value_type } from "./write_value_type";
 import { write_expression } from "./expressions/expression";
-import { WASTModuleNode, WASTStatementNode, WASTMemoryNode, WASTExportNode, WASTFunctionNode, SourceReference, WASTTableNode, WASTNodeList, WASTConstNode } from "../WASTNode";
+import { WASTModuleNode, WASTStatementNode, WASTMemoryNode, WASTExportNode, WASTFunctionNode, SourceReference, WASTTableNode, WASTNodeList, WASTConstNode, WASTGlobalNode } from "../WASTNode";
 import { ModuleContext } from "./ModuleContext";
 import { compiler_assert } from "../compiler/error";
 
@@ -20,13 +20,15 @@ export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 		function_nodes,
 		memory_nodes,
 		export_nodes,
-		table_nodes
+		table_nodes,
+		global_nodes
 	} = seperate_statement_nodes(ast.statements);
 
 	const requires_exports = export_nodes.length > 0;
 	const requires_tables = table_nodes.length > 0;
 	const requires_memory = memory_nodes.length > 0;
 	const requires_function = function_nodes.length > 0;
+	const requires_globals = global_nodes.length > 0;
 	
 	if (requires_function) {
 		write_section_1(module_ctx, function_nodes);
@@ -37,6 +39,9 @@ export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 	}
 	if (requires_memory) {
 		write_section_5(module_ctx, memory_nodes);
+	}
+	if (requires_globals) {
+		write_section_6(module_ctx, global_nodes);
 	}
 	if (requires_exports) {
 		write_section_7(module_ctx, export_nodes);
@@ -56,6 +61,7 @@ function seperate_statement_nodes (statements: Array<WASTStatementNode>) {
 	const memory_nodes: Array<WASTMemoryNode> = [];
 	const export_nodes: Array<WASTExportNode> = [];
 	const table_nodes: Array<WASTTableNode> = [];
+	const global_nodes: Array<WASTGlobalNode> = [];
 	
 	for (const node of statements) {
 		switch (node.type) {
@@ -71,6 +77,9 @@ function seperate_statement_nodes (statements: Array<WASTStatementNode>) {
 			case "memory":
 			memory_nodes.push(node);
 			break;
+			case "global":
+			global_nodes.push(node);
+			break;
 		}
 	}
 	
@@ -78,7 +87,8 @@ function seperate_statement_nodes (statements: Array<WASTStatementNode>) {
 		function_nodes,
 		memory_nodes,
 		export_nodes,
-		table_nodes
+		table_nodes,
+		global_nodes
 	};
 }
 
@@ -189,6 +199,28 @@ function write_section_5 (module_ctx: ModuleContext, memory_nodes: Array<WASTMem
 	finish_section_header(writer, section_offset);
 }
 
+function write_section_6 (module_ctx: ModuleContext, global_nodes: Array<WASTGlobalNode>) {
+	// Section 6 - Globals
+	const writer = module_ctx.writer;
+	const section_offset = write_section_header(writer, 5);
+	
+	const count = global_nodes.length;
+	writer.writeUVint(count);
+
+	const empty_function_context = new FunctionContext(writer, new Map, new Map, []);
+
+	for (let i = 0; i < count; i++) {
+		const node = global_nodes[i];
+		write_value_type(writer, node.value_type);
+		const flag = node.mutable ? 1 : 0;
+		writer.writeUint8(flag);
+		write_expression(empty_function_context, node.initialiser);
+		module_ctx.global_index_map.set(node.id, i);
+	}
+	
+	finish_section_header(writer, section_offset);
+}
+
 function write_section_7 (module_ctx: ModuleContext, export_nodes: Array<WASTExportNode>) {
 	// Section 7 - Export AKA public function exports
 	const writer = module_ctx.writer;
@@ -234,7 +266,7 @@ function write_section_9 (module_ctx: ModuleContext, table_nodes: Array<WASTTabl
 	compiler_assert(count < 2, SourceReference.unknown(), `Cannot have more than 1 table node`);	
 	writer.writeUVint(count);
 
-	const empty_function_context = new FunctionContext(writer, new Map, []);
+	const empty_function_context = new FunctionContext(writer, new Map, new Map, []);
 	
 	for (let i = 0; i < count; i++) {
 		const node = table_nodes[i];
@@ -300,7 +332,8 @@ function write_section_10 (module_ctx: ModuleContext, function_nodes: Array<WAST
 		
 		const locals = node.locals;
 		const fn_map = module_ctx.function_index_map;
-		const ctx = new FunctionContext(writer,	fn_map, locals);
+		const global_map = module_ctx.global_index_map;
+		const ctx = new FunctionContext(writer,	fn_map, global_map, locals);
 		
 		write_expression(ctx, node.body);
 		writer.writeUint8(Opcode.end);

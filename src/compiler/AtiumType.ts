@@ -133,7 +133,8 @@ class TupleAtiumType {
 	}
 
 	wasm_type (): PrimativeTypes {
-		compiler_error(SourceReference.unknown(), `Tuples do not have a wasm_type primative equivilent`);
+		return PrimativeTypes.i32;
+		// compiler_error(SourceReference.unknown(), `Tuples do not have a wasm_type primative equivilent`);
 	}
 
 	is_boolean (): boolean {

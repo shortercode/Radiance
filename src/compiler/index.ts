@@ -1,6 +1,6 @@
 import * as WAST from "../WASTNode.js"
 import Node from "../pratt/Node.js";
-import { AtiumType, parse_type, F64_TYPE, VOID_TYPE, BOOL_TYPE, TypePattern } from "./AtiumType.js";
+import { AtiumType, parse_type, F64_TYPE, VOID_TYPE, BOOL_TYPE, TypePattern, create_tuple_type, I32_TYPE } from "./AtiumType.js";
 import { Context } from "./Context.js";
 import { FunctionDeclaration } from "./FunctionDeclaration.js";
 import { Environment } from "./Environment.js";
@@ -30,7 +30,14 @@ function visit_module(node: Node, ctx: Context): WAST.WASTModuleNode {
 	const ref = WAST.SourceReference.from_node(node);
 	const module = new WAST.WASTModuleNode(ref);
 	const statements = node.data as Array<Node>;
-	
+
+	/*
+	Generate any inbuilt functions and globals that we need
+	internally.
+	*/
+	const malloc_stmt = generate_malloc_function(ref, ctx);	
+	module.statements.push(malloc_stmt);
+
 	/*
 	Before processing the bulk of the AST we visit
 	the functions and create them so that they can
@@ -46,17 +53,58 @@ function visit_module(node: Node, ctx: Context): WAST.WASTModuleNode {
 			module.statements.push(wast_node);
 		}
 	}
-	
-	/*
-	The memory statement doesn't have a position in the source
-	so we pass an "unknown" position reference
-	*/
-	const unknown_ref = WAST.SourceReference.unknown();
-	const memory_stmt = new WAST.WASTMemoryNode(unknown_ref, 0,"main", 1);
+
+	for (const global of ctx.global_variables) {
+		const initialiser = new WAST.WASTNodeList(ref);
+		const value_node = default_initialiser(global.source, global.type);
+		initialiser.nodes.push(value_node);
+		initialiser.value_type = global.type;
+		const global_stmt = new WAST.WASTGlobalNode(global.source, global.id, global.type, initialiser);
+		module.statements.push(global_stmt);
+	}
+
+	const memory_stmt = new WAST.WASTMemoryNode(ref, 0,"main", 1);
 	
 	module.statements.push(memory_stmt);
 	
 	return module;
+}
+
+function generate_malloc_function (ref: WAST.SourceReference, ctx: Context) {
+	/*
+	NOTE this function is rather intense, this is what it should be creating
+		let heap_top: i32 = 0
+
+		func malloc (size: i32): i32 {
+			let ptr: i32 = heap_top;
+			heap_top = heap_top + size;
+			ptr
+		}
+	*/
+	const offset_var = ctx.declare_library_global_variable(ref, "heap_top", I32_TYPE);
+	const size_variable = new Variable(ref, I32_TYPE, "size", 0);
+	const fn_decl = ctx.declare_function(ref, "malloc", I32_TYPE, [ size_variable ]);
+
+	const fn_wast = initialise_function_environment(ref, ctx, fn_decl);
+
+	const ptr_var = ctx.environment!.declare(ref, "ptr", I32_TYPE);
+	const get_offset_node = new WAST.WASTGetGlobalNode(ref, offset_var.id, offset_var.name, offset_var.type);
+	const get_size_node = new WAST.WASTGetLocalNode(ref, size_variable.id, size_variable.name, size_variable.type);
+	const calc_new_offset_node = new WAST.WASTAddNode(ref, I32_TYPE, get_offset_node, get_size_node);
+	
+	const set_pointer_node = new WAST.WASTSetLocalNode(ref, ptr_var.id, ptr_var.name, get_offset_node);
+	const set_offset_node = new WAST.WASTSetGlobalNode(ref, offset_var.id, offset_var.name, calc_new_offset_node);
+	const get_pointer_node = new WAST.WASTGetLocalNode(ref, ptr_var.id, ptr_var.name, ptr_var.type);
+
+	fn_wast.body.nodes.push(
+		set_pointer_node,
+		set_offset_node,
+		get_pointer_node
+	);
+
+	complete_function_environment(ctx, fn_wast, fn_decl);
+	
+	return fn_wast;
 }
 
 function hoist_declaration(node: Node, ctx: Context) {
@@ -72,7 +120,7 @@ function hoist_declaration(node: Node, ctx: Context) {
 			
 			const parameters = data.parameters.map((param, index) => {
 				const type = parse_type(param.type);
-				return new Variable(type, param.name, index);
+				return new Variable(WAST.SourceReference.from_node(node), type, param.name, index);
 			});
 
 			const return_type = parse_type(data.type);
@@ -130,40 +178,24 @@ function visit_function(node: Node, ctx: Context, ref: WAST.SourceReference) {
 	WARN this SHOULD always be defined but this unwrap should have a
 	compiler_assert to check that it is defined still
 	*/
-	const fn_decl = ctx.globals.get(data.name)!; 
+	const fn_decl = ctx.get_function(data.name)!; 
 	compiler_assert(fn_decl instanceof FunctionDeclaration, ref, "Cannot locate function declaration");
 
-	const fn_wast = new WAST.WASTFunctionNode(ref, fn_decl.id, data.name, fn_decl.type);
+	const fn_wast = initialise_function_environment(ref, ctx, fn_decl);
 	
-	ctx.environment = new Environment(fn_decl.parameters);
-	
-	for (const variable of fn_decl.parameters) {
-		fn_wast.parameters.push(variable);
-	}
 	for (const node of data.body) {
 		const sub_ref = WAST.SourceReference.from_node(node);
 		const expr = visit_local_statement(sub_ref, node, ctx);
 		fn_wast.body.nodes.push(expr);
-		fn_wast.body.value_type = expr.value_type;
-	}
-	
-	if (fn_decl.type.is_void()) {
-		fn_wast.body.consume_return_value();
-	}
-	
-	const locals = ctx.environment.variables;
-
-	for (const local of locals) {
-		fn_wast.locals.push(local);
 	}
 
-	ctx.environment = null;
-	
+	complete_function_environment(ctx, fn_wast, fn_decl);
+
 	return fn_wast;
 }
 
 function export_function(source_ref: WAST.SourceReference, fn_name: string, ctx: Context) {
-	const fn = ctx.globals.get(fn_name);
+	const fn = ctx.user_globals.get(fn_name);
 	
 	syntax_assert(typeof fn !== "undefined", source_ref, `Cannot export undeclared function ${fn_name}`);
 	
@@ -180,20 +212,13 @@ function export_function(source_ref: WAST.SourceReference, fn_name: string, ctx:
 	return new WAST.WASTExportNode(source_ref, "function", fn_name, fn.id);
 }
 
-// TODO below is very similar to visit_function so this can probably be DRYed out
 function wrap_exported_function(ref: WAST.SourceReference, name: string, ctx: Context) {
-	const fn = ctx.globals.get(name)!;
+	const fn = ctx.get_function(name)!;
 	
 	syntax_assert(typeof fn !== "undefined", ref, `Cannot export undeclared function ${name}`);
 
 	const wrapper_fn_decl = ctx.declare_hidden_function(name, fn.type, fn.parameters);
-	const fn_wast = new WAST.WASTFunctionNode(ref, wrapper_fn_decl.id, name, wrapper_fn_decl.type);
-	
-	ctx.environment = new Environment(wrapper_fn_decl.parameters);
-	
-	for (const variable of wrapper_fn_decl.parameters) {
-		fn_wast.parameters.push(variable);
-	}
+	const fn_wast = initialise_function_environment(ref, ctx, wrapper_fn_decl);
 
 	const args: Array<WAST.WASTExpressionNode> = [];
 
@@ -211,19 +236,7 @@ function wrap_exported_function(ref: WAST.SourceReference, name: string, ctx: Co
 		call_node
 	);
 
-	fn_wast.body.value_type = call_node.value_type;
-	
-	if (wrapper_fn_decl.type.is_void()) {
-		fn_wast.body.consume_return_value();
-	}
-	
-	const locals = ctx.environment.variables;
-
-	for (const local of locals) {
-		fn_wast.locals.push(local);
-	}
-
-	ctx.environment = null;
+	complete_function_environment(ctx, fn_wast, wrapper_fn_decl);
 	
 	return fn_wast;
 }
@@ -240,6 +253,9 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 		case "number": {
 			const type = F64_TYPE;
 			return new WAST.WASTConstNode(source_ref, type, node.data as string);
+		}
+		case "tuple": {
+			return visit_tuple_expression(source_ref, ctx, node);
 		}
 		case "call": {
 			return visit_call_expression(source_ref, ctx, node);
@@ -362,21 +378,59 @@ function visit_block_expression (ref: WAST.SourceReference, ctx: Context, node: 
 }
 
 function visit_group_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
-	const node_list = new WAST.WASTNodeList(ref);
-	const expressions = node.data as Array<Node>;
-	
-	let last_node;
-	
-	for (const stmt of expressions) {
-		const result = visit_expression(stmt, ctx);
-		node_list.nodes.push(result);
-		last_node = result;
+	const inner = node.data as Node;
+	return visit_expression(inner, ctx);
+}
+
+function visit_tuple_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
+	const data = node.data as {
+		values: Array<Node>
+	};
+
+	if (data.values.length === 0) {
+		return new WAST.WASTNodeList(ref); // this is equivilent to returning a void value, without actually returning one ( as void is the abscense of a value )
 	}
+
+	const pointer = ctx.environment!.declare_hidden(ref, "tuple_pointer", I32_TYPE);
+
+	const get_pointer_expr = new WAST.WASTGetLocalNode(ref, pointer.id, pointer.name, pointer.type);
+
+	const value_types: Array<AtiumType> = []; 
+	const result = new WAST.WASTNodeList(ref);
+
+	let value_offset = 0;
+	for (const sub_expr of data.values) {
+		const value = visit_expression(sub_expr, ctx);
+		const type = value.value_type;
+		value_types.push(type);
+		const value_init = new WAST.WASTStoreNode(ref, type, get_pointer_expr, value_offset, value);
+		value_offset += type.size;
+		result.nodes.push(value_init);
+	}
+
+	const tuple_type = create_tuple_type(value_types);
+	result.value_type = tuple_type;
+
+	const malloc_fn = ctx.get_function("malloc")!;
+	compiler_assert(malloc_fn instanceof FunctionDeclaration, ref, "Unable to locate malloc function");
+
+	const call_malloc_expr = new WAST.WASTCallNode(ref, malloc_fn.id, "malloc_temp", tuple_type, [
+		new WAST.WASTConstNode(ref, I32_TYPE, value_offset.toString())
+	]);
+	const set_pointer_expr = new WAST.WASTSetLocalNode(ref, pointer.id, pointer.name, call_malloc_expr);
+
+	result.nodes.unshift(set_pointer_expr); // add to FRONT
+	result.nodes.push(get_pointer_expr);
+
+	/*
+		set_local "pointer" ( call malloc (i32.const VALUE_OFFSET))
+		for value of tuple {
+			store (get_local "pointer") (VALUE_EXPR) VALUE_OFFSET 
+		}
+		get_local "pointer"
+	*/
 	
-	const group_value_type = last_node ? last_node.value_type : VOID_TYPE;
-	node_list.value_type = group_value_type;
-	
-	return node_list;
+	return result;
 }
 
 function visit_call_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
@@ -388,7 +442,7 @@ function visit_call_expression (ref: WAST.SourceReference, ctx: Context, node: N
 	type_assert(value.callee.type === "identifier", ref, `${value.callee.type} is not a function`);
 	
 	const function_name = value.callee.data as string;
-	const fn = ctx.globals.get(function_name)!;
+	const fn = ctx.get_function(function_name)!;
 	
 	syntax_assert(fn instanceof FunctionDeclaration, ref, `Cannot call undeclared function ${function_name}`)
 
@@ -479,7 +533,7 @@ function visit_while_loop_expression (ref: WAST.SourceReference, ctx: Context, n
 	// NOTE if we do return a value we need to add a temporary var to hold it
 	let temp_variable = null;
 	if (emits_value) {
-		temp_variable = ctx.environment!.declare_hidden("while_temp_variable", while_body.value_type);
+		temp_variable = ctx.environment!.declare_hidden(ref, "while_temp_variable", while_body.value_type);
 		const init_value_node = default_initialiser(ref, return_value_type);
 		const init_node = new WAST.WASTSetLocalNode(ref, temp_variable.id, temp_variable.name, init_value_node);
 		node_list.nodes.push(init_node);
@@ -711,7 +765,7 @@ function visit_local_statement(ref: WAST.SourceReference, node: Node, ctx: Conte
 				initial: Node
 			};
 			const type = parse_type(data.type);
-			const variable = ctx.declare_variable(data.name, type);
+			const variable = ctx.declare_variable(ref, data.name, type);
 			const value = visit_expression(data.initial, ctx);
 			
 			type_assert(value.value_type.equals(type), node, `Initialiser type ${type.name} doesn't match variable type ${value.value_type.name}`);
@@ -750,4 +804,38 @@ function default_initialiser(ref: WAST.SourceReference, value_type: AtiumType): 
 	}
 
 	compiler_error(ref, `Unable to zero initialise`);
+}
+
+function initialise_function_environment (ref: WAST.SourceReference, ctx: Context, fn_decl: FunctionDeclaration) {
+	const fn_wast = new WAST.WASTFunctionNode(ref, fn_decl.id, fn_decl.name, fn_decl.type);
+	
+	ctx.environment = new Environment(fn_decl.parameters);
+	
+	for (const variable of fn_decl.parameters) {
+		fn_wast.parameters.push(variable);
+	}
+
+	return fn_wast;
+}
+
+function complete_function_environment (ctx: Context, fn_wast: WAST.WASTFunctionNode, fn_decl: FunctionDeclaration) {
+	const fn_body = fn_wast.body;
+	const body_node_count = fn_body.nodes.length;
+
+	if (body_node_count > 0) {
+		const last_node = fn_body.nodes[body_node_count - 1];
+		fn_body.value_type = last_node.value_type;
+	}
+	
+	if (fn_decl.type.is_void()) {
+		fn_wast.body.consume_return_value();
+	}
+	
+	const locals = ctx.environment!.variables;
+
+	for (const local of locals) {
+		fn_wast.locals.push(local);
+	}
+
+	ctx.environment = null;
 }

@@ -346,6 +346,8 @@ class AtiumParser extends Parser {
 				}
 			}
 
+			this.ensure(tokens, "symbol:)");
+
 			return {
 				style: "tuple",
 				types

@@ -28,10 +28,18 @@ export type AtiumType = PrimativeAtiumType | TupleAtiumType;
 class PrimativeAtiumType {
 	private readonly type: PrimativeTypes
 	readonly name: string
+	readonly size: number
 
 	constructor (type: PrimativeTypes, name: string) {
 		this.type = type;
 		this.name = name;
+
+		if (this.type === PrimativeTypes.f64 || this.type === PrimativeTypes.i64) {
+			this.size = 8;
+		}
+		else {
+			this.size = 4;
+		}
 	}
 
 	equals (other: AtiumType): boolean {
@@ -76,6 +84,7 @@ class PrimativeAtiumType {
 class TupleAtiumType {
 	private readonly types: Array<AtiumType>
 	readonly name: string
+	readonly size: number = 4
 
 	constructor (types: Array<AtiumType>, name: string) {
 		this.types = types;
@@ -152,6 +161,11 @@ function type_pattern_name (pattern: TypePattern): string {
 	else {
 		return `(${pattern.types.join(",")})`;
 	}
+}
+
+export function create_tuple_type (types: Array<AtiumType>) {
+	const name = `(${types.map(t => t.name).join(",")})`;
+	return new TupleAtiumType(types, name);
 }
 
 export function parse_type (pattern: TypePattern): AtiumType {

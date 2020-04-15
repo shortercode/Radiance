@@ -8,7 +8,18 @@ export enum PrimativeTypes {
 	i64,
 	void,
 	boolean
-} 
+}
+
+export function get_primative_name (type: PrimativeTypes): string {
+	switch (type) {
+		case PrimativeTypes.f32: return "f32";
+		case PrimativeTypes.f64: return "f64";
+		case PrimativeTypes.i32: return "i32";
+		case PrimativeTypes.i64: return "i64";
+		case PrimativeTypes.void: return "void";
+		case PrimativeTypes.boolean: return "boolean";
+	}
+}
 
 const integer_types = new Set([
 	PrimativeTypes.i32,

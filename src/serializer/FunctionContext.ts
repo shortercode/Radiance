@@ -1,5 +1,5 @@
 import { Writer } from "./Writer.js";
-import { AtiumType, PrimativeTypes } from "../compiler/AtiumType.js";
+import { PrimativeTypes, get_primative_name } from "../compiler/AtiumType.js";
 import { Variable } from "../compiler/Variable.js";
 
 export class FunctionContext {
@@ -26,7 +26,7 @@ export class FunctionContext {
 			throw new Error("Unable to consume value; nothing on the stack");
 		}
 		if (type !== null && value !== type) {
-			throw new Error(`Unable to consume value; expected ${type} but is ${value}`);
+			throw new Error(`Unable to consume value; expected ${get_primative_name(type)} but is ${get_primative_name(value)}`);
 		}
 	}
 	

@@ -403,7 +403,7 @@ function visit_tuple_expression (ref: WAST.SourceReference, ctx: Context, node: 
 		const value = visit_expression(sub_expr, ctx);
 		const type = value.value_type;
 		value_types.push(type);
-		const value_init = new WAST.WASTStoreNode(ref, type, get_pointer_expr, value_offset, value);
+		const value_init = new WAST.WASTStoreNode(ref, get_pointer_expr, value_offset, value);
 		value_offset += type.size;
 		result.nodes.push(value_init);
 	}

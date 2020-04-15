@@ -533,14 +533,13 @@ export class WASTStoreNode implements WASTNode {
 	type: "store" = "store"
 	source: SourceReference
 	
-	value_type: AtiumType
+	value_type: AtiumType = VOID_TYPE
 	location: WASTExpressionNode
 	value: WASTExpressionNode
 	offset: number
 	
-	constructor (source: SourceReference, type: AtiumType, location: WASTExpressionNode, offset: number, value: WASTExpressionNode) {
+	constructor (source: SourceReference, location: WASTExpressionNode, offset: number, value: WASTExpressionNode) {
 		this.source = source;
-		this.value_type = type;
 		this.location = location;
 		this.value = value;
 		this.offset = offset;

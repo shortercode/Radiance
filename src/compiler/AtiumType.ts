@@ -1,5 +1,8 @@
-import { compiler_error } from "./error";
-import { SourceReference } from "../WASTNode";
+// NOTE this allows us to return pointers to the host environment
+// which is cool but the host environment will likely not be able
+// to read from the struct... also it's kinda risky if the host is
+// passing in invalid pointers!
+const ALLOW_POINTER_EXPORTS = true;
 
 export enum PrimativeTypes {
 	f32,
@@ -146,7 +149,7 @@ class TupleAtiumType {
 	}
 
 	is_exportable (): boolean {
-		return false;
+		return ALLOW_POINTER_EXPORTS;
 	}
 }
 

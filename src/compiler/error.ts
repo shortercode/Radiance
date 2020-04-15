@@ -3,13 +3,9 @@ import Node from "../pratt/Node.js";
 
 type PositionOrNode = SourceReference | Node;
 
-function resolve_position(reference: PositionOrNode): SourceReference {
-	if (reference instanceof Node) {
-		return SourceReference.from_node(reference);
-	}
-	else {
-		return reference;
-	}
+function get_line_number (reference: PositionOrNode) {
+	const value = reference.start[0];
+	return isNaN(value) ? "?" : value.toString();
 }
 
 export function type_assert(condition: boolean, reference: PositionOrNode, str: string) {
@@ -31,13 +27,13 @@ export function compiler_assert(condition: boolean, reference: PositionOrNode, s
 }
 
 export function type_error(reference: PositionOrNode, str: string): never {
-	throw new Error(`TypeError @ ln ${reference.start[0]}: ${str}`);
+	throw new Error(`TypeError @ ln ${get_line_number(reference)}: ${str}`);
 }
 
 export function syntax_error(reference: PositionOrNode, str: string): never {
-	throw new Error(`SyntaxError @ ln ${reference.start[0]}: ${str}`);
+	throw new Error(`SyntaxError @ ln ${get_line_number(reference)}: ${str}`);
 }
 
 export function compiler_error(reference: PositionOrNode, str: string): never {
-	throw new Error(`CompilerError @ ln ${reference.start[0]}: ${str}`);
+	throw new Error(`CompilerError @ ln ${get_line_number(reference)}: ${str}`);
 }

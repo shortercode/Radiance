@@ -14,27 +14,14 @@ async function main () {
 const { PerformanceObserver, performance } = require('perf_hooks');
 const fs = require("fs").promises;
 
+async function parseFile (name: string) {
+	const str = await fs.readFile(name, "utf8");
+	return  Parser.parseProgram(str, name);
+}
+
 async function test () {
 	performance.mark("mark_1");
-	const ast = Parser.parseProgram(`
-	export func factorial (count: f64) -> f64 {
-    let result: f64 = 1;
-    let i: f64 = 0
-    while i <= count {
-        i = i + 1
-        result = result * i
-    }
-	}
-
-	export func fibonacci(n: f64) -> f64 {
-		if n <= 1 {
-			n
-			}
-			else {
-					fibonacci(n - 2) + fibonacci(n - 1)
-			}
-	}
-	`, "test program");
+	const ast = await parseFile("test.atium");
 	performance.mark("mark_2");
 	// console.log("AST:");
 	// console.log(JSON.stringify(ast, null, 2));

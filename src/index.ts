@@ -50,15 +50,24 @@ async function test () {
 	fs.writeFile("test.wasm", binary);
 	const { module, instance } = await WebAssembly.instantiate(binary);
 	
-	const { double, sub, fibonacci, count, factorial } = instance.exports;
+	const mod = instance.exports;
 
 	// console.log((double as any)(13));
 	// console.log((sub as any)(14, 8))
 	// console.log(add(12, 30));
+	// const factorial = mod.factorial as (a: number) => number
+	const point = mod.point as (x: number, y: number) => number
+	const memory = mod.memory as WebAssembly.Memory;
 
 	for (let i = 0; i < 10; i++) {
-		console.log((factorial as any)(i));
+		const n = point(255, 65535);
+		console.log(n);
+		// console.log((factorial as any)(i));
 	}
+
+	const result = new Uint8Array(memory.buffer, 0, 80);
+
+	console.log(Buffer.from(result).toString("hex"))
 }
 
 main();

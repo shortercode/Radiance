@@ -202,7 +202,7 @@ function write_section_5 (module_ctx: ModuleContext, memory_nodes: Array<WASTMem
 function write_section_6 (module_ctx: ModuleContext, global_nodes: Array<WASTGlobalNode>) {
 	// Section 6 - Globals
 	const writer = module_ctx.writer;
-	const section_offset = write_section_header(writer, 5);
+	const section_offset = write_section_header(writer, 6);
 	
 	const count = global_nodes.length;
 	writer.writeUVint(count);
@@ -215,6 +215,7 @@ function write_section_6 (module_ctx: ModuleContext, global_nodes: Array<WASTGlo
 		const flag = node.mutable ? 1 : 0;
 		writer.writeUint8(flag);
 		write_expression(empty_function_context, node.initialiser);
+		writer.writeUint8(Opcode.end);
 		module_ctx.global_index_map.set(node.id, i);
 	}
 	
@@ -286,6 +287,7 @@ function write_section_9 (module_ctx: ModuleContext, table_nodes: Array<WASTTabl
 			offset_list_expr.value_type = I32_TYPE;
 
 			write_expression(empty_function_context, offset_list_expr);
+			writer.writeUint8(Opcode.end);
 		}
 
 		const elements = node.elements;
@@ -375,7 +377,7 @@ function compress_local_variables (locals: Array<Variable>) {
 	output.push(last);
 	
 	for (const current_local of locals) {
-		if (last[0] === current_local.type) {
+		if (last[0].equals(current_local.type)) {
 			last[1] += 1;
 		}
 		else {

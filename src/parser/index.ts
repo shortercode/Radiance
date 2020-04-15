@@ -2,7 +2,6 @@ import Parser from "../pratt/Parser.js";
 import Node from "../pratt/Node.js";
 import Iterator from "../pratt/Iterator.js";
 import Token from "../pratt/Token.js";
-import SyntaxError from "../pratt/SyntaxError.js";
 import { TypePattern } from "../compiler/AtiumType.js";
 
 /*
@@ -70,6 +69,7 @@ class AtiumParser extends Parser {
 		this.addPrefix("identifier:while", 	8, this.parseWhileExpression);
 		
 		this.addInfix("symbol:(", 					9, this.parseCallExpression);
+		this.addInfix("symbol:[",						9, this.parseSubscript);
 
 		this.addPrefix("symbol:(",					10, this.parseGrouping);
 		
@@ -105,30 +105,60 @@ class AtiumParser extends Parser {
 		return new Node("call", start, end, { callee: left, arguments: values });
 	}
 
+	parseSubscript(tokens: Iterator<Token>, left: Node): Node {
+		const expr = this.parseExpression(tokens);
+		this.ensure(tokens, "symbol:]");
+
+		const end = tokens.previous()!.end;
+
+		return new Node("subscript", left.start, end, { target: left, accessor: expr})
+	}
+
 	parseGrouping(tokens: Iterator<Token>): Node {
 		const start = tokens.previous()!.start;
 		
-		const values: Array<Node> = [];
-		
-		if (!this.match(tokens, "symbol:)")) {
-			while (tokens.incomplete()) {
-				const sub_expression = this.parseExpression(tokens);
-				values.push(sub_expression);
-				
-				if (this.match(tokens, "symbol:,")) {
-					tokens.next();
-				}
-				else {
-					break;
-				}
-			}
+		if (this.match(tokens, "symbol:)")) {
+			const end = tokens.consume()!.end;
+			return this.emitEmptyTuple(start, end);
+		}
+
+		const sub_expression = this.parseExpression(tokens);
+			
+		if (this.match(tokens, "symbol:,")) {
+			tokens.next();
+			return this.parseTuple(tokens, sub_expression, start);
 		}
 		
 		this.ensure(tokens, "symbol:)");
 		
 		// NOTE previous token is the "symbol:)" read above
 		const end = tokens.previous()!.end;
-		return new Node("group", start, end, { expressions: values });
+		return new Node("group", start, end, sub_expression);
+	}
+
+	emitEmptyTuple(start: [number, number], end: [number, number]): Node {
+		return new Node("tuple", start, end, { values: [] });
+	}
+
+	parseTuple(tokens: Iterator<Token>, first: Node | null, start: [number, number]): Node {
+		const values = [first];
+
+		while (tokens.incomplete()) {
+			const next = this.parseExpression(tokens);
+			values.push(next);
+			if (this.match(tokens, "symbol:,")) {
+				tokens.next();
+			}
+			else {
+				break;
+			}
+		}
+
+		this.ensure(tokens, "symbol:)");
+
+		const end = tokens.previous()!.end;
+		return new Node("tuple", start, end, { values });
+
 	}
 	
 	parseWhileExpression(tokens: Iterator<Token>): Node {

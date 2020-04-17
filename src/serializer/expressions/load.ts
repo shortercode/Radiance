@@ -17,16 +17,23 @@ export function write_load_expression(ctx: FunctionContext, node: WASTExpression
 	switch (load_node.value_type.wasm_type()) {
 		case PrimativeTypes.f32:
 		ctx.writer.writeUint8(Opcode.f32_load);
+		ctx.push_value(PrimativeTypes.f32);
 		break;
 		case PrimativeTypes.f64:
 		ctx.writer.writeUint8(Opcode.f64_load);
+		ctx.push_value(PrimativeTypes.f64);
 		break;
 		case PrimativeTypes.i32:
+		ctx.writer.writeUint8(Opcode.i32_load);
+		ctx.push_value(PrimativeTypes.i32);
+		break;
 		case PrimativeTypes.boolean:
 		ctx.writer.writeUint8(Opcode.i32_load);
+		ctx.push_value(PrimativeTypes.boolean);
 		break;
 		case PrimativeTypes.i64:
 		ctx.writer.writeUint8(Opcode.i64_load);
+		ctx.push_value(PrimativeTypes.i64);
 		break;
 	}
 	/*

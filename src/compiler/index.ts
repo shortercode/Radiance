@@ -277,6 +277,9 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 		case "identifier": {
 			return visit_identifier_expression(source_ref, ctx, node);
 		}
+		case "member": {
+			return visit_member_expression(source_ref, ctx, node);
+		}
 		case "=": {
 			return visit_assignment_expression(source_ref, ctx, node);
 		}
@@ -619,6 +622,38 @@ function visit_identifier_expression (ref: WAST.SourceReference, ctx: Context, n
 	syntax_assert(variable !== null, ref, `Use of undeclared variable ${name}`);
 
 	return new WAST.WASTGetLocalNode(ref, variable.id, name, variable.type);
+}
+
+function visit_member_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
+	const value = node.data as {
+		target: Node,
+		member: string
+	};
+
+	const target = visit_expression(value.target, ctx);
+
+	const target_type = target.value_type.as_tuple()!;
+	type_assert(target_type !== null, ref, `Target does not have any properties`);
+
+	const index = parseInt(value.member);
+
+	compiler_assert(isFinite(index), ref, `Expected index to be a finite number`);
+
+	const type_count = target_type.types.length;
+
+	type_assert(index < type_count, ref, `Cannot read member ${index} of tuple, as it only contains ${type_count} members.`);
+
+	let offset = 0;
+	let type = target_type.types[0];
+	for (let i = 0; i < type_count; i++) {
+		type = target_type.types[i];
+		if (i === index) {
+			break;
+		}
+		offset += type.size;
+	}
+
+	return new WAST.WASTLoadNode(ref, type, target, offset);
 }
 
 function visit_assignment_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {

@@ -1,10 +1,11 @@
-import { write_expression } from "./expression";
 import { FunctionContext } from "../FunctionContext";
 import { WASTExpressionNode, WASTTeeLocalNode } from "../../WASTNode";
 import { Opcode } from "../OpCode";
 import { compiler_assert } from "../../compiler/error";
 
-export function write_tee_local_expression(ctx: FunctionContext, node: WASTExpressionNode) {
+type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
+
+export function write_tee_local_expression(ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) {
 	const tee_local_node = node as WASTTeeLocalNode;
 	const local_id = ctx.variable_lookup.get(tee_local_node.id);
 	

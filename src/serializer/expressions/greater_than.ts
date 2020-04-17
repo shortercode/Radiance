@@ -5,8 +5,10 @@ import { WASTExpressionNode, WASTBinaryExpressionNode } from "../../WASTNode.js"
 import { compiler_error } from "../../compiler/error.js";
 import { PrimativeTypes } from "../../compiler/AtiumType.js";
 
-export function write_greater_than_expression(ctx: FunctionContext, node: WASTExpressionNode) {
-	const inner_type = write_binary_prefix(ctx, node as WASTBinaryExpressionNode);
+type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
+
+export function write_greater_than_expression(ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) {
+	const inner_type = write_binary_prefix(ctx, node as WASTBinaryExpressionNode, write_expression);
 	
 	switch (inner_type.wasm_type()) {
 		case PrimativeTypes.f32:

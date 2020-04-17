@@ -1,10 +1,11 @@
-import { write_expression } from "./expression";
 import { FunctionContext } from "../FunctionContext";
 import { WASTExpressionNode, WASTStoreNode } from "../../WASTNode";
 import { Opcode } from "../OpCode";
 import { PrimativeTypes } from "../../compiler/AtiumType";
 
-export function write_store_expression(ctx: FunctionContext, node: WASTExpressionNode) {
+type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
+
+export function write_store_expression(ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) {
 	const store_node = node as WASTStoreNode;
 	
 	const value_expression = store_node.value;

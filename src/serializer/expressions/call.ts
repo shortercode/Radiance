@@ -1,9 +1,10 @@
 import { WASTCallNode, WASTExpressionNode } from "../../WASTNode";
 import { Opcode } from "../OpCode";
-import { write_expression } from "./expression";
 import { FunctionContext } from "../FunctionContext";
 
-export function write_call_expression(ctx: FunctionContext, node: WASTExpressionNode) {
+type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
+
+export function write_call_expression(ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) {
 	const call_node = node as WASTCallNode;
 	
 	const function_id = ctx.function_lookup.get(call_node.id);

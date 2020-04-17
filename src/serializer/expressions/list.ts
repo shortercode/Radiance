@@ -1,10 +1,11 @@
-import { WASTExpressionNode, WASTBlockNode, WASTNodeList } from "../../WASTNode";
+import { WASTExpressionNode, WASTNodeList } from "../../WASTNode";
 import { FunctionContext } from "../FunctionContext";
 import { Opcode } from "../OpCode";
-import { write_expression } from "./expression";
 import { compiler_assert } from "../../compiler/error";
 
-export function write_list_expression(ctx: FunctionContext, node: WASTExpressionNode) {
+type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
+
+export function write_list_expression(ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) {
 	
 	const list_node = node as WASTNodeList;
 	const statements = list_node.nodes;

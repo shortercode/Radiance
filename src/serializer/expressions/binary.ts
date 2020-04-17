@@ -1,10 +1,11 @@
 import { FunctionContext } from "../FunctionContext";
-import { WASTBinaryExpressionNode } from "../../WASTNode.js";
-import { write_expression } from "./expression";
+import { WASTBinaryExpressionNode, WASTExpressionNode } from "../../WASTNode.js";
 import { AtiumType } from "../../compiler/AtiumType";
 import { compiler_assert } from "../../compiler/error";
 
-export function write_binary_prefix(ctx: FunctionContext, node: WASTBinaryExpressionNode): AtiumType {
+type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
+
+export function write_binary_prefix(ctx: FunctionContext, node: WASTBinaryExpressionNode, write_expression: WriteExpression): AtiumType {
 	write_expression(ctx, node.left);
 	write_expression(ctx, node.right);
 	

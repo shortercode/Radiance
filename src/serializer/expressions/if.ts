@@ -1,11 +1,12 @@
 import { WASTExpressionNode, WASTConditionalNode } from "../../WASTNode.js";
 import { FunctionContext } from "../FunctionContext.js";
-import { write_expression } from "./expression.js";
 import { Opcode } from "../OpCode.js";
 import { write_value_type } from "../write_value_type.js";
 import { PrimativeTypes } from "../../compiler/AtiumType.js";
 
-export function write_if_expression(ctx: FunctionContext, node: WASTExpressionNode) {
+type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
+
+export function write_if_expression(ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) {
 	
 	const expr = node as WASTConditionalNode;
 	const does_emit_value = expr.value_type.is_void() === false;

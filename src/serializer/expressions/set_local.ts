@@ -1,10 +1,11 @@
-import { write_expression } from "./expression";
 import { FunctionContext } from "../FunctionContext";
 import { WASTExpressionNode, WASTSetLocalNode } from "../../WASTNode";
 import { Opcode } from "../OpCode";
 import { compiler_assert } from "../../compiler/error";
 
-export function write_set_local_expression(ctx: FunctionContext, node: WASTExpressionNode) {
+type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
+
+export function write_set_local_expression(ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) {
 	const set_local_node = node as WASTSetLocalNode;
 	const local_id = ctx.variable_lookup.get(set_local_node.id);
 	

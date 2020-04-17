@@ -2,9 +2,10 @@ import { WASTExpressionNode, WASTBlockNode } from "../../WASTNode";
 import { FunctionContext } from "../FunctionContext";
 import { Opcode } from "../OpCode";
 import { write_value_type } from "../write_value_type";
-import { write_expression } from "./expression";
 
-export function write_block_expression(ctx: FunctionContext, node: WASTExpressionNode) {
+type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
+
+export function write_block_expression(ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) {
 	
 	const block_node = node as WASTBlockNode;
 	

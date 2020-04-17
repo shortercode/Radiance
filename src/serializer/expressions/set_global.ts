@@ -2,9 +2,10 @@ import { FunctionContext } from "../FunctionContext";
 import { WASTExpressionNode, WASTSetGlobalNode } from "../../WASTNode";
 import { Opcode } from "../OpCode";
 import { compiler_assert } from "../../compiler/error";
-import { write_expression } from "./expression";
 
-export function write_set_global_expression(ctx: FunctionContext, node: WASTExpressionNode) {
+type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
+
+export function write_set_global_expression(ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) {
 	const set_global_node = node as WASTSetGlobalNode;
 	const global_id = ctx.global_lookup.get(set_global_node.id);
 	

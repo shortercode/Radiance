@@ -1,10 +1,11 @@
-import { write_expression } from "./expression";
 import { FunctionContext } from "../FunctionContext";
 import { WASTExpressionNode, WASTLoadNode } from "../../WASTNode";
 import { Opcode } from "../OpCode";
 import { PrimativeTypes } from "../../compiler/AtiumType";
 
-export function write_load_expression(ctx: FunctionContext, node: WASTExpressionNode) {
+type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
+
+export function write_load_expression(ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) {
 	const load_node = node as WASTLoadNode;
 	
 	const location_expression = load_node.location;

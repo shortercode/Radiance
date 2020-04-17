@@ -2,7 +2,6 @@ import { FunctionContext } from "../FunctionContext";
 import { WASTExpressionNode, WASTSetGlobalNode, WASTGetGlobalNode } from "../../WASTNode";
 import { Opcode } from "../OpCode";
 import { compiler_assert } from "../../compiler/error";
-import { write_expression } from "./expression";
 
 export function write_get_global_expression(ctx: FunctionContext, node: WASTExpressionNode) {
 	const get_global_node = node as WASTGetGlobalNode;

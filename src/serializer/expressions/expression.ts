@@ -33,7 +33,8 @@ import { write_set_global_expression } from "./set_global.js";
 import { write_load_expression } from "./load.js";
 import { write_store_expression } from "./store.js";
 
-type WriterFunction = (ctx: FunctionContext, node: WASTExpressionNode) => void
+type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
+type WriterFunction = (ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) => void
 
 const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 	["@list", write_list_expression],
@@ -77,7 +78,7 @@ const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 ]);
 
 export function write_expression(ctx: FunctionContext, node: WASTExpressionNode) {
-	return expression_writer(node)(ctx, node);
+	expression_writer(node)(ctx, node, write_expression);
 }
 
 export function expression_writer(node: WASTExpressionNode) {

@@ -1,3 +1,21 @@
-func point(x: f64, y: f64) -> (f64, f64) {
+export func factorial (count: f64) -> f64 {
+	let result: f64 = 1;
+	let i: f64 = 0
+	while i <= count {
+			i = i + 1
+			result = result * i
+	}
+}
+
+export func fibonacci(n: f64) -> f64 {
+	if n <= 1 {
+		n
+		}
+		else {
+				fibonacci(n - 2) + fibonacci(n - 1)
+		}
+}
+
+export func point(x: f64, y: f64) -> (f64, f64) {
 	(x, y)
 }

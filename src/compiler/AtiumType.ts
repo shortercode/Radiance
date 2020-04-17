@@ -183,7 +183,7 @@ function type_pattern_name (pattern: TypePattern): string {
 		return pattern.type;
 	}
 	else {
-		return `(${pattern.types.join(",")})`;
+		return `(${pattern.types.map(type => type_pattern_name(type)).join(",")})`;
 	}
 }
 

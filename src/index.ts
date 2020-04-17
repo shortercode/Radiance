@@ -56,12 +56,14 @@ async function test () {
 	// console.log((sub as any)(14, 8))
 	// console.log(add(12, 30));
 	// const factorial = mod.factorial as (a: number) => number
-	const point = mod.point as (x: number, y: number) => number
+	const pointA = mod.pointA as (x: number, y: number) => number
+	const pointB = mod.pointB as (x: number, y: number) => number
 	const memory = mod.memory as WebAssembly.Memory;
 
 	for (let i = 0; i < 10; i++) {
-		const n = point(255, 65535);
-		console.log(n);
+		const a = pointA(255, 65535);
+		const b = pointB(691, 8888);
+		console.log(`${a}, ${b}`);
 		// console.log((factorial as any)(i));
 	}
 

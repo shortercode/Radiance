@@ -867,6 +867,9 @@ function complete_function_environment (ctx: Context, fn_wast: WAST.WASTFunction
 	if (fn_decl.type.is_void()) {
 		fn_wast.body.consume_return_value();
 	}
+	else {
+		type_assert(fn_wast.body.value_type.equals(fn_decl.type), fn_wast.source, `Unable to return ${fn_wast.body.value_type.name} from ${fn_decl.name}`);
+	}
 	
 	const locals = ctx.environment!.variables;
 

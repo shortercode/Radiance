@@ -9,6 +9,7 @@
 	- [ ] Exponentiation
 	- [ ] Unary negation
 	- [X] Grouping
+	- [X] Functions not checking return type FIXME!
 	- [ ] Numerical hinting
 	- [ ] Explicit numerical type conversions
 	- [ ] Explicit return

@@ -16,15 +16,21 @@
 	- [ ] Other loop types?
 	- [ ] Import functions from external
 	- [X] Inline export syntax
-	- [ ] Export memory
+	- [X] Export memory
 	- [ ] Add reserved names list to variable declaration
 	- [ ] Add global variables
+	- [ ] Read typle values back!
+	- [ ] Tuple destructuring assignment
 - [ ] Hard
 	- [ ] Array types
 	- [ ] Structs
+	- [X] Tuples
+	- [ ] Escape analysis
+	- [ ] Object scalerisation ( convert non escaping object to numnerous local variables to avoid alloc )
 	- [ ] Enums
 	- [ ] Generics
 	- [ ] Pointers
-	- [ ] Temporary memory allocation
+	- [X] Temporary memory allocation
 	- [ ] Module system
 	- [ ] Heap memory allocation
+	- [ ] Only insert malloc and memory export IF alloc is used

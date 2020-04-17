@@ -70,6 +70,7 @@ class AtiumParser extends Parser {
 		
 		this.addInfix("symbol:(", 					9, this.parseCallExpression);
 		this.addInfix("symbol:[",						9, this.parseSubscript);
+		this.addInfix("symbol:.",						9, this.parseMemberAccess);
 
 		this.addPrefix("symbol:(",					10, this.parseGrouping);
 		
@@ -114,6 +115,13 @@ class AtiumParser extends Parser {
 		return new Node("subscript", left.start, end, { target: left, accessor: expr})
 	}
 
+	parseMemberAccess(tokens: Iterator<Token>, left: Node): Node {
+		// TODO this needs improving for non-tuples
+		const member = this.ensure(tokens, "number:");
+		const end = tokens.previous()!.end;
+		return new Node("member", left.start, end, { target: left, member})
+	}
+ 
 	parseGrouping(tokens: Iterator<Token>): Node {
 		const start = tokens.previous()!.start;
 		

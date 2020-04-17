@@ -87,6 +87,10 @@ class PrimativeAtiumType {
 		return this.type === PrimativeTypes.void;
 	}
 
+	as_tuple (): null {
+		return null;
+	}
+
 	is_exportable (): boolean {
 		return this.type !== PrimativeTypes.i64;
 	}
@@ -96,7 +100,7 @@ class PrimativeAtiumType {
 // otherwise it could have infinite size
 
 class TupleAtiumType {
-	private readonly types: Array<AtiumType>
+	readonly types: Array<AtiumType>
 	readonly name: string
 	readonly size: number = 4
 
@@ -114,11 +118,12 @@ class TupleAtiumType {
 				return false;
 			}
 
-			for (let i = 0; i < length; i++) {
+			for (let i = 0; i < a.length; i++) {
 				if (a[i].equals(b[i]) === false) {
 					return false;
 				}
 			}
+			return true;
 		}
 		return false;
 	}
@@ -146,6 +151,10 @@ class TupleAtiumType {
 
 	is_void (): boolean {
 		return false;
+	}
+
+	as_tuple (): TupleAtiumType {
+		return this;
 	}
 
 	is_exportable (): boolean {

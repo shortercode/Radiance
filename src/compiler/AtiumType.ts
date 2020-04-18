@@ -1,3 +1,6 @@
+import { compiler_error } from "./error";
+import { SourceReference } from "../WASTNode";
+
 // NOTE this allows us to return pointers to the host environment
 // which is cool but the host environment will likely not be able
 // to read from the struct... also it's kinda risky if the host is
@@ -37,7 +40,7 @@ const numeric_types = new Set([
 	...float_types
 ]);
 
-export type AtiumType = PrimativeAtiumType | TupleAtiumType;
+export type AtiumType = PrimativeAtiumType | TupleAtiumType | StructAtiumType;
 
 class PrimativeAtiumType {
 	private readonly type: PrimativeTypes
@@ -91,22 +94,71 @@ class PrimativeAtiumType {
 		return null;
 	}
 
+	as_struct (): null {
+		return null;
+	}
+
 	is_exportable (): boolean {
 		return this.type !== PrimativeTypes.i64;
 	}
 }
 
-// NOTE if we ever introduce type aliasing then we need to ensure that a tuple cannot recursively hold itself
-// otherwise it could have infinite size
-
-class TupleAtiumType {
-	readonly types: Array<AtiumType>
+class AtiumObjectType {
 	readonly name: string
 	readonly size: number = 4
 
-	constructor (types: Array<AtiumType>, name: string) {
-		this.types = types;
+	constructor (name: string) {
 		this.name = name;
+	}
+
+	equals (other: AtiumType): boolean {
+		compiler_error(SourceReference.unknown(), "Should not use direct instances of AtiumObjectType");
+	}
+
+	is_numeric (): boolean {
+		return false;
+	}
+
+	is_integer (): boolean {
+		return false;
+	}
+
+	is_float (): boolean {
+		return false;
+	}
+
+	wasm_type (): PrimativeTypes {
+		return PrimativeTypes.i32;
+	}
+
+	is_boolean (): boolean {
+		return false;
+	}
+
+	is_void (): boolean {
+		return false;
+	}
+
+	as_tuple (): TupleAtiumType | null {
+		return null;
+	}
+
+	as_struct (): StructAtiumType | null {
+		return null;
+	}
+
+	is_exportable (): boolean {
+		return ALLOW_POINTER_EXPORTS;
+	}
+}
+
+class TupleAtiumType extends AtiumObjectType{
+	readonly types: Array<AtiumType>
+	readonly size: number = 4
+
+	constructor (types: Array<AtiumType>, name: string) {
+		super(name);
+		this.types = types;
 	}
 
 	equals (other: AtiumType): boolean {
@@ -128,37 +180,30 @@ class TupleAtiumType {
 		return false;
 	}
 
-	is_numeric (): boolean {
-		return false;
-	}
-
-	is_integer (): boolean {
-		return false;
-	}
-
-	is_float (): boolean {
-		return false;
-	}
-
-	wasm_type (): PrimativeTypes {
-		return PrimativeTypes.i32;
-		// compiler_error(SourceReference.unknown(), `Tuples do not have a wasm_type primative equivilent`);
-	}
-
-	is_boolean (): boolean {
-		return false;
-	}
-
-	is_void (): boolean {
-		return false;
-	}
-
 	as_tuple (): TupleAtiumType {
 		return this;
 	}
+}
 
-	is_exportable (): boolean {
-		return ALLOW_POINTER_EXPORTS;
+class StructAtiumType extends AtiumObjectType{
+	readonly types: Map<string, AtiumType>
+	readonly size: number = 4
+
+	constructor (types: Map<string, AtiumType>, name: string) {
+		super(name);
+		this.types = types;
+	}
+
+	equals (other: AtiumType): boolean {
+		if (other instanceof StructAtiumType) {
+			// we dont support structural typing, so we can use direct comparison
+			return this === other;
+		}
+		return false;
+	}
+
+	as_struct (): StructAtiumType {
+		return this;
 	}
 }
 

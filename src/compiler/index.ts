@@ -854,10 +854,22 @@ function visit_local_statement(ref: WAST.SourceReference, node: Node, ctx: Conte
 		case "variable": {
 			const data = node.data as {
 				name: string
-				type: TypePattern
+				type: TypePattern | null
 				initial: Node
 			};
-			const type = parse_type(data.type);
+
+			let type;
+
+			if (data.type) {
+				type = parse_type(data.type)!;
+			}
+			else {
+				const infer_ctx = new InferContext(ctx);
+				type = guess_expression_type(data.initial, infer_ctx)!;
+			}
+
+			type_assert(type !== null, ref, `Unable to infer type of ${data.name} please include an explicit type`);
+
 			const variable = ctx.declare_variable(ref, data.name, type);
 			const value = visit_expression(data.initial, ctx, variable.type);
 			

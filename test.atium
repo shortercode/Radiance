@@ -1,19 +1,19 @@
-export func factorial (count: f64) -> f64 {
-	let result: f64 = 1;
-	let i: f64 = 0
+export func factorial (count: i32) -> i32 {
+	let result: i32 = 1;
+	let i: i32 = 0
 	while i <= count {
 			i = i + 1
 			result = result * i
 	}
 }
 
-export func fibonacci(n: f64) -> f64 {
+export func fibonacci(n: i32) -> i32 {
 	if n <= 1 {
 		n
-		}
-		else {
-				fibonacci(n - 2) + fibonacci(n - 1)
-		}
+	}
+	else {
+		fibonacci(n - 2) + fibonacci(n - 1)
+	}
 }
 
 func point (x: i32, y: i32) -> (i32, i32) {

@@ -208,3 +208,4 @@ export const BOOL_TYPE = new PrimativeAtiumType(PrimativeTypes.boolean, "boolean
 export const VOID_TYPE = new PrimativeAtiumType(PrimativeTypes.void, "void");
 export const F64_TYPE = new PrimativeAtiumType(PrimativeTypes.f64, "f64");
 export const I32_TYPE = new PrimativeAtiumType(PrimativeTypes.i32, "i32");
+export const I64_TYPE = new PrimativeAtiumType(PrimativeTypes.i64, "i64");

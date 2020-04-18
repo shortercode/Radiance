@@ -10,7 +10,7 @@
 	- [ ] Unary negation
 	- [X] Grouping
 	- [X] Functions not checking return type FIXME!
-	- [ ] Numerical hinting
+	- [X] Numerical hinting
 	- [ ] Explicit numerical type conversions
 	- [ ] Explicit return
 	- [ ] Break/contiue for loops
@@ -31,6 +31,8 @@
 	- [ ] Enums
 	- [ ] Generics
 	- [ ] Pointers
+	- [X] Basic type inference
+	- [ ] Full inference prepass
 	- [X] Temporary memory allocation
 	- [ ] Module system
 	- [ ] Heap memory allocation

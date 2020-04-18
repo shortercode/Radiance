@@ -1,12 +1,15 @@
 import * as WAST from "../WASTNode"
 import Node from "../pratt/Node";
-import { AtiumType, parse_type, F64_TYPE, VOID_TYPE, BOOL_TYPE, TypePattern, create_tuple_type, I32_TYPE } from "./AtiumType";
+import { AtiumType, parse_type, F64_TYPE, VOID_TYPE, BOOL_TYPE, TypePattern, create_tuple_type, I32_TYPE, I64_TYPE } from "./AtiumType";
 import { Context } from "./Context";
 import { FunctionDeclaration } from "./FunctionDeclaration";
 import { Environment } from "./Environment";
 import { Variable } from "./Variable";
 import { compiler_error, type_error, compiler_assert, syntax_assert, type_assert, syntax_error } from "./error";
+import { InferContext } from "./InferContext";
+import { guess_expression_type } from "./inference";
 
+type TypeHint = AtiumType | null;
 /*
 This class is the second stage of the process after the parser. It performs type validation
 on the Atium code and converts it from a Atium AST to a WebAssembly AST. The final stage
@@ -185,9 +188,18 @@ function visit_function(node: Node, ctx: Context, ref: WAST.SourceReference) {
 
 	const fn_wast = initialise_function_environment(ref, ctx, fn_decl);
 	
-	for (const node of data.body) {
+	const last = data.body.slice(-1)[0];
+	const rest = data.body.slice(0, -1);
+
+	for (const node of rest) {
 		const sub_ref = WAST.SourceReference.from_node(node);
-		const expr = visit_local_statement(sub_ref, node, ctx);
+		const expr = visit_local_statement(sub_ref, node, ctx, null);
+		fn_wast.body.nodes.push(expr);
+	}
+
+	if (last) {
+		const sub_ref = WAST.SourceReference.from_node(last);
+		const expr = visit_local_statement(sub_ref, last, ctx, fn_decl.type);
 		fn_wast.body.nodes.push(expr);
 	}
 
@@ -243,21 +255,28 @@ function wrap_exported_function(ref: WAST.SourceReference, name: string, ctx: Co
 	return fn_wast;
 }
 
-function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
+function visit_expression(node: Node, ctx: Context, type_hint: TypeHint): WAST.WASTExpressionNode {
 	const source_ref = WAST.SourceReference.from_node(node);
 	switch (node.type) {
 		case "block": {
-			return visit_block_expression(source_ref, ctx, node);
+			return visit_block_expression(source_ref, ctx, node, type_hint);
 		}
 		case "grouping": {
-			return visit_group_expression(source_ref, ctx, node);
+			return visit_group_expression(source_ref, ctx, node, type_hint);
 		}
 		case "number": {
-			const type = F64_TYPE;
-			return new WAST.WASTConstNode(source_ref, type, node.data as string);
+			if (type_hint !== null && type_hint.is_numeric()) {
+				return new WAST.WASTConstNode(source_ref, type_hint, node.data as string);
+			}
+			else {
+				const value = node.data as string;
+				const type = should_create_int(value) ? I64_TYPE : F64_TYPE;
+
+				return new WAST.WASTConstNode(source_ref, type, node.data as string);
+			}
 		}
 		case "tuple": {
-			return visit_tuple_expression(source_ref, ctx, node);
+			return visit_tuple_expression(source_ref, ctx, node, type_hint);
 		}
 		case "call": {
 			return visit_call_expression(source_ref, ctx, node);
@@ -266,10 +285,10 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 			return visit_not_expression(source_ref, ctx, node);
 		}
 		case "if": {
-			return visit_if_expression(source_ref, ctx, node);
+			return visit_if_expression(source_ref, ctx, node, type_hint);
 		}
 		case "while": {
-			return visit_while_loop_expression(source_ref, ctx, node);
+			return visit_while_loop_expression(source_ref, ctx, node, type_hint);
 		}
 		case "boolean": {
 			return visit_boolean_expression(source_ref, ctx, node);
@@ -285,48 +304,48 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 		}
 		
 		case "==": {
-			const { left, right } = visit_numeric_binary_expression(ctx, node);
+			const { left, right } = visit_numeric_binary_expression(ctx, node, null);
 			return new WAST.WASTEqualsNode(source_ref, left, right);
 		}
 		case "!=": {
-			const { left, right } = visit_numeric_binary_expression(ctx, node);
+			const { left, right } = visit_numeric_binary_expression(ctx, node, null);
 			return new WAST.WASTNotEqualsNode(source_ref, left, right);
 		}
 		case "<": {
-			const { left, right } = visit_numeric_binary_expression(ctx, node);
+			const { left, right } = visit_numeric_binary_expression(ctx, node, null);
 			return new WAST.WASTLessThanNode(source_ref, left, right);
 		}
 		case ">": {
-			const { left, right } = visit_numeric_binary_expression(ctx, node);
+			const { left, right } = visit_numeric_binary_expression(ctx, node, null);
 			return new WAST.WASTGreaterThanNode(source_ref, left, right);
 		}
 		case "<=": {
-			const { left, right } = visit_numeric_binary_expression(ctx, node);
+			const { left, right } = visit_numeric_binary_expression(ctx, node, null);
 			return new WAST.WASTLessThanEqualsNode(source_ref, left, right);
 		}
 		case ">=": {
-			const { left, right } = visit_numeric_binary_expression(ctx, node);
+			const { left, right } = visit_numeric_binary_expression(ctx, node, null);
 			return new WAST.WASTGreaterThanEqualsNode(source_ref, left, right);
 		}
 		
 		case "+": {
-			const { type, left, right } = visit_numeric_binary_expression(ctx, node);
+			const { type, left, right } = visit_numeric_binary_expression(ctx, node, type_hint);
 			return new WAST.WASTAddNode(source_ref, type, left, right);
 		}
 		case "-": {
-			const { type, left, right } = visit_numeric_binary_expression(ctx, node);
+			const { type, left, right } = visit_numeric_binary_expression(ctx, node, type_hint);
 			return new WAST.WASTSubNode(source_ref, type, left, right);
 		}
 		case "*": {
-			const { type, left, right } = visit_numeric_binary_expression(ctx, node);
+			const { type, left, right } = visit_numeric_binary_expression(ctx, node, type_hint);
 			return new WAST.WASTMultiplyNode(source_ref, type, left, right);
 		}
 		case "/": {
-			const { type, left, right } = visit_numeric_binary_expression(ctx, node);
+			const { type, left, right } = visit_numeric_binary_expression(ctx, node, type_hint);
 			return new WAST.WASTDivideNode(source_ref, type, left, right);
 		}
 		case "%": {
-			const { type, left, right } = visit_integer_binary_expression(ctx, node);
+			const { type, left, right } = visit_integer_binary_expression(ctx, node, type_hint);
 			return new WAST.WASTModuloNode(source_ref, type, left, right);
 		}
 
@@ -338,19 +357,19 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 		}
 
 		case "|": {
-			return visit_bitwise_or_expression(source_ref, ctx, node);
+			return visit_bitwise_or_expression(source_ref, ctx, node, type_hint);
 		}
 		case "&": {
-			return visit_bitwise_and_expression(source_ref, ctx, node);
+			return visit_bitwise_and_expression(source_ref, ctx, node, type_hint);
 		}
 
 		case "<<": {
-			const { type, left, right } = visit_integer_binary_expression(ctx, node);
+			const { type, left, right } = visit_integer_binary_expression(ctx, node, type_hint);
 
 			return new WAST.WASTLeftShiftNode(source_ref, type, left, right);
 		}
 		case ">>": {
-			const { type, left, right } = visit_integer_binary_expression(ctx, node);
+			const { type, left, right } = visit_integer_binary_expression(ctx, node, type_hint);
 			
 			return new WAST.WASTRightShiftNode(source_ref, type, left, right);
 		}
@@ -359,35 +378,49 @@ function visit_expression(node: Node, ctx: Context): WAST.WASTExpressionNode {
 	}		
 }
 
-function visit_block_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
+function should_create_int (value: string): boolean {
+	return !value.includes(".");
+}
+
+function visit_block_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: TypeHint) {
 	const node_list = new WAST.WASTNodeList(ref);
 	const statements = node.data as Array<Node>;
 	
 	ctx.environment!.push_frame();
 	
 	let last_node;
+
+	const last = statements.slice(-1)[0];
+	const rest = statements.slice(0, -1);
 	
-	for (const stmt of statements) {
+	for (const stmt of rest) {
 		const statement_ref = WAST.SourceReference.from_node(stmt);
-		const result = visit_local_statement(statement_ref, stmt, ctx);
+		const result = visit_local_statement(statement_ref, stmt, ctx, null);
+		node_list.nodes.push(result);
+	}
+
+	if (last) {
+		const statement_ref = WAST.SourceReference.from_node(last);
+		const result = visit_local_statement(statement_ref, last, ctx, type_hint);
 		node_list.nodes.push(result);
 		last_node = result;
+		node_list.value_type = result.value_type;
+	}
+	else {
+		node_list.value_type = VOID_TYPE;
 	}
 	
 	ctx.environment!.pop_frame();
 	
-	const block_value_type = last_node ? last_node.value_type : VOID_TYPE;
-	node_list.value_type = block_value_type;
-	
 	return node_list;
 }
 
-function visit_group_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
+function visit_group_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: AtiumType | null) {
 	const inner = node.data as Node;
-	return visit_expression(inner, ctx);
+	return visit_expression(inner, ctx, type_hint);
 }
 
-function visit_tuple_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
+function visit_tuple_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: TypeHint) {
 	const data = node.data as {
 		values: Array<Node>
 	};
@@ -402,10 +435,22 @@ function visit_tuple_expression (ref: WAST.SourceReference, ctx: Context, node: 
 
 	const value_types: Array<AtiumType> = []; 
 	const result = new WAST.WASTNodeList(ref);
+	let type_hints: Array<AtiumType> | null = null;
+
+	if (type_hint?.as_tuple() !== null) {
+		const types = type_hint!.as_tuple()!.types;
+		if (types.length === data.values.length) {
+			type_hints = [];
+			for (const type of types) {
+				type_hints.push(type);
+			}
+		}
+	}
 
 	let value_offset = 0;
 	for (const sub_expr of data.values) {
-		const value = visit_expression(sub_expr, ctx);
+		const type_hint = type_hints ? type_hints.shift()! : null;
+		const value = visit_expression(sub_expr, ctx, type_hint);
 		const type = value.value_type;
 		value_types.push(type);
 		const value_init = new WAST.WASTStoreNode(ref, get_pointer_expr, value_offset, value);
@@ -461,7 +506,7 @@ function visit_call_expression (ref: WAST.SourceReference, ctx: Context, node: N
 	for (let i = 0; i < param_count; i++) {
 		const arg = value.arguments[i];
 		const param = fn.parameters[i];
-		const expr = visit_expression(arg, ctx);
+		const expr = visit_expression(arg, ctx, param.type);
 
 		type_assert(expr.value_type.equals(param.type), ref, `Argument of type ${arg.type} is not assignable to parameter of type ${param.type}`);
 		
@@ -476,25 +521,25 @@ function visit_not_expression (ref: WAST.SourceReference, ctx: Context, node: No
 		subnode: Node
 	};
 
-	const inner = visit_expression(value.subnode, ctx);
+	const inner = visit_expression(value.subnode, ctx, BOOL_TYPE);
 	return invert_boolean_expression(ref, inner);
 }
 
-function visit_if_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
+function visit_if_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: TypeHint) {
 	const value = node.data as {
 		condition: Node
 		thenBranch: Node
 		elseBranch: Node | null
 	};
 
-	let condition = visit_expression(value.condition, ctx);
+	let condition = visit_expression(value.condition, ctx, BOOL_TYPE);
 	condition = ensure_expression_emits_boolean(condition);
 	
-	const then_branch = visit_expression(value.thenBranch, ctx) as WAST.WASTNodeList;
+	const then_branch = visit_expression(value.thenBranch, ctx, type_hint) as WAST.WASTNodeList;
 	let value_type = then_branch.value_type;
 
 	if (value.elseBranch !== null) {
-		const else_branch = visit_expression(value.elseBranch, ctx) as WAST.WASTNodeList;
+		const else_branch = visit_expression(value.elseBranch, ctx, type_hint) as WAST.WASTNodeList;
 		if (else_branch.value_type.equals(value_type) === false) {
 			value_type = VOID_TYPE;
 		}
@@ -506,7 +551,7 @@ function visit_if_expression (ref: WAST.SourceReference, ctx: Context, node: Nod
 	}
 }
 
-function visit_while_loop_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
+function visit_while_loop_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: TypeHint) {
 	const value = node.data as {
 		condition: Node
 		block: Node
@@ -529,8 +574,8 @@ function visit_while_loop_expression (ref: WAST.SourceReference, ctx: Context, n
 	*/
 	
 	// NOTE before starting we must know if the inner body returns a value
-	const while_body = visit_expression(value.block, ctx) as WAST.WASTBlockNode;
-	const return_value_type = while_body.value_type
+	const while_body = visit_expression(value.block, ctx, type_hint) as WAST.WASTBlockNode;
+	const return_value_type = while_body.value_type;
 	const emits_value = return_value_type.is_void() === false;
 	
 	const node_list = new WAST.WASTNodeList(ref);
@@ -551,7 +596,7 @@ function visit_while_loop_expression (ref: WAST.SourceReference, ctx: Context, n
 		
 		// NOTE we need to massage the condition a bit to get what we want
 		{
-			let condition = visit_expression(value.condition, ctx);
+			let condition = visit_expression(value.condition, ctx, BOOL_TYPE);
 			condition = invert_boolean_expression(ref, condition);
 			
 			// NOTE finally wrap the condition in a conditional branch Op
@@ -630,7 +675,7 @@ function visit_member_expression (ref: WAST.SourceReference, ctx: Context, node:
 		member: string
 	};
 
-	const target = visit_expression(value.target, ctx);
+	const target = visit_expression(value.target, ctx, null);
 
 	const target_type = target.value_type.as_tuple()!;
 	type_assert(target_type !== null, ref, `Target does not have any properties`);
@@ -669,7 +714,8 @@ function visit_assignment_expression (ref: WAST.SourceReference, ctx: Context, n
 	
 	syntax_assert(variable !== null, ref, `Unable to assign to undeclared variable ${variable_name}`);
 	
-	const new_value = visit_expression(value.right, ctx);
+	// TODO in the future we may support type inference, in this case we would not pass the variable type in here
+	const new_value = visit_expression(value.right, ctx, variable.type);
 	
 	// TODO improve error message
 	type_assert(variable.type.equals(new_value.value_type), ref, `Assignment value doesn't match variable type`);
@@ -723,8 +769,9 @@ function visit_logical_or_expression (ref: WAST.SourceReference, ctx: Context, n
 	return new WAST.WASTConditionalNode(ref, boolean_type, left, then_branch, else_branch);
 }
 
-function visit_bitwise_or_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
-	const { left, right, type } = visit_binary_expresson(ctx, node);
+function visit_bitwise_or_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: TypeHint) {
+	const checked_type_hint = type_hint?.is_integer() || type_hint?.is_boolean() ? type_hint : null;
+	const { left, right, type } = visit_binary_expresson(ctx, node, checked_type_hint);
 	const operand = node.type;
 
 	type_assert(type.is_integer() || type.is_boolean(), ref, `Unable to perform operation ${operand} on non-integer or non-boolean types ${type.name} ${type.name}`);
@@ -732,8 +779,9 @@ function visit_bitwise_or_expression (ref: WAST.SourceReference, ctx: Context, n
 	return new WAST.WASTBitwiseOrNode(ref, type, left, right);
 }
 
-function visit_bitwise_and_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
-	const { left, right, type } = visit_binary_expresson(ctx, node);
+function visit_bitwise_and_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: TypeHint) {
+	const checked_type_hint = type_hint?.is_integer() || type_hint?.is_boolean() ? type_hint : null;
+	const { left, right, type } = visit_binary_expresson(ctx, node, checked_type_hint);
 	const operand = node.type;
 	
 	type_assert(type.is_integer() || type.is_boolean(), ref, `Unable to perform operation ${operand} on non-integer or non-boolean types ${type.name} ${type.name}`);
@@ -741,8 +789,8 @@ function visit_bitwise_and_expression (ref: WAST.SourceReference, ctx: Context, 
 	return new WAST.WASTBitwiseAndNode(ref, type, left, right);
 }
 
-function visit_numeric_binary_expression (ctx: Context, node: Node) {
-	const result = visit_binary_expresson(ctx, node);
+function visit_numeric_binary_expression (ctx: Context, node: Node, type_hint: TypeHint) {
+	const result = visit_binary_expresson(ctx, node, type_hint);
 	const type = result.type;
 	const operand = node.type;
 	
@@ -751,8 +799,9 @@ function visit_numeric_binary_expression (ctx: Context, node: Node) {
 	return result;
 }
 
-function visit_integer_binary_expression (ctx: Context, node: Node) {
-	const result = visit_binary_expresson(ctx, node);
+function visit_integer_binary_expression (ctx: Context, node: Node, type_hint: TypeHint) {
+	const checked_type_hint = type_hint?.is_integer() ? type_hint : null;
+	const result = visit_binary_expresson(ctx, node, checked_type_hint);
 	const type = result.type;
 	const operand = node.type;
 	
@@ -762,7 +811,7 @@ function visit_integer_binary_expression (ctx: Context, node: Node) {
 }
 
 function visit_boolean_binary_expression (ctx: Context, node: Node) {
-	const result = visit_binary_expresson(ctx, node);
+	const result = visit_binary_expresson(ctx, node, BOOL_TYPE);
 	const left = ensure_expression_emits_boolean(result.left);
 	const right = ensure_expression_emits_boolean(result.right);
 
@@ -772,17 +821,24 @@ function visit_boolean_binary_expression (ctx: Context, node: Node) {
 	};
 }
 
-function visit_binary_expresson (ctx: Context, node: Node) {
+function visit_binary_expresson (ctx: Context, node: Node, type_hint: TypeHint) {
 	const data = node.data as {
 		left: Node
 		right: Node
 	};
+
+	if (!type_hint) {
+		const infer_ctx = new InferContext(ctx);
+		const left_type = guess_expression_type(data.left, infer_ctx);
+		const right_type = guess_expression_type(data.right, infer_ctx);
+		type_hint = left_type || right_type;
+	}
 	
-	const left = visit_expression(data.left, ctx);
-	const right = visit_expression(data.right, ctx);
+	const left = visit_expression(data.left, ctx, type_hint);
+	const right = visit_expression(data.right, ctx, type_hint);
 	
 	const operand = node.type;
-	type_assert(left.value_type.equals(right.value_type), node, `Mismatched operand types for (${operand} ${left.value_type.name}  ${right.value_type.name})`)
+	type_assert(left.value_type.equals(right.value_type), node, `Mismatched operand types for "${operand}" ${left.value_type.name} != ${right.value_type.name})`)
 	
 	return {
 		type: left.value_type,
@@ -791,10 +847,10 @@ function visit_binary_expresson (ctx: Context, node: Node) {
 	};
 }
 
-function visit_local_statement(ref: WAST.SourceReference, node: Node, ctx: Context): WAST.WASTExpressionNode {
+function visit_local_statement(ref: WAST.SourceReference, node: Node, ctx: Context, type_hint: TypeHint): WAST.WASTExpressionNode {
 	switch (node.type) {
 		case "expression":
-		return visit_expression(node.data as Node, ctx);
+		return visit_expression(node.data as Node, ctx, type_hint);
 		case "variable": {
 			const data = node.data as {
 				name: string
@@ -803,7 +859,7 @@ function visit_local_statement(ref: WAST.SourceReference, node: Node, ctx: Conte
 			};
 			const type = parse_type(data.type);
 			const variable = ctx.declare_variable(ref, data.name, type);
-			const value = visit_expression(data.initial, ctx);
+			const value = visit_expression(data.initial, ctx, variable.type);
 			
 			type_assert(value.value_type.equals(type), node, `Initialiser type ${type.name} doesn't match variable type ${value.value_type.name}`);
 			

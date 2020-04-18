@@ -1,8 +1,8 @@
-import CharIterator from "./CharIterator.js";
-import CharBuffer from "./CharBuffer.js";
-import SyntaxError from "./SyntaxError.js";
-import Token from "./Token.js";
-import Trie from "./Trie.js";
+import CharIterator from "./CharIterator";
+import CharBuffer from "./CharBuffer";
+import SyntaxError from "./SyntaxError";
+import Token from "./Token";
+import Trie from "./Trie";
 
 export default class Scanner {
     symbols: Trie

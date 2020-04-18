@@ -1,4 +1,4 @@
-import Node from "./Node.js";
+import Node from "./Node";
 
 class Walker {
     private expressions: Map<string, Function> = new Map

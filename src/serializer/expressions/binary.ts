@@ -1,5 +1,5 @@
 import { FunctionContext } from "../FunctionContext";
-import { WASTBinaryExpressionNode, WASTExpressionNode } from "../../WASTNode.js";
+import { WASTBinaryExpressionNode, WASTExpressionNode } from "../../WASTNode";
 import { AtiumType } from "../../compiler/AtiumType";
 import { compiler_assert } from "../../compiler/error";
 

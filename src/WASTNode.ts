@@ -1,6 +1,6 @@
-import { Variable } from "./compiler/Variable.js";
-import { AtiumType, VOID_TYPE, BOOL_TYPE } from "./compiler/AtiumType.js";
-import ParserNode from "./pratt/Node.js";
+import { Variable } from "./compiler/Variable";
+import { AtiumType, VOID_TYPE, BOOL_TYPE } from "./compiler/AtiumType";
+import ParserNode from "./pratt/Node";
 
 export interface WASTNode {
 	type: WASTNodeType

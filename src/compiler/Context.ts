@@ -1,9 +1,9 @@
-import { FunctionDeclaration } from "./FunctionDeclaration.js";
-import { Environment } from "./Environment.js";
-import { AtiumType } from "./AtiumType.js";
-import { Variable } from "./Variable.js";
-import { syntax_assert, compiler_assert } from "./error.js";
-import { SourceReference } from "../WASTNode.js";
+import { FunctionDeclaration } from "./FunctionDeclaration";
+import { Environment } from "./Environment";
+import { AtiumType } from "./AtiumType";
+import { Variable } from "./Variable";
+import { syntax_assert, compiler_assert } from "./error";
+import { SourceReference } from "../WASTNode";
 
 export class Context {
 

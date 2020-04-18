@@ -1,5 +1,5 @@
-import { AtiumType } from "./AtiumType.js";
-import { Variable } from "./Variable.js";
+import { AtiumType } from "./AtiumType";
+import { Variable } from "./Variable";
 
 export class FunctionDeclaration {
 	type: AtiumType

@@ -1,11 +1,11 @@
-import * as WAST from "../WASTNode.js"
-import Node from "../pratt/Node.js";
-import { AtiumType, parse_type, F64_TYPE, VOID_TYPE, BOOL_TYPE, TypePattern, create_tuple_type, I32_TYPE } from "./AtiumType.js";
-import { Context } from "./Context.js";
-import { FunctionDeclaration } from "./FunctionDeclaration.js";
-import { Environment } from "./Environment.js";
-import { Variable } from "./Variable.js";
-import { compiler_error, type_error, compiler_assert, syntax_assert, type_assert, syntax_error } from "./error.js";
+import * as WAST from "../WASTNode"
+import Node from "../pratt/Node";
+import { AtiumType, parse_type, F64_TYPE, VOID_TYPE, BOOL_TYPE, TypePattern, create_tuple_type, I32_TYPE } from "./AtiumType";
+import { Context } from "./Context";
+import { FunctionDeclaration } from "./FunctionDeclaration";
+import { Environment } from "./Environment";
+import { Variable } from "./Variable";
+import { compiler_error, type_error, compiler_assert, syntax_assert, type_assert, syntax_error } from "./error";
 
 /*
 This class is the second stage of the process after the parser. It performs type validation

@@ -1,6 +1,6 @@
-import Iterator from "./Iterator.js"
-import Token from "./Token.js"
-import Node from "./Node.js";
+import Iterator from "./Iterator"
+import Token from "./Token"
+import Node from "./Node";
 
 type PrefixParserFunction = (tokens: Iterator<Token>) => Node;
 type InfixParserFunction = (tokens: Iterator<Token>, left: Node, precedence: number) => Node;

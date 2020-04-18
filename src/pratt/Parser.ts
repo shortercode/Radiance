@@ -1,10 +1,10 @@
-import Trie from "./Trie.js";
-import Scanner from "./Scanner.js"; 
-import Parselet from "./Parselet.js";
-import Iterator from "./Iterator.js";
-import Node from "./Node.js";
-import SyntaxError from "./SyntaxError.js";
-import Token from "./Token.js";
+import Trie from "./Trie";
+import Scanner from "./Scanner"; 
+import Parselet from "./Parselet";
+import Iterator from "./Iterator";
+import Node from "./Node";
+import SyntaxError from "./SyntaxError";
+import Token from "./Token";
 
 // it's safe to define symbols ahead of time, provided we throw a matching
 // error if no parselet is found for the token

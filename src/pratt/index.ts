@@ -1,5 +1,5 @@
-import Parser from "./Parser.js";
-import Walker from "./Walker.js";
-import Scanner from "./Scanner.js";
+import Parser from "./Parser";
+import Walker from "./Walker";
+import Scanner from "./Scanner";
 
 export { Scanner, Parser, Walker };

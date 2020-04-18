@@ -1,8 +1,8 @@
-import { WASTExpressionNode, WASTConditionalNode } from "../../WASTNode.js";
-import { FunctionContext } from "../FunctionContext.js";
-import { Opcode } from "../OpCode.js";
-import { write_value_type } from "../write_value_type.js";
-import { PrimativeTypes } from "../../compiler/AtiumType.js";
+import { WASTExpressionNode, WASTConditionalNode } from "../../WASTNode";
+import { FunctionContext } from "../FunctionContext";
+import { Opcode } from "../OpCode";
+import { write_value_type } from "../write_value_type";
+import { PrimativeTypes } from "../../compiler/AtiumType";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 

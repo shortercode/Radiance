@@ -1,8 +1,8 @@
-import { Writer } from "./Writer.js";
-import { PrimativeTypes, get_primative_name } from "../compiler/AtiumType.js";
-import { Variable } from "../compiler/Variable.js";
-import { SourceReference } from "../WASTNode.js";
-import { compiler_assert } from "../compiler/error.js";
+import { Writer } from "./Writer";
+import { PrimativeTypes, get_primative_name } from "../compiler/AtiumType";
+import { Variable } from "../compiler/Variable";
+import { SourceReference } from "../WASTNode";
+import { compiler_assert } from "../compiler/error";
 
 export class FunctionContext {
 	readonly writer: Writer

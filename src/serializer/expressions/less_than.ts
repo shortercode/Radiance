@@ -1,9 +1,9 @@
-import { write_binary_prefix } from "./binary.js";
-import { Opcode } from "../OpCode.js";
-import { FunctionContext } from "../FunctionContext.js";
-import { WASTExpressionNode, WASTBinaryExpressionNode } from "../../WASTNode.js";
-import { compiler_error } from "../../compiler/error.js";
-import { PrimativeTypes } from "../../compiler/AtiumType.js";
+import { write_binary_prefix } from "./binary";
+import { Opcode } from "../OpCode";
+import { FunctionContext } from "../FunctionContext";
+import { WASTExpressionNode, WASTBinaryExpressionNode } from "../../WASTNode";
+import { compiler_error } from "../../compiler/error";
+import { PrimativeTypes } from "../../compiler/AtiumType";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 

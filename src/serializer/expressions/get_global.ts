@@ -1,5 +1,5 @@
 import { FunctionContext } from "../FunctionContext";
-import { WASTExpressionNode, WASTSetGlobalNode, WASTGetGlobalNode } from "../../WASTNode";
+import { WASTExpressionNode, WASTGetGlobalNode } from "../../WASTNode";
 import { Opcode } from "../OpCode";
 import { compiler_assert } from "../../compiler/error";
 

@@ -1,6 +1,6 @@
-import Parser from "./parser/index.js";
-import Compiler from "./compiler/index.js";
-import Serializer from "./serializer/index.js";
+import Parser from "./parser/index";
+import Compiler from "./compiler/index";
+import Serializer from "./serializer/index";
 
 async function main () {
 	try {

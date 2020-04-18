@@ -1,4 +1,4 @@
-import Iterator from "./Iterator.js";
+import Iterator from "./Iterator";
 
 export default class CharIterator extends Iterator<string> {
     previousPosition: [number, number]

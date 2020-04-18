@@ -1,5 +1,5 @@
-import { SourceReference } from "../WASTNode.js";
-import Node from "../pratt/Node.js";
+import { SourceReference } from "../WASTNode";
+import Node from "../pratt/Node";
 
 type PositionOrNode = SourceReference | Node;
 

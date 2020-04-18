@@ -1,8 +1,8 @@
-import Parser from "../pratt/Parser.js";
-import Node from "../pratt/Node.js";
-import Iterator from "../pratt/Iterator.js";
-import Token from "../pratt/Token.js";
-import { TypePattern } from "../compiler/AtiumType.js";
+import Parser from "../pratt/Parser";
+import Node from "../pratt/Node";
+import Iterator from "../pratt/Iterator";
+import Token from "../pratt/Token";
+import { TypePattern } from "../compiler/AtiumType";
 
 /*
 This class is the first stage of the process. It converts a text stream into an

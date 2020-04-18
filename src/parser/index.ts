@@ -265,9 +265,12 @@ class AtiumParser extends Parser {
 		const start = tokens.previous()!.start;
 		const name = this.ensure(tokens, "identifier:");
 		let initial = null;
-		
-		this.ensure(tokens, "symbol::");
-		const type = this.parseType(tokens);
+		let type = null;
+
+		if (this.match(tokens, "symbol::")) {
+			tokens.next();
+			type = this.parseType(tokens);
+		}
 		
 		if (this.match(tokens, "symbol:=")) {
 			tokens.next();

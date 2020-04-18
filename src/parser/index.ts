@@ -3,6 +3,8 @@ import Node from "../pratt/Node";
 import Iterator from "../pratt/Iterator";
 import Token from "../pratt/Token";
 import { TypePattern } from "../compiler/AtiumType";
+import { syntax_error, syntax_assert } from "../compiler/error";
+import { SourceReference } from "../WASTNode";
 
 /*
 This class is the first stage of the process. It converts a text stream into an
@@ -17,6 +19,7 @@ class AtiumParser extends Parser {
 		super();
 		
 		this.addStatement("identifier:export", this.parseExport);
+		this.addStatement("identifier:import", this.parseImport);
 		this.addStatement("identifier:func", this.parseFunction);
 		this.addStatement("identifier:let", this.parseVariable);
 		
@@ -239,7 +242,38 @@ class AtiumParser extends Parser {
 	}
 	
 	parseExport (tokens: Iterator<Token>): Node {
-		// NOTE previous token is the "identifier:}" read by statement matcher
+		const start = tokens.previous()!.start;
+		const label = this.ensure(tokens, "identifier:");
+		
+		const exportable_statements = new Set(["func"]);
+		
+		syntax_assert(exportable_statements.has(label), SourceReference.unknown(), "");
+
+		switch (label) {
+			case "func": {
+				const name = this.ensure(tokens, "identifier:");
+				const parameters = this.parseParameterBlock(tokens);
+		
+				let returnType: TypePattern = VOID_TYPE_PATTERN;
+				
+				if (this.match(tokens, "symbol:->")) {
+					tokens.next();
+					returnType = this.parseType(tokens);
+				}
+
+				const end = tokens.previous()!.end;
+
+				return new Node("import_function", start, end, {
+					name,
+					parameters,
+					returnType
+				});
+			}
+			default: throw new Error("Unreachable");
+		}
+	}
+
+	parseImport (tokens: Iterator<Token>): Node {
 		const start = tokens.previous()!.start;
 		const label = this.ensure(tokens, "identifier:");
 		

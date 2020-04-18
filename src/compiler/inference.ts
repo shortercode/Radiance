@@ -130,7 +130,7 @@ function guess_call_type (node: Node, ctx: InferContext): TypeHint {
 	
 	// this is technically a syntax error, but leave it for the compiler
 	// to throw on
-	if (value.callee.type !== "indentifier") {
+	if (value.callee.type !== "identifier") {
 		return null;
 	}
 	

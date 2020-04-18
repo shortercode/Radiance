@@ -26,6 +26,6 @@ export func pointA(x: i32, y: i32) -> i32 {
 }
 
 export func pointB(x: i32, y: i32) -> i32 {
-	let a: (i32, i32) = point(x, y);
+	let a = point(x, y);
 	a.1
 }

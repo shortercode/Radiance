@@ -1,6 +1,3 @@
-import { compiler_error } from "./error";
-import { SourceReference } from "../WASTNode";
-
 // NOTE this allows us to return pointers to the host environment
 // which is cool but the host environment will likely not be able
 // to read from the struct... also it's kinda risky if the host is
@@ -112,7 +109,7 @@ class AtiumObjectType {
 	}
 
 	equals (other: AtiumType): boolean {
-		compiler_error(SourceReference.unknown(), "Should not use direct instances of AtiumObjectType");
+		throw new Error("Should not use direct instances of AtiumObjectType");
 	}
 
 	is_numeric (): boolean {

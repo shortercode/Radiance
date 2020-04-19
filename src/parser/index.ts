@@ -241,7 +241,7 @@ class AtiumParser extends Parser {
 		return new Node("function", start, end, { name, type, parameters, body: statements });
 	}
 	
-	parseExport (tokens: Iterator<Token>): Node {
+	parseImport (tokens: Iterator<Token>): Node {
 		const start = tokens.previous()!.start;
 		const label = this.ensure(tokens, "identifier:");
 		
@@ -266,14 +266,14 @@ class AtiumParser extends Parser {
 				return new Node("import_function", start, end, {
 					name,
 					parameters,
-					returnType
+					type: returnType
 				});
 			}
 			default: throw new Error("Unreachable");
 		}
 	}
 
-	parseImport (tokens: Iterator<Token>): Node {
+	parseExport (tokens: Iterator<Token>): Node {
 		const start = tokens.previous()!.start;
 		const label = this.ensure(tokens, "identifier:");
 		

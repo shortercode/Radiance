@@ -71,7 +71,8 @@ export type WASTStatementType = "function" |
 "table" |
 "memory" |
 "global" |
-"export";
+"export" |
+"import_function";
 
 export type WASTExpressionType = WASTBinaryExpressionType |
 "@list" |
@@ -109,6 +110,7 @@ export type WASTBinaryExpressionType = "equals" |
 "bitwise_and";
 
 export type WASTStatementNode = WASTExportNode |
+WASTImportFunctionNode |
 WASTTableNode |
 WASTGlobalNode |
 WASTFunctionNode |
@@ -140,6 +142,24 @@ export class WASTExportNode implements WASTNode {
 		this.name = name;
 		this.target = target;
 		this.target_type = type;
+	}
+}
+
+export class WASTImportFunctionNode implements WASTNode {
+	type: "import_function" = "import_function"
+	source: SourceReference
+
+	id: number
+	name: string
+	parameters: Array<AtiumType>
+	result: AtiumType
+
+	constructor (source: SourceReference, id: number, name: string, result: AtiumType, parameters: Array<AtiumType>) {
+		this.source = source;
+		this.id = id;
+		this.name = name;
+		this.result = result;
+		this.parameters = parameters;
 	}
 }
 

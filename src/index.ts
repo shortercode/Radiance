@@ -49,7 +49,7 @@ async function test () {
 
 	fs.writeFile("test.wasm", binary);
 	const importObject = {
-		"": {
+		"imports": {
 			log_i32: (v:number) => console.log(`i32: ${v}`),
 			log_f32: (v:number) => console.log(`f32: ${v}`)
 		}
@@ -76,7 +76,6 @@ async function test () {
 		const b = point_y(pt);
 		console.log(`${a}, ${b}`);
 	}
-
 
 	const result = new Uint8Array(memory.buffer, 0, 80);
 

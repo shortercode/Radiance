@@ -114,6 +114,24 @@ function generate_malloc_function (ref: WAST.SourceReference, ctx: Context) {
 
 function hoist_declaration(node: Node, ctx: Context) {
 	switch (node.type) {
+		case "import_function": {
+			const data = node.data as {
+				name: string,
+				parameters: Array<{ name: string, type: TypePattern }>,
+				type: TypePattern
+			};
+
+			const parameters = data.parameters.map((param, index) => {
+				const type = parse_type(param.type);
+				return new Variable(WAST.SourceReference.from_node(node), type, param.name, index);
+			});
+
+			const return_type = parse_type(data.type);
+			const ref = WAST.SourceReference.from_node(node);
+			
+			ctx.declare_function(ref, data.name, return_type, parameters);
+			break;
+		}
 		case "export_function":
 		case "function": {
 			const data = node.data as {
@@ -145,6 +163,11 @@ function visit_global_statement(node: Node, ctx: Context): Array<WAST.WASTStatem
 			
 			return [fn_wast];
 		}
+		case "import_function": {
+			const import_wast = visit_import_function(node, ctx, source_ref);
+
+			return [import_wast];
+		}
 		case "export": {
 			const data = node.data as {
 				name: string
@@ -175,9 +198,9 @@ function visit_function(node: Node, ctx: Context, ref: WAST.SourceReference) {
 	
 	const data = node.data as {
 		name: string
-		type: string
+		type: TypePattern
 		body: Array<Node>
-		parameters: Array<{ name: string, type: string }>
+		parameters: Array<{ name: string, type: TypePattern }>
 	}
 	/*
 	WARN this SHOULD always be defined but this unwrap should have a
@@ -206,6 +229,22 @@ function visit_function(node: Node, ctx: Context, ref: WAST.SourceReference) {
 	complete_function_environment(ctx, fn_wast, fn_decl);
 
 	return fn_wast;
+}
+
+function visit_import_function(node: Node, ctx: Context, ref: WAST.SourceReference) {
+	const data = node.data as {
+		name: string,
+		parameters: Array<{ name: string, type: TypePattern }>,
+		type: TypePattern
+	};
+
+	const fn_decl = ctx.get_function(data.name)!; 
+	compiler_assert(fn_decl instanceof FunctionDeclaration, ref, "Cannot locate function declaration");
+
+	const parameters = data.parameters.map(param => parse_type(param.type));
+	const return_type = parse_type(data.type);
+
+	return new WAST.WASTImportFunctionNode(ref, fn_decl.id, data.name, return_type, parameters);
 }
 
 function export_function(source_ref: WAST.SourceReference, fn_name: string, ctx: Context) {

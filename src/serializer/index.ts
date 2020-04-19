@@ -212,7 +212,6 @@ function write_section_2 (module_ctx: ModuleContext, import_nodes: Array<WASTImp
 
 		writer.writeUVint(0x00);
 		const label = type_label(node.result, node.parameters);
-		console.log("Import " + label);
 		const index = module_ctx.type_index_map.get(label)!.index;
 		writer.writeUVint(index);
 		module_ctx.function_index_map.set(node.id, i);
@@ -232,7 +231,6 @@ function write_section_3 (module_ctx: ModuleContext, import_offset: number, func
 		const node = function_nodes[i];
 		const parameters = node.parameters.map(par => par.type);
 		const label = type_label(node.result, parameters);
-		console.log("Function " + label);
 		const index = module_ctx.type_index_map.get(label)!.index;
 		writer.writeUVint(index);
 		module_ctx.function_index_map.set(node.id, i + import_offset);

@@ -1,6 +1,6 @@
 import * as WAST from "../WASTNode"
 import Node from "../pratt/Node";
-import { AtiumType, parse_type, F64_TYPE, VOID_TYPE, BOOL_TYPE, TypePattern, create_tuple_type, I32_TYPE, I64_TYPE } from "./AtiumType";
+import { AtiumType, parse_type, F64_TYPE, VOID_TYPE, BOOL_TYPE, create_tuple_type, I32_TYPE, I64_TYPE } from "./AtiumType";
 import { Context } from "./Context";
 import { FunctionDeclaration } from "./FunctionDeclaration";
 import { Environment } from "./Environment";
@@ -8,6 +8,7 @@ import { Variable } from "./Variable";
 import { compiler_error, type_error, compiler_assert, syntax_assert, type_assert, syntax_error } from "./error";
 import { InferContext } from "./InferContext";
 import { guess_expression_type } from "./inference";
+import { TypePattern } from "../parser/index";
 
 type TypeHint = AtiumType | null;
 /*

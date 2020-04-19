@@ -1,6 +1,7 @@
 import Node from "../pratt/Node"; 
-import { BOOL_TYPE, AtiumType, TypePattern, parse_type, create_tuple_type, VOID_TYPE } from "./AtiumType";
+import { BOOL_TYPE, AtiumType, parse_type, create_tuple_type, VOID_TYPE } from "./AtiumType";
 import { InferContext } from "./InferContext";
+import { TypePattern } from "../parser/index";
 
 type TypeHint = AtiumType | null;
 

@@ -1,3 +1,5 @@
+import { TypePattern } from "../parser/index";
+
 // NOTE this allows us to return pointers to the host environment
 // which is cool but the host environment will likely not be able
 // to read from the struct... also it's kinda risky if the host is
@@ -203,8 +205,6 @@ class StructAtiumType extends AtiumObjectType{
 		return this;
 	}
 }
-
-export type TypePattern = { style: "tuple", types: Array<TypePattern> } | { style: "class", type: string };
 
 function validate_primative_type (name: string): PrimativeTypes {
 	switch (name) {

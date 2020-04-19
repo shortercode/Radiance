@@ -2,9 +2,8 @@ import Parser from "../pratt/Parser";
 import Node from "../pratt/Node";
 import Iterator from "../pratt/Iterator";
 import Token from "../pratt/Token";
-import { TypePattern } from "../compiler/AtiumType";
-import { syntax_error, syntax_assert } from "../compiler/error";
-import { SourceReference } from "../WASTNode";
+
+export type TypePattern = { style: "tuple", types: Array<TypePattern> } | { style: "class", type: string };
 
 /*
 This class is the first stage of the process. It converts a text stream into an
@@ -21,6 +20,7 @@ class AtiumParser extends Parser {
 		this.addStatement("identifier:export", this.parseExport);
 		this.addStatement("identifier:import", this.parseImport);
 		this.addStatement("identifier:func", this.parseFunction);
+		this.addStatement("identifier:struct", this.parseStruct);
 		this.addStatement("identifier:let", this.parseVariable);
 		
 		/*
@@ -240,6 +240,31 @@ class AtiumParser extends Parser {
 		
 		return new Node("function", start, end, { name, type, parameters, body: statements });
 	}
+
+	parseStruct (tokens: Iterator<Token>): Node {
+		const start = tokens.previous()!.start;
+		const name = this.ensure(tokens, "identifier:");
+		const fields: Map<string, TypePattern> = new Map;
+
+		this.ensure(tokens, "symbol:{");
+
+		while (tokens.incomplete()) { 
+			const field_name = this.ensure(tokens, "identifier:");
+			this.ensure(tokens, "symbol::");
+			const field_type = this.parseType(tokens);
+			fields.set(field_name, field_type);
+			if (this.match(tokens, "symbol:,")) {
+				tokens.next();
+			}
+			else {
+				break;
+			}
+		}
+
+		this.ensure(tokens, "symbol:}");
+		const end = tokens.previous()!.end;
+		return new Node("struct", start, end, { name, fields });
+	}
 	
 	parseImport (tokens: Iterator<Token>): Node {
 		const start = tokens.previous()!.start;
@@ -247,7 +272,9 @@ class AtiumParser extends Parser {
 		
 		const exportable_statements = new Set(["func"]);
 		
-		syntax_assert(exportable_statements.has(label), SourceReference.unknown(), "");
+		if (exportable_statements.has(label) === false) {
+			this.throwUnexpectedToken(tokens.previous()!);
+		}
 
 		switch (label) {
 			case "func": {

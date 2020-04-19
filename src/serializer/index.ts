@@ -1,13 +1,15 @@
 import { Writer } from "./Writer";
 import { Variable } from "../compiler/Variable";
-import { AtiumType, I32_TYPE } from "../compiler/AtiumType";
+import { AtiumType, I32_TYPE, PrimativeTypes, get_primative_name } from "../compiler/AtiumType";
 import { Opcode } from "./OpCode";
 import { FunctionContext } from "./FunctionContext";
 import { write_value_type } from "./write_value_type";
 import { write_expression } from "./expressions/expression";
-import { WASTModuleNode, WASTStatementNode, WASTMemoryNode, WASTExportNode, WASTFunctionNode, SourceReference, WASTTableNode, WASTNodeList, WASTConstNode, WASTGlobalNode } from "../WASTNode";
+import { WASTModuleNode, WASTStatementNode, WASTMemoryNode, WASTExportNode, WASTFunctionNode, SourceReference, WASTTableNode, WASTNodeList, WASTConstNode, WASTGlobalNode, WASTImportFunctionNode } from "../WASTNode";
 import { ModuleContext } from "./ModuleContext";
 import { compiler_assert } from "../compiler/error";
+
+const IMPORTS_LABEL = "imports";
 
 export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 	
@@ -21,18 +23,28 @@ export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 		memory_nodes,
 		export_nodes,
 		table_nodes,
-		global_nodes
+		global_nodes,
+		import_nodes
 	} = seperate_statement_nodes(ast.statements);
 
 	const requires_exports = export_nodes.length > 0;
+	const requires_imports = import_nodes.length > 0;
 	const requires_tables = table_nodes.length > 0;
 	const requires_memory = memory_nodes.length > 0;
 	const requires_function = function_nodes.length > 0;
 	const requires_globals = global_nodes.length > 0;
 	
+	const import_offset = generate_import_types(module_ctx, import_nodes);
+	generate_function_types(module_ctx, import_offset, function_nodes);
+
 	if (requires_function) {
-		write_section_1(module_ctx, function_nodes);
-		write_section_3(module_ctx, function_nodes);
+		write_section_1(module_ctx);
+	}
+	if (requires_imports) {
+		write_section_2(module_ctx, import_nodes);
+	}
+	if (requires_function) {
+		write_section_3(module_ctx, import_offset, function_nodes);
 	}
 	if (requires_tables) {
 		write_section_4(module_ctx, table_nodes);
@@ -56,17 +68,57 @@ export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 	return writer.complete();
 }
 
+function generate_function_types (ctx: ModuleContext, import_offset: number, statements: Array<WASTFunctionNode>) {
+	let i = import_offset;
+	for (const fn of statements) {
+		const parameters = fn.parameters.map(vari => vari.type);
+		const label = type_label(fn.result, parameters);
+		if (!ctx.type_index_map.has(label)) {
+			ctx.type_index_map.set(label, {
+				result: fn.result,
+				parameters: parameters,
+				index: i
+			});
+			i += 1;
+		}
+	}
+}
+
+function generate_import_types (ctx: ModuleContext, statements: Array<WASTImportFunctionNode>) {
+	let i = 0;
+	for (const imp of statements) {
+		const label = type_label(imp.result, imp.parameters);
+		if (!ctx.type_index_map.has(label)) {
+			ctx.type_index_map.set(label, {
+				result: imp.result,
+				parameters: imp.parameters,
+				index: i
+			});
+			i += 1;
+		}
+	}
+	return i;
+}
+
+function type_label (result: AtiumType, parameters: Array<AtiumType>) {
+	return parameters.map(param => param.name).join(",") + "->" + result.name;
+}
+
 function seperate_statement_nodes (statements: Array<WASTStatementNode>) {
 	const function_nodes: Array<WASTFunctionNode> = [];
 	const memory_nodes: Array<WASTMemoryNode> = [];
 	const export_nodes: Array<WASTExportNode> = [];
 	const table_nodes: Array<WASTTableNode> = [];
 	const global_nodes: Array<WASTGlobalNode> = [];
+	const import_nodes: Array<WASTImportFunctionNode> = [];
 	
 	for (const node of statements) {
 		switch (node.type) {
 			case "export":
 			export_nodes.push(node);
+			break;
+			case "import_function":
+			import_nodes.push(node);
 			break;
 			case "function":
 			function_nodes.push(node);
@@ -88,7 +140,8 @@ function seperate_statement_nodes (statements: Array<WASTStatementNode>) {
 		memory_nodes,
 		export_nodes,
 		table_nodes,
-		global_nodes
+		global_nodes,
+		import_nodes
 	};
 }
 
@@ -116,23 +169,20 @@ Section order
 11  data
 */
 
-function write_section_1 (module_ctx: ModuleContext, function_nodes: Array<WASTFunctionNode>) {
-	// Section 1 - Types AKA function signatures
-	// NOTE we're taking the lazy approach of having one signature
-	// per function at the moment, but we should really be deduplicating
-	// the signatures ( which is the only reason why this section is 
-	// seperate from section 3 )
-	
+function write_section_1 (module_ctx: ModuleContext) {
+	// Section 1 - Types AKA function signatures	
 	const writer = module_ctx.writer;
 	const section_offset = write_section_header(writer, 1);
+
+	const types = Array.from(module_ctx.type_index_map.values());
 	
-	writer.writeUVint(function_nodes.length);
+	writer.writeUVint(types.length);
 	
-	for (const function_node of function_nodes) {
+	for (const function_node of types) {
 		writer.writeUint8(0x60);
 		writer.writeUVint(function_node.parameters.length);
 		for (const parameter of function_node.parameters) {
-			write_value_type(writer, parameter.type);
+			write_value_type(writer, parameter);
 		}
 		
 		if (function_node.result.is_void()) {
@@ -147,7 +197,31 @@ function write_section_1 (module_ctx: ModuleContext, function_nodes: Array<WASTF
 	finish_section_header(writer, section_offset);
 }
 
-function write_section_3 (module_ctx: ModuleContext, function_nodes: Array<WASTFunctionNode>) {
+function write_section_2 (module_ctx: ModuleContext, import_nodes: Array<WASTImportFunctionNode>) {
+	// Section 2 - Imports
+	const writer = module_ctx.writer;
+	const section_offset = write_section_header(writer, 2);
+	
+	writer.writeUVint(import_nodes.length);
+	
+	for (let i = 0; i < import_nodes.length; i++) {
+		const node = import_nodes[i];
+
+		writer.writeString(IMPORTS_LABEL);
+		writer.writeString(node.name);
+
+		writer.writeUVint(0x00);
+		const label = type_label(node.result, node.parameters);
+		console.log("Import " + label);
+		const index = module_ctx.type_index_map.get(label)!.index;
+		writer.writeUVint(index);
+		module_ctx.function_index_map.set(node.id, i);
+	}
+	
+	finish_section_header(writer, section_offset);
+}
+
+function write_section_3 (module_ctx: ModuleContext, import_offset: number, function_nodes: Array<WASTFunctionNode>) {
 	// Section 3 - Function AKA function ID to signature mapping
 	const writer = module_ctx.writer;
 	const section_offset = write_section_header(writer, 3);
@@ -155,8 +229,13 @@ function write_section_3 (module_ctx: ModuleContext, function_nodes: Array<WASTF
 	writer.writeUVint(function_nodes.length);
 	
 	for (let i = 0; i < function_nodes.length; i++) {
-		writer.writeUVint(i);
-		module_ctx.function_index_map.set(function_nodes[i].id, i);
+		const node = function_nodes[i];
+		const parameters = node.parameters.map(par => par.type);
+		const label = type_label(node.result, parameters);
+		console.log("Function " + label);
+		const index = module_ctx.type_index_map.get(label)!.index;
+		writer.writeUVint(index);
+		module_ctx.function_index_map.set(node.id, i + import_offset);
 	}
 	
 	finish_section_header(writer, section_offset);
@@ -234,7 +313,7 @@ function write_section_7 (module_ctx: ModuleContext, export_nodes: Array<WASTExp
 		writer.writeString(node.name);
 		switch (node.target_type) {
 			case "function": {
-				writer.writeUint8(0);
+				writer.writeUint8(0x00);
 				const index = module_ctx.function_index_map.get(node.target);
 				if (typeof index !== "number") {
 					throw new Error(`Cannot export unknown function ${node.target}`);

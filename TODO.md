@@ -15,7 +15,7 @@
 	- [ ] Explicit return
 	- [ ] Break/contiue for loops
 	- [ ] Other loop types?
-	- [ ] Import functions from external
+	- [X] Import functions from external
 	- [X] Inline export syntax
 	- [X] Export memory
 	- [ ] Add reserved names list to variable declaration

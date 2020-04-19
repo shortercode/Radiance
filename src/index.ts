@@ -48,7 +48,13 @@ async function test () {
 	console.log(Buffer.from(binary).toString("hex"))
 
 	fs.writeFile("test.wasm", binary);
-	const { module, instance } = await WebAssembly.instantiate(binary);
+	const importObject = {
+		"": {
+			log_i32: (v:number) => console.log(`i32: ${v}`),
+			log_f32: (v:number) => console.log(`f32: ${v}`)
+		}
+	};
+	const { module, instance } = await WebAssembly.instantiate(binary, importObject);
 	
 	const mod = instance.exports;
 
@@ -56,16 +62,21 @@ async function test () {
 	// console.log((sub as any)(14, 8))
 	// console.log(add(12, 30));
 	// const factorial = mod.factorial as (a: number) => number
-	const pointA = mod.pointA as (x: number, y: number) => number
-	const pointB = mod.pointB as (x: number, y: number) => number
+	const point = mod.point as (x: number, y: number) => number
+	const point_x = mod.point_x as (p: number) => number
+	const point_y = mod.point_y as (p: number) => number
+	const main = mod.main as () => void
 	const memory = mod.memory as WebAssembly.Memory;
 
+	main();
+
 	for (let i = 0; i < 10; i++) {
-		const a = pointA(255, 65535);
-		const b = pointB(691, 8888);
+		const pt = point(691, 8888);
+		const a = point_x(pt);
+		const b = point_y(pt);
 		console.log(`${a}, ${b}`);
-		// console.log((factorial as any)(i));
 	}
+
 
 	const result = new Uint8Array(memory.buffer, 0, 80);
 

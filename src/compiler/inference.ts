@@ -1,5 +1,5 @@
 import Node from "../pratt/Node"; 
-import { BOOL_TYPE, AtiumType, parse_type, create_tuple_type, VOID_TYPE } from "./AtiumType";
+import { BOOL_TYPE, AtiumType, parse_type, create_tuple_type, VOID_TYPE, TupleAtiumType, StructAtiumType } from "./AtiumType";
 import { InferContext } from "./InferContext";
 import { TypePattern } from "../parser/index";
 
@@ -215,15 +215,40 @@ function guess_member_type (node: Node, ctx: InferContext): TypeHint {
 		member: string
 	};
 
-	const index = parseInt(value.member);
-	const target = guess_expression_type(value.target, ctx);
-	const target_type = target ? target.as_tuple() : null;
-
-	if (target_type === null || isNaN(index)) {
+	const target = guess_expression_type(value.target, ctx);	
+	if (target === null) {
 		return null;
 	}
+
+	const target_tuple_type = target.as_tuple();
+	if (target_tuple_type) {
+		return guess_tuple_member_type(target_tuple_type, value.member);
+	}
+
+	const target_struct_type = target.as_struct();
+	if (target_struct_type) {
+		return guess_struct_member_type(target_struct_type, value.member);
+	}
+
+	return null;
+}
+
+function guess_tuple_member_type (type: TupleAtiumType, member: string): TypeHint {
+	const index = parseInt(member);
+
+	if (isNaN(index)) {
+		return null;
+	}
+
+	const field = type.types[index];
 	
-	return target_type.types[index] || null;
+	return field ? field.type : null;
+}
+
+function guess_struct_member_type (type: StructAtiumType, member: string): TypeHint {
+	const field = type.types.get(member);
+	
+	return field ? field.type : null;
 }
 
 function guess_assignment_type (node: Node, ctx: InferContext): TypeHint {

@@ -1,13 +1,14 @@
 import { FunctionDeclaration } from "./FunctionDeclaration";
 import { Environment } from "./Environment";
-import { AtiumType } from "./AtiumType";
+import { AtiumType, StructAtiumType } from "./AtiumType";
 import { Variable } from "./Variable";
 import { syntax_assert, compiler_assert } from "./error";
 import { SourceReference } from "../WASTNode";
+import { StructDeclaration } from "./StructDeclaration";
 
 export class Context {
 
-	user_globals: Map<string, FunctionDeclaration|Variable> = new Map
+	user_globals: Map<string, FunctionDeclaration|Variable|StructDeclaration> = new Map
 	lib_globals: Map<string, FunctionDeclaration|Variable> = new Map
 
 	global_variables: Array<Variable> = []
@@ -33,6 +34,17 @@ export class Context {
 		
 		this.user_globals.set(name, fn);
 		return fn;
+	}
+
+	declare_struct (ref: SourceReference, name: string, fields: Map<string, AtiumType>) {
+		syntax_assert(this.user_globals.has(name) === false, ref, `Global ${name} already exists`)
+		const struct = this.declare_hidden_struct(ref, name, fields);
+		this.user_globals.set(name, struct);
+		return struct;
+	}
+
+	declare_hidden_struct (ref: SourceReference, name: string, fields: Map<string, AtiumType>) {
+		return new StructDeclaration(name, fields);
 	}
 
 	declare_hidden_function (name: string, type: AtiumType, parameters: Array<Variable>): FunctionDeclaration {
@@ -86,6 +98,16 @@ export class Context {
 		}
 		else {
 			return null
+		}
+	}
+
+	get_struct (name: string): StructDeclaration | null {
+		const global_struct = this.user_globals.get(name);
+		if (global_struct instanceof StructDeclaration) {
+			return global_struct;
+		}
+		else {
+			return null;
 		}
 	}
 	

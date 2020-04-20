@@ -151,13 +151,28 @@ class AtiumObjectType {
 	}
 }
 
-class TupleAtiumType extends AtiumObjectType{
-	readonly types: Array<AtiumType>
+export class TupleAtiumType extends AtiumObjectType{
+	readonly types: Array<{
+		type: AtiumType,
+		offset: number
+	}>
 	readonly size: number = 4
 
 	constructor (types: Array<AtiumType>, name: string) {
 		super(name);
-		this.types = types;
+		this.types = this.calculate_offset(types);
+	}
+
+	private calculate_offset (types: Array<AtiumType>) {
+		let offset = 0;
+		return types.map((type: AtiumType) => {
+			const result = {
+				type,
+				offset
+			};
+			offset += type.size;
+			return result;
+		});
 	}
 
 	equals (other: AtiumType): boolean {
@@ -170,7 +185,7 @@ class TupleAtiumType extends AtiumObjectType{
 			}
 
 			for (let i = 0; i < a.length; i++) {
-				if (a[i].equals(b[i]) === false) {
+				if (a[i].type.equals(b[i].type) === false) {
 					return false;
 				}
 			}
@@ -184,13 +199,32 @@ class TupleAtiumType extends AtiumObjectType{
 	}
 }
 
-class StructAtiumType extends AtiumObjectType{
-	readonly types: Map<string, AtiumType>
+export class StructAtiumType extends AtiumObjectType{
+	readonly types: Map<string, {
+		type: AtiumType,
+		offset: number
+	}>
 	readonly size: number = 4
 
 	constructor (types: Map<string, AtiumType>, name: string) {
 		super(name);
-		this.types = types;
+		this.types = this.calculate_offset(types);
+	}
+
+	private calculate_offset (types: Map<string, AtiumType>) {
+		let offset = 0;
+		const result: Map<string, {
+			type: AtiumType,
+			offset: number
+		}> = new Map;
+		for (const [name, type] of types) {
+			result.set(name, {
+				type,
+				offset
+			});
+			offset += type.size;
+		}
+		return result;
 	}
 
 	equals (other: AtiumType): boolean {

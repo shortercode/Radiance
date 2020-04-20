@@ -1,6 +1,6 @@
 import * as WAST from "../WASTNode"
 import Node from "../pratt/Node";
-import { AtiumType, parse_type, F64_TYPE, VOID_TYPE, BOOL_TYPE, create_tuple_type, I32_TYPE, I64_TYPE } from "./AtiumType";
+import { AtiumType, parse_type, F64_TYPE, VOID_TYPE, BOOL_TYPE, create_tuple_type, I32_TYPE, I64_TYPE, TupleAtiumType, StructAtiumType } from "./AtiumType";
 import { Context } from "./Context";
 import { FunctionDeclaration } from "./FunctionDeclaration";
 import { Environment } from "./Environment";
@@ -114,6 +114,7 @@ function generate_malloc_function (ref: WAST.SourceReference, ctx: Context) {
 }
 
 function hoist_declaration(node: Node, ctx: Context) {
+	const ref = WAST.SourceReference.from_node(node);
 	switch (node.type) {
 		case "import_function": {
 			const data = node.data as {
@@ -128,9 +129,23 @@ function hoist_declaration(node: Node, ctx: Context) {
 			});
 
 			const return_type = parse_type(data.type);
-			const ref = WAST.SourceReference.from_node(node);
-			
 			ctx.declare_function(ref, data.name, return_type, parameters);
+			break;
+		}
+		case "struct": {
+			const data = node.data as {
+				name: string, 
+				fields: Map<string, TypePattern>
+			};
+			
+			const fields = new Map;
+
+			for (const [name, pattern] of data.fields) {
+				const type = parse_type(pattern);
+				fields.set(name, type);
+			}
+
+			ctx.declare_struct(ref, data.name, fields);
 			break;
 		}
 		case "export_function":
@@ -148,8 +163,6 @@ function hoist_declaration(node: Node, ctx: Context) {
 			});
 
 			const return_type = parse_type(data.type);
-			const ref = WAST.SourceReference.from_node(node);
-			
 			ctx.declare_function(ref, data.name, return_type, parameters);
 			break;
 		}
@@ -163,6 +176,10 @@ function visit_global_statement(node: Node, ctx: Context): Array<WAST.WASTStatem
 			const fn_wast = visit_function(node, ctx, source_ref);
 			
 			return [fn_wast];
+		}
+		case "struct": {
+			// structs don't need to emit WASTNodes
+			return [];
 		}
 		case "import_function": {
 			const import_wast = visit_import_function(node, ctx, source_ref);
@@ -481,7 +498,7 @@ function visit_tuple_expression (ref: WAST.SourceReference, ctx: Context, node: 
 		const types = type_hint!.as_tuple()!.types;
 		if (types.length === data.values.length) {
 			type_hints = [];
-			for (const type of types) {
+			for (const { type } of types) {
 				type_hints.push(type);
 			}
 		}
@@ -716,28 +733,42 @@ function visit_member_expression (ref: WAST.SourceReference, ctx: Context, node:
 	};
 
 	const target = visit_expression(value.target, ctx, null);
+	const target_tuple_type = target.value_type.as_tuple();
 
-	const target_type = target.value_type.as_tuple()!;
-	type_assert(target_type !== null, ref, `Target does not have any properties`);
+	if (target_tuple_type) {
+		return visit_tuple_member_expression(ref, ctx, target, target_tuple_type, value.member);
+	}
+	
+	const target_struct_type = target.value_type.as_struct();
 
-	const index = parseInt(value.member);
+	if (target_struct_type) {
+		return visit_struct_member_expression(ref, ctx, target, target_struct_type, value.member);
+	}
+
+	type_error(ref, `Target does not have any properties`);
+}
+
+function visit_tuple_member_expression (ref: WAST.SourceReference, ctx: Context, target: WAST.WASTExpressionNode, target_type: TupleAtiumType, member: string) {
+	const index = parseInt(member);
 
 	compiler_assert(isFinite(index), ref, `Expected index to be a finite number`);
 
 	const type_count = target_type.types.length;
 
-	type_assert(index < type_count, ref, `Cannot read member ${index} of tuple, as it only contains ${type_count} members.`);
+	type_assert(index >= 0 && index < type_count, ref, `Cannot read member ${index} of tuple, as it only contains ${type_count} members.`);
 
-	let offset = 0;
-	let type = target_type.types[0];
-	for (let i = 0; i < type_count; i++) {
-		type = target_type.types[i];
-		if (i === index) {
-			break;
-		}
-		offset += type.size;
-	}
+	const { type, offset } = target_type.types[index]!;
 
+	return new WAST.WASTLoadNode(ref, type, target, offset);
+}
+
+function visit_struct_member_expression (ref: WAST.SourceReference, ctx: Context, target: WAST.WASTExpressionNode, target_type: StructAtiumType, member: string) {
+	const member_type = target_type.types.get(member)!;
+
+	type_assert(member_type !== null, ref, `Cannot read member ${member} of tuple, as it doesn't contain a field of that name.`);
+	// TODO add a "did you mean .blah_blah?"
+
+	const { type, offset } = member_type;
 	return new WAST.WASTLoadNode(ref, type, target, offset);
 }
 

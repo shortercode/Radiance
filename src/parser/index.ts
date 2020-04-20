@@ -72,6 +72,7 @@ class AtiumParser extends Parser {
 		this.addPrefix("identifier:while", 	8, this.parseWhileExpression);
 		
 		this.addInfix("symbol:(", 					9, this.parseCallExpression);
+		this.addInfix("symbol:{",						9, this.parseConstructor);
 		this.addInfix("symbol:[",						9, this.parseSubscript);
 		this.addInfix("symbol:.",						9, this.parseMemberAccess);
 
@@ -107,6 +108,29 @@ class AtiumParser extends Parser {
 		// NOTE previous token is the "symbol:)" read above
 		const end = tokens.previous()!.end;
 		return new Node("call", start, end, { callee: left, arguments: values });
+	}
+
+	parseConstructor(tokens: Iterator<Token>, left: Node): Node {
+		const start = left.start;
+		const fields: Map<string, Node> = new Map;
+
+		while (tokens.incomplete()) { 
+			const field_name = this.ensure(tokens, "identifier:");
+			this.ensure(tokens, "symbol::");
+			const value = this.parseExpression(tokens);
+
+			fields.set(field_name, value);
+			if (this.match(tokens, "symbol:,")) {
+				tokens.next();
+			}
+			else {
+				break;
+			}
+		}
+
+		this.ensure(tokens, "symbol:}");
+		const end = tokens.previous()!.end;
+		return new Node("constructor", start, end, { target: left, fields });
 	}
 
 	parseSubscript(tokens: Iterator<Token>, left: Node): Node {

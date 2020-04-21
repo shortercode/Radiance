@@ -37,6 +37,8 @@ export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 	const import_offset = generate_import_types(module_ctx, import_nodes);
 	generate_function_types(module_ctx, import_offset, function_nodes);
 
+
+	// TODO some of the "requires" checks might need changing since we added type deduplication
 	if (requires_function) {
 		write_section_1(module_ctx);
 	}

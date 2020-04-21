@@ -37,3 +37,4 @@
 	- [ ] Module system
 	- [ ] Heap memory allocation
 	- [ ] Only insert malloc and memory export IF alloc is used
+	- [ ] Namespace objects ( useful for module system, static class methods, enums and foreign functions imports )

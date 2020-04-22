@@ -45,6 +45,8 @@ WASTLoopNode |
 WASTBranchNode |
 WASTConditionalBranchNode |
 WASTNotNode |
+WASTConvertToFloat |
+WASTConvertToInt |
 WASTBinaryExpressionNode;
 
 export type WASTBinaryExpressionNode = WASTEqualsNode |
@@ -91,7 +93,9 @@ export type WASTExpressionType = WASTBinaryExpressionType |
 "br" |
 "br_if" |
 "not" |
-"call";
+"call" |
+"convert_int" |
+"convert_float";
 
 export type WASTBinaryExpressionType = "equals" |
 "not_equals" |
@@ -742,5 +746,35 @@ export class WASTBitwiseAndNode implements WASTNode {
 		this.value_type = type;
 		this.left = left;
 		this.right = right;
+	}
+}
+
+export class WASTConvertToFloat implements WASTNode {
+	type: "convert_float" = "convert_float"
+	source: SourceReference
+
+	value_type: AtiumType
+
+	input: WASTExpressionNode
+
+	constructor (source: SourceReference, type: AtiumType, input: WASTExpressionNode) {
+		this.source = source;
+		this.value_type = type;
+		this.input = input;
+	}
+}
+
+export class WASTConvertToInt implements WASTNode {
+	type: "convert_int" = "convert_int"
+	source: SourceReference
+
+	value_type: AtiumType
+
+	input: WASTExpressionNode
+
+	constructor (source: SourceReference, type: AtiumType, input: WASTExpressionNode) {
+		this.source = source;
+		this.value_type = type;
+		this.input = input;
 	}
 }

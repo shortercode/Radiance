@@ -331,7 +331,7 @@ function visit_expression(node: Node, ctx: Context, type_hint: TypeHint): WAST.W
 		case "block": {
 			return visit_block_expression(source_ref, ctx, node, type_hint);
 		}
-		case "grouping": {
+		case "group": {
 			return visit_group_expression(source_ref, ctx, node, type_hint);
 		}
 		case "number": {
@@ -424,6 +424,10 @@ function visit_expression(node: Node, ctx: Context, type_hint: TypeHint): WAST.W
 		case "%": {
 			const { type, left, right } = visit_integer_binary_expression(ctx, node, type_hint);
 			return new WAST.WASTModuloNode(source_ref, type, left, right);
+		}
+
+		case "as": {
+			return visit_as_expression(source_ref, ctx, node);
 		}
 
 		case "and": {
@@ -844,6 +848,37 @@ function visit_struct_member_expression (ref: WAST.SourceReference, ctx: Context
 
 	const { type, offset } = member_type;
 	return new WAST.WASTLoadNode(ref, type, target, offset);
+}
+
+function visit_as_expression (ref: WAST.SourceReference, ctx: Context, node: Node ): WAST.WASTExpressionNode {
+	const value = node.data as {
+		expr: Node, 
+		type: TypePattern
+	};
+
+	const target_type = parse_type(value.type, ctx);
+	const new_value = visit_expression(value.expr, ctx, target_type);
+
+	if (target_type.equals(new_value.value_type)) {
+		return new_value;
+	}
+
+	if (target_type.is_float()) {
+		type_assert(new_value.value_type.is_numeric(), ref, `Unable to cast non-numeric type ${new_value.value_type.name} to ${target_type.name}`);
+
+		return new WAST.WASTConvertToFloat(ref, target_type, new_value);
+	}
+	else if (target_type.is_integer()) {
+		type_assert(new_value.value_type.is_numeric(), ref, `Unable to cast non-numeric type ${new_value.value_type.name} to ${target_type.name}`);
+
+		return new WAST.WASTConvertToInt(ref, target_type, new_value);
+	}
+	else if (target_type.is_boolean()) {
+		return wrap_boolean_cast(new_value);
+	}
+	else {
+		type_error(ref, `Unable to cast to type ${target_type.name}`);
+	}
 }
 
 function visit_assignment_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {

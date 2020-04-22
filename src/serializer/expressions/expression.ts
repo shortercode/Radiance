@@ -32,6 +32,8 @@ import { write_get_global_expression } from "./get_global";
 import { write_set_global_expression } from "./set_global";
 import { write_load_expression } from "./load";
 import { write_store_expression } from "./store";
+import { write_cast_float_expression } from "./cast_float";
+import { write_cast_int_expression } from "./cast_int";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 type WriterFunction = (ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) => void
@@ -51,6 +53,9 @@ const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 	["greater_than_equals", write_greater_than_equals_expression],
 	["less_than_equals", write_less_than_equals_expression],
 	["not", write_not_expression],
+
+	["convert_float", write_cast_float_expression],
+	["convert_int", write_cast_int_expression],
 	
 	["if", write_if_expression],
 	["block", write_block_expression],

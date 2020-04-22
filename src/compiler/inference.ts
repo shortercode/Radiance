@@ -1,5 +1,5 @@
 import Node from "../pratt/Node"; 
-import { BOOL_TYPE, AtiumType, parse_type, create_tuple_type, VOID_TYPE, TupleAtiumType, StructAtiumType } from "./AtiumType";
+import { BOOL_TYPE, AtiumType, parse_type, create_tuple_type, VOID_TYPE, TupleAtiumType, StructAtiumType, I32_TYPE, F64_TYPE } from "./AtiumType";
 import { InferContext } from "./InferContext";
 import { TypePattern } from "../parser/index";
 
@@ -17,7 +17,7 @@ export function guess_expression_type (node: Node, ctx: InferContext): TypeHint 
 		case "grouping":
 		return guess_expression_type(node.data as Node, ctx);
 		case "number":
-		return null;
+		return guess_number_type(node, ctx);
 		case "tuple": 
 		return guess_tuple_type(node, ctx);
 		case "call": 
@@ -80,7 +80,7 @@ function visit_variable_type (node: Node, ctx: InferContext): null {
 	// TODO this needs adapting if the type has not been specified
 	// to infer the value from the intial expression
 
-	const type = parse_type(data.type);
+	const type = parse_type(data.type, ctx.ctx);
 	ctx.environment.declare(data.name, type);
 
 	/*
@@ -103,6 +103,19 @@ function guess_block_type (node: Node, ctx: InferContext): TypeHint {
 
 	ctx.environment.pop_frame();
 	return result;
+}
+
+function guess_number_type (node: Node, ctx: InferContext): TypeHint {
+	if (should_create_int(node.data as string)) {
+		return I32_TYPE;
+	}
+	else {
+		return F64_TYPE;
+	}
+}
+
+function should_create_int (value: string): boolean {
+	return !value.includes(".");
 }
 
 function guess_tuple_type (node: Node, ctx: InferContext): TypeHint {

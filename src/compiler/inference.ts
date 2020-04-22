@@ -16,7 +16,7 @@ export function guess_expression_type (node: Node, ctx: InferContext): TypeHint 
 		return guess_constructor_type(node, ctx);
 		case "block":
 		return guess_block_type(node, ctx);
-		case "grouping":
+		case "group":
 		return guess_expression_type(node.data as Node, ctx);
 		case "number":
 		return guess_number_type(node, ctx);

@@ -77,6 +77,7 @@ class AtiumParser extends Parser {
 		this.addInfix("symbol:.",						10, this.parseMemberAccess);
 
 		this.addPrefix("symbol:(",					11, this.parseGrouping);
+		this.addInfix("identifier:as",			12, this.parseTypeCast);
 		
 		this.addPrefix("number:", 					12, this.literal("number"));
 		this.addPrefix("identifier:", 			12, this.literal("identifier"));
@@ -121,11 +122,22 @@ class AtiumParser extends Parser {
 		const fields: Map<string, Node> = new Map;
 
 		while (tokens.incomplete()) { 
+			const field_start = tokens.previous()!.end;
 			const field_name = this.ensure(tokens, "identifier:");
-			this.ensure(tokens, "symbol::");
-			const value = this.parseExpression(tokens, 0);
 
-			fields.set(field_name, value);
+			if (this.match(tokens, "symbol::")) {
+				tokens.next();
+				const value = this.parseExpression(tokens, 0);
+
+				fields.set(field_name, value);
+			}
+			else {
+				const field_end = tokens.previous()!.end;
+				const value = this.createNode("identifier", field_start, field_end, field_name);
+
+				fields.set(field_name, value);
+			}
+			
 			if (this.match(tokens, "symbol:,")) {
 				tokens.next();
 			}
@@ -180,6 +192,13 @@ class AtiumParser extends Parser {
 		// NOTE previous token is the "symbol:)" read above
 		const end = tokens.previous()!.end;
 		return new Node("group", start, end, sub_expression);
+	}
+
+	parseTypeCast (tokens: Iterator<Token>, left: Node): Node {
+		const start = tokens.previous()!.start;
+		const type = this.parseType(tokens);
+		const end = tokens.previous()!.end;
+		return new Node("as", start, end, { expr: left, type });
 	}
 
 	emitEmptyTuple(start: [number, number], end: [number, number]): Node {

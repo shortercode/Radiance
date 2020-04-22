@@ -639,7 +639,7 @@ function visit_call_expression (ref: WAST.SourceReference, ctx: Context, node: N
 		const param = fn.parameters[i];
 		const expr = visit_expression(arg, ctx, param.type);
 
-		type_assert(expr.value_type.equals(param.type), ref, `Argument of type ${arg.type} is not assignable to parameter of type ${param.type}`);
+		type_assert(expr.value_type.equals(param.type), ref, `Argument of type ${arg.type} is not assignable to parameter of type ${param.type.name}`);
 		
 		args.push(expr);
 	}

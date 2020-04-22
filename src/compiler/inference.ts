@@ -12,6 +12,8 @@ export function guess_expression_type (node: Node, ctx: InferContext): TypeHint 
 		case "variable":
 		return visit_variable_type(node, ctx);
 
+		case "constructor":
+		return guess_constructor_type(node, ctx);
 		case "block":
 		return guess_block_type(node, ctx);
 		case "grouping":
@@ -88,6 +90,27 @@ function visit_variable_type (node: Node, ctx: InferContext): null {
 	*/
 	
 	return null;
+}
+
+function guess_constructor_type (node: Node, ctx: InferContext): TypeHint {
+	const data = node.data as {
+		target: Node,
+		fields: Map<string, Node>
+	};
+
+	if (data.target.type !== "identifier") {
+		return null;
+	}
+	
+	const struct_name = data.target.data as string;
+	const struct_decl = ctx.ctx.get_struct(struct_name);
+
+	if (struct_decl) {
+		return struct_decl.type;
+	}
+	else {
+		return null;
+	}
 }
 
 function guess_block_type (node: Node, ctx: InferContext): TypeHint {

@@ -28,11 +28,11 @@ export func point_y(p: (f32, f32)) -> f32 {
 	p.1
 }
 
-import func set_color (r: f64, g: f64, b: f64)
-import func draw_rect (x: f64, y: f64, width: f64, height: f64)
-
 import func log_i32 (v: i32)
 import func log_f32 (v: f32)
+
+import func set_color (r: f64, g: f64, b: f64)
+import func draw_rect (x: f64, y: f64, width: f64, height: f64)
 
 struct Color {
 	r: f64, g: f64, b: f64
@@ -44,16 +44,16 @@ struct Point {
 
 func create_color (r: f64, g: f64, b: f64) -> Color {
 	Color {
-		r: r,
-		g: g,
-		b: b
+		r,
+		g,
+		b
 	}
 }
 
 func create_point (x: f64, y: f64) -> Point {
 	Point {
-		x: x,
-		y: y
+		x,
+		y
 	}
 }
 
@@ -63,7 +63,11 @@ func draw_point (point: Point, color: Color) {
 }
 
 export func main () {
-	let a = create_point(16, 16)
 	let red = create_color(1, 0, 0)
-	draw_point(a, red)
+	let i = 0
+	while i < 12 {
+		let pt = create_point(i as f64, (i * i) as f64);
+		draw_point(pt, red);
+		i = i + 1
+	}
 }

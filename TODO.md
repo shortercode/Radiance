@@ -11,7 +11,7 @@
 	- [X] Grouping
 	- [X] Functions not checking return type FIXME!
 	- [X] Numerical hinting
-	- [ ] Explicit numerical type conversions
+	- [X] Explicit numerical type conversions
 	- [ ] Explicit return
 	- [ ] Break/contiue for loops
 	- [ ] Other loop types?
@@ -20,17 +20,17 @@
 	- [X] Export memory
 	- [ ] Add reserved names list to variable declaration
 	- [ ] Add global variables
-	- [ ] Read typle values back!
+	- [X] Read tuple values back!
 	- [ ] Tuple destructuring assignment
 - [ ] Hard
 	- [ ] Array types
-	- [ ] Structs
+	- [X] Structs
 	- [X] Tuples
 	- [ ] Escape analysis
 	- [ ] Object scalerisation ( convert non escaping object to numnerous local variables to avoid alloc )
 	- [ ] Enums
 	- [ ] Generics
-	- [ ] Pointers
+	- [X] Pointers
 	- [X] Basic type inference
 	- [ ] Full inference prepass
 	- [X] Temporary memory allocation

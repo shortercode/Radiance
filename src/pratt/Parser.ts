@@ -50,7 +50,7 @@ export default class Parser {
         this.statement.set(label, parselet);
         return this;
     }
-    addPrefix (label: string, precedence: number, fn: (tokens: Iterator<Token>) => Node) {
+    addPrefix (label: string, precedence: number, fn: (tokens: Iterator<Token>, precedence: number) => Node) {
         const parselet = new Parselet(precedence, fn.bind(this));
         this.prefix.set(label, parselet);
         return this;

@@ -2,7 +2,7 @@ import Iterator from "./Iterator"
 import Token from "./Token"
 import Node from "./Node";
 
-type PrefixParserFunction = (tokens: Iterator<Token>) => Node;
+type PrefixParserFunction = (tokens: Iterator<Token>, precedence: number) => Node;
 type InfixParserFunction = (tokens: Iterator<Token>, left: Node, precedence: number) => Node;
 
 export default class Parselet {

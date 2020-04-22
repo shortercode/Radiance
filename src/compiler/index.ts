@@ -9,6 +9,7 @@ import { compiler_error, type_error, compiler_assert, syntax_assert, type_assert
 import { InferContext } from "./InferContext";
 import { guess_expression_type } from "./inference";
 import { TypePattern } from "../parser/index";
+import { StructDeclaration } from "./StructDeclaration";
 
 type TypeHint = AtiumType | null;
 /*
@@ -43,12 +44,19 @@ function visit_module(node: Node, ctx: Context): WAST.WASTModuleNode {
 	module.statements.push(malloc_stmt);
 
 	/*
-	Before processing the bulk of the AST we visit
-	the functions and create them so that they can
-	refer to each other in their bodies
+	Before processing the bulk of the AST we visit the structs and create them so
+	that they can be referred to by the functions.
+
+	Then we visit the functions and declare them so that the body of the code can
+	refer to them.
 	*/
+
 	for (const stmt of statements) {
-		hoist_declaration(stmt, ctx);
+		hoist_struct_declaration(stmt, ctx);
+	}
+
+	for (const stmt of statements) {
+		hoist_function_declaration(stmt, ctx);
 	}
 	
 	for (const stmt of statements) {
@@ -113,7 +121,7 @@ function generate_malloc_function (ref: WAST.SourceReference, ctx: Context) {
 	return fn_wast;
 }
 
-function hoist_declaration(node: Node, ctx: Context) {
+function hoist_function_declaration(node: Node, ctx: Context) {
 	const ref = WAST.SourceReference.from_node(node);
 	switch (node.type) {
 		case "import_function": {
@@ -124,28 +132,12 @@ function hoist_declaration(node: Node, ctx: Context) {
 			};
 
 			const parameters = data.parameters.map((param, index) => {
-				const type = parse_type(param.type);
+				const type = parse_type(param.type, ctx);
 				return new Variable(WAST.SourceReference.from_node(node), type, param.name, index);
 			});
 
-			const return_type = parse_type(data.type);
+			const return_type = parse_type(data.type, ctx);
 			ctx.declare_function(ref, data.name, return_type, parameters);
-			break;
-		}
-		case "struct": {
-			const data = node.data as {
-				name: string, 
-				fields: Map<string, TypePattern>
-			};
-			
-			const fields = new Map;
-
-			for (const [name, pattern] of data.fields) {
-				const type = parse_type(pattern);
-				fields.set(name, type);
-			}
-
-			ctx.declare_struct(ref, data.name, fields);
 			break;
 		}
 		case "export_function":
@@ -158,14 +150,35 @@ function hoist_declaration(node: Node, ctx: Context) {
 			}
 			
 			const parameters = data.parameters.map((param, index) => {
-				const type = parse_type(param.type);
+				const type = parse_type(param.type, ctx);
 				return new Variable(WAST.SourceReference.from_node(node), type, param.name, index);
 			});
 
-			const return_type = parse_type(data.type);
+			const return_type = parse_type(data.type, ctx);
 			ctx.declare_function(ref, data.name, return_type, parameters);
 			break;
 		}
+	}
+}
+
+function hoist_struct_declaration(node: Node, ctx: Context) {
+	const ref = WAST.SourceReference.from_node(node);
+	if (node.type === "struct") {
+		const data = node.data as {
+			name: string, 
+			fields: Map<string, TypePattern>
+		};
+
+		syntax_assert(data.fields.size > 0, ref, `Unable to declare struct ${data.name} as it has no fields. Structs must have at least 1 field`);
+		
+		const fields = new Map;
+
+		for (const [name, pattern] of data.fields) {
+			const type = parse_type(pattern, ctx);
+			fields.set(name, type);
+		}
+
+		ctx.declare_struct(ref, data.name, fields);
 	}
 }
 
@@ -259,8 +272,8 @@ function visit_import_function(node: Node, ctx: Context, ref: WAST.SourceReferen
 	const fn_decl = ctx.get_function(data.name)!; 
 	compiler_assert(fn_decl instanceof FunctionDeclaration, ref, "Cannot locate function declaration");
 
-	const parameters = data.parameters.map(param => parse_type(param.type));
-	const return_type = parse_type(data.type);
+	const parameters = data.parameters.map(param => parse_type(param.type, ctx));
+	const return_type = parse_type(data.type, ctx);
 
 	return new WAST.WASTImportFunctionNode(ref, fn_decl.id, data.name, return_type, parameters);
 }
@@ -323,6 +336,10 @@ function visit_expression(node: Node, ctx: Context, type_hint: TypeHint): WAST.W
 		}
 		case "number": {
 			if (type_hint !== null && type_hint.is_numeric()) {
+				const value = node.data as string;
+				if (type_hint.is_integer() && (!should_create_int(value))) {
+					type_error(source_ref, "Inference believes this value should be an integer but it contains a fractional part");
+				}
 				return new WAST.WASTConstNode(source_ref, type_hint, node.data as string);
 			}
 			else {
@@ -331,6 +348,9 @@ function visit_expression(node: Node, ctx: Context, type_hint: TypeHint): WAST.W
 
 				return new WAST.WASTConstNode(source_ref, type, node.data as string);
 			}
+		}
+		case "constructor": {
+			return visit_constructor_expression(source_ref, ctx, node);
 		}
 		case "tuple": {
 			return visit_tuple_expression(source_ref, ctx, node, type_hint);
@@ -475,6 +495,60 @@ function visit_block_expression (ref: WAST.SourceReference, ctx: Context, node: 
 function visit_group_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: AtiumType | null) {
 	const inner = node.data as Node;
 	return visit_expression(inner, ctx, type_hint);
+}
+
+function visit_constructor_expression (ref: WAST.SourceReference, ctx: Context, node: Node): WAST.WASTExpressionNode {
+	const data = node.data as {
+		target: Node,
+		fields: Map<string, Node>
+	};
+
+	type_assert(data.target.type === "identifier", ref, `${data.target.type} is not a function`);
+	
+	const struct_name = data.target.data as string;
+	const struct_decl = ctx.get_struct(struct_name)!;
+	
+	syntax_assert(struct_decl instanceof StructDeclaration, ref, `Cannot construct undeclared struct ${struct_name}`);
+
+	const struct_type = struct_decl.type;
+
+	const pointer = ctx.environment!.declare_hidden(ref, "struct_pointer", I32_TYPE);
+	const get_pointer_expr = new WAST.WASTGetLocalNode(ref, pointer.id, pointer.name, pointer.type);
+	const result = new WAST.WASTNodeList(ref);
+
+	for (const [name, { offset, type }] of struct_type.types) {
+		const value_node = data.fields.get(name)!;
+		syntax_assert(value_node instanceof Node, ref, `Field ${name} is missing on constructor`);
+		const value = visit_expression(value_node, ctx, type);
+		type_assert(value.value_type.equals(type), ref, `Unable to assign field ${name} to type ${value.value_type.name}`);
+		const init = new WAST.WASTStoreNode(ref, get_pointer_expr, offset, value);
+		result.nodes.push(init);
+	}
+
+	syntax_assert(struct_type.types.size === data.fields.size, ref, `Expected ${struct_type.types.size} fields but has ${data.fields.size}`);
+	
+	result.value_type = struct_type;
+
+	const malloc_fn = ctx.get_function("malloc")!;
+	compiler_assert(malloc_fn instanceof FunctionDeclaration, ref, "Unable to locate malloc function");
+
+	const call_malloc_expr = new WAST.WASTCallNode(ref, malloc_fn.id, "malloc_temp", struct_type, [
+		new WAST.WASTConstNode(ref, I32_TYPE, struct_decl.size.toString())
+	]);
+	const set_pointer_expr = new WAST.WASTSetLocalNode(ref, pointer.id, pointer.name, call_malloc_expr);
+
+	result.nodes.unshift(set_pointer_expr); // add to FRONT
+	result.nodes.push(get_pointer_expr);
+
+	/*
+		set_local "pointer" ( call malloc (i32.const VALUE_OFFSET))
+		for value of tuple {
+			store (get_local "pointer") (VALUE_EXPR) VALUE_OFFSET 
+		}
+		get_local "pointer"
+	*/
+	
+	return result;
 }
 
 function visit_tuple_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: TypeHint) {
@@ -902,6 +976,9 @@ function visit_binary_expresson (ctx: Context, node: Node, type_hint: TypeHint) 
 		const infer_ctx = new InferContext(ctx);
 		const left_type = guess_expression_type(data.left, infer_ctx);
 		const right_type = guess_expression_type(data.right, infer_ctx);
+		// FIXME this needs fixing up; if left is an i32 literal and right is a f64
+		// literal then it will hint both should be ints and loose the fractional
+		// part with no warnings
 		type_hint = left_type || right_type;
 	}
 	
@@ -932,7 +1009,7 @@ function visit_local_statement(ref: WAST.SourceReference, node: Node, ctx: Conte
 			let type;
 
 			if (data.type) {
-				type = parse_type(data.type)!;
+				type = parse_type(data.type, ctx)!;
 			}
 			else {
 				const infer_ctx = new InferContext(ctx);

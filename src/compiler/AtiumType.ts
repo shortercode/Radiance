@@ -1,4 +1,5 @@
 import { TypePattern } from "../parser/index";
+import { Context } from "./Context";
 
 // NOTE this allows us to return pointers to the host environment
 // which is cool but the host environment will likely not be able
@@ -268,14 +269,21 @@ export function create_tuple_type (types: Array<AtiumType>) {
 	return new TupleAtiumType(types, name);
 }
 
-export function parse_type (pattern: TypePattern): AtiumType {
+export function parse_type (pattern: TypePattern, ctx: Context): AtiumType {
 	const name = type_pattern_name(pattern);
 	if (pattern.style === "class") {
-		const type_enum = validate_primative_type(pattern.type);
-		return new PrimativeAtiumType(type_enum, name);
+		const struct_decl = ctx.get_struct(name);
+
+		if (struct_decl) {
+			return struct_decl.type;
+		}
+		else {
+			const type_enum = validate_primative_type(pattern.type);
+			return new PrimativeAtiumType(type_enum, name);
+		}
 	}
 	else {
-		const types: Array<AtiumType> = pattern.types.map(type => parse_type(type));
+		const types: Array<AtiumType> = pattern.types.map(type => parse_type(type, ctx));
 		return new TupleAtiumType(types, name);
 	}
 }

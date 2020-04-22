@@ -1,6 +1,6 @@
 import { FunctionDeclaration } from "./FunctionDeclaration";
 import { Environment } from "./Environment";
-import { AtiumType, StructAtiumType } from "./AtiumType";
+import { AtiumType } from "./AtiumType";
 import { Variable } from "./Variable";
 import { syntax_assert, compiler_assert } from "./error";
 import { SourceReference } from "../WASTNode";

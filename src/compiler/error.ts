@@ -1,7 +1,7 @@
-import { SourceReference } from "../WASTNode";
+import { Ref } from "../WASTNode";
 import Node from "../pratt/Node";
 
-type PositionOrNode = SourceReference | Node;
+type PositionOrNode = Ref | Node;
 
 function get_line_number (reference: PositionOrNode) {
 	const value = reference.start[0];

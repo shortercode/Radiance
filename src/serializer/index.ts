@@ -5,7 +5,7 @@ import { Opcode } from "./OpCode";
 import { FunctionContext } from "./FunctionContext";
 import { write_value_type } from "./write_value_type";
 import { write_expression } from "./expressions/expression";
-import { WASTModuleNode, WASTStatementNode, WASTMemoryNode, WASTExportNode, WASTFunctionNode, SourceReference, WASTTableNode, WASTNodeList, WASTConstNode, WASTGlobalNode, WASTImportFunctionNode } from "../WASTNode";
+import { WASTModuleNode, WASTStatementNode, WASTMemoryNode, WASTExportNode, WASTFunctionNode, Ref, WASTTableNode, WASTNodeList, WASTConstNode, WASTGlobalNode, WASTImportFunctionNode } from "../WASTNode";
 import { ModuleContext } from "./ModuleContext";
 import { compiler_assert } from "../compiler/error";
 
@@ -247,7 +247,7 @@ function write_section_4 (module_ctx: ModuleContext, table_nodes: Array<WASTTabl
 	const section_offset = write_section_header(writer, 4);
 	
 	const count = table_nodes.length;
-	compiler_assert(count < 2, SourceReference.unknown(), `Cannot have more than 1 table node`);	
+	compiler_assert(count < 2, Ref.unknown(), `Cannot have more than 1 table node`);	
 	writer.writeUVint(count);
 	
 	for (let i = 0; i < count; i++) {
@@ -266,7 +266,7 @@ function write_section_5 (module_ctx: ModuleContext, memory_nodes: Array<WASTMem
 	const section_offset = write_section_header(writer, 5);
 	
 	const count = memory_nodes.length;
-	compiler_assert(count < 2, SourceReference.unknown(), `Cannot have more than 1 memory node`);	
+	compiler_assert(count < 2, Ref.unknown(), `Cannot have more than 1 memory node`);	
 	writer.writeUVint(count);
 	
 	for (let i = 0; i < count; i++) {
@@ -343,7 +343,7 @@ function write_section_9 (module_ctx: ModuleContext, table_nodes: Array<WASTTabl
 	const section_offset = write_section_header(writer, 9);
 	
 	const count = table_nodes.length;
-	compiler_assert(count < 2, SourceReference.unknown(), `Cannot have more than 1 table node`);	
+	compiler_assert(count < 2, Ref.unknown(), `Cannot have more than 1 table node`);	
 	writer.writeUVint(count);
 
 	const empty_function_context = new FunctionContext(writer, new Map, new Map, []);
@@ -358,7 +358,7 @@ function write_section_9 (module_ctx: ModuleContext, table_nodes: Array<WASTTabl
 		construct a small nodelist containing a single constant (0) and serialise it
 		*/
 		{
-			const unknown_reference = SourceReference.unknown();
+			const unknown_reference = Ref.unknown();
 			const offset_list_expr = new WASTNodeList(unknown_reference);
 			const offset_const_expr = new WASTConstNode(unknown_reference, I32_TYPE, "0");
 

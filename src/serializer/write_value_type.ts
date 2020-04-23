@@ -1,6 +1,6 @@
 import { Writer } from "./Writer";
 import { AtiumType, PrimativeTypes } from "../compiler/AtiumType";
-import { SourceReference } from "../WASTNode";
+import { Ref } from "../WASTNode";
 import { compiler_error } from "../compiler/error";
 
 export function write_value_type (writer: Writer, type: AtiumType) {
@@ -22,6 +22,6 @@ export function write_value_type (writer: Writer, type: AtiumType) {
 		writer.writeUint8(0x40);
 		break;
 		default:
-		compiler_error(SourceReference.unknown(), `Invalid value for type ${type.name}`);
+		compiler_error(Ref.unknown(), `Invalid value for type ${type.name}`);
 	}
 }

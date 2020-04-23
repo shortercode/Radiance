@@ -11,6 +11,9 @@ import { guess_expression_type } from "./inference";
 import { TypePattern } from "../parser/index";
 import { StructDeclaration } from "./StructDeclaration";
 
+const MEMORY_EXPORT_NAME = "memory";
+const SHOULD_EXPORT_MEMORY = true;
+
 type TypeHint = AtiumType | null;
 /*
 This class is the second stage of the process after the parser. It performs type validation
@@ -32,7 +35,7 @@ function visit_module(node: Node, ctx: Context): WAST.WASTModuleNode {
 	module and recusively visits the source AST
 	*/
 	
-	const ref = WAST.SourceReference.from_node(node);
+	const ref = WAST.Ref.from_node(node);
 	const module = new WAST.WASTModuleNode(ref);
 	const statements = node.data as Array<Node>;
 
@@ -75,16 +78,18 @@ function visit_module(node: Node, ctx: Context): WAST.WASTModuleNode {
 		module.statements.push(global_stmt);
 	}
 
-	const memory_stmt = new WAST.WASTMemoryNode(ref, 0,"main", 1);
-	// TODO ensure that we don't have a naming collision with other exports
-	const export_memory_stmt = new WAST.WASTExportNode(ref, "memory", "memory", memory_stmt.id);
-
-	module.statements.push(memory_stmt, export_memory_stmt);
+	if (SHOULD_EXPORT_MEMORY) {
+		const memory_stmt = new WAST.WASTMemoryNode(ref, 0,"main", 1);
+		ctx.define_export(ref, MEMORY_EXPORT_NAME);
+		const export_memory_stmt = new WAST.WASTExportNode(ref, "memory", MEMORY_EXPORT_NAME, memory_stmt.id);
+		module.statements.push(memory_stmt, export_memory_stmt);
+	}
+	
 	
 	return module;
 }
 
-function generate_malloc_function (ref: WAST.SourceReference, ctx: Context) {
+function generate_malloc_function (ref: WAST.Ref, ctx: Context) {
 	/*
 	NOTE this function is rather intense, this is what it should be creating
 		let heap_top: i32 = 0
@@ -122,7 +127,7 @@ function generate_malloc_function (ref: WAST.SourceReference, ctx: Context) {
 }
 
 function hoist_function_declaration(node: Node, ctx: Context) {
-	const ref = WAST.SourceReference.from_node(node);
+	const ref = WAST.Ref.from_node(node);
 	switch (node.type) {
 		case "import_function": {
 			const data = node.data as {
@@ -133,7 +138,7 @@ function hoist_function_declaration(node: Node, ctx: Context) {
 
 			const parameters = data.parameters.map((param, index) => {
 				const type = parse_type(param.type, ctx);
-				return new Variable(WAST.SourceReference.from_node(node), type, param.name, index);
+				return new Variable(WAST.Ref.from_node(node), type, param.name, index);
 			});
 
 			const return_type = parse_type(data.type, ctx);
@@ -151,7 +156,7 @@ function hoist_function_declaration(node: Node, ctx: Context) {
 			
 			const parameters = data.parameters.map((param, index) => {
 				const type = parse_type(param.type, ctx);
-				return new Variable(WAST.SourceReference.from_node(node), type, param.name, index);
+				return new Variable(WAST.Ref.from_node(node), type, param.name, index);
 			});
 
 			const return_type = parse_type(data.type, ctx);
@@ -162,7 +167,7 @@ function hoist_function_declaration(node: Node, ctx: Context) {
 }
 
 function hoist_struct_declaration(node: Node, ctx: Context) {
-	const ref = WAST.SourceReference.from_node(node);
+	const ref = WAST.Ref.from_node(node);
 	if (node.type === "struct") {
 		const data = node.data as {
 			name: string, 
@@ -183,7 +188,7 @@ function hoist_struct_declaration(node: Node, ctx: Context) {
 }
 
 function visit_global_statement(node: Node, ctx: Context): Array<WAST.WASTStatementNode> {
-	const source_ref = WAST.SourceReference.from_node(node);
+	const source_ref = WAST.Ref.from_node(node);
 	switch (node.type) {
 		case "function": {
 			const fn_wast = visit_function(node, ctx, source_ref);
@@ -220,7 +225,7 @@ function visit_global_statement(node: Node, ctx: Context): Array<WAST.WASTStatem
 	}
 }
 
-function visit_function(node: Node, ctx: Context, ref: WAST.SourceReference) {
+function visit_function(node: Node, ctx: Context, ref: WAST.Ref) {
 	/*
 	NOTE prior to this "visit_declaration" has validated the
 	.type and .parameter.*.type are AtiumType so we can do a
@@ -246,13 +251,13 @@ function visit_function(node: Node, ctx: Context, ref: WAST.SourceReference) {
 	const rest = data.body.slice(0, -1);
 
 	for (const node of rest) {
-		const sub_ref = WAST.SourceReference.from_node(node);
+		const sub_ref = WAST.Ref.from_node(node);
 		const expr = visit_local_statement(sub_ref, node, ctx, null);
 		fn_wast.body.nodes.push(expr);
 	}
 
 	if (last) {
-		const sub_ref = WAST.SourceReference.from_node(last);
+		const sub_ref = WAST.Ref.from_node(last);
 		const expr = visit_local_statement(sub_ref, last, ctx, fn_decl.type);
 		fn_wast.body.nodes.push(expr);
 	}
@@ -262,7 +267,7 @@ function visit_function(node: Node, ctx: Context, ref: WAST.SourceReference) {
 	return fn_wast;
 }
 
-function visit_import_function(node: Node, ctx: Context, ref: WAST.SourceReference) {
+function visit_import_function(node: Node, ctx: Context, ref: WAST.Ref) {
 	const data = node.data as {
 		name: string,
 		parameters: Array<{ name: string, type: TypePattern }>,
@@ -278,25 +283,27 @@ function visit_import_function(node: Node, ctx: Context, ref: WAST.SourceReferen
 	return new WAST.WASTImportFunctionNode(ref, fn_decl.id, data.name, return_type, parameters);
 }
 
-function export_function(source_ref: WAST.SourceReference, fn_name: string, ctx: Context) {
+function export_function(ref: WAST.Ref, fn_name: string, ctx: Context) {
 	const fn = ctx.user_globals.get(fn_name);
 	
-	syntax_assert(typeof fn !== "undefined", source_ref, `Cannot export undeclared function ${fn_name}`);
+	syntax_assert(typeof fn !== "undefined", ref, `Cannot export undeclared function ${fn_name}`);
 	
 	if (fn instanceof FunctionDeclaration) {
 		for (const { name, type } of fn.parameters) {
-			syntax_assert(type.is_exportable(), source_ref, `Cannot export function ${fn_name} because the parameter ${name} is not an exportable type`);
+			syntax_assert(type.is_exportable(), ref, `Cannot export function ${fn_name} because the parameter ${name} is not an exportable type`);
 		}
-		syntax_assert(fn.type.is_exportable(), source_ref, `Cannot export function ${fn_name} because the return value is not an exportable type`);
+		syntax_assert(fn.type.is_exportable(), ref, `Cannot export function ${fn_name} because the return value is not an exportable type`);
 	}
 	else {
-		syntax_error(source_ref, `Cannot export ${fn_name} as it's not a function`);
+		syntax_error(ref, `Cannot export ${fn_name} as it's not a function`);
 	}
 
-	return new WAST.WASTExportNode(source_ref, "function", fn_name, fn.id);
+	ctx.define_export(ref, fn_name);
+
+	return new WAST.WASTExportNode(ref, "function", fn_name, fn.id);
 }
 
-function wrap_exported_function(ref: WAST.SourceReference, name: string, ctx: Context) {
+function wrap_exported_function(ref: WAST.Ref, name: string, ctx: Context) {
 	const fn = ctx.get_function(name)!;
 	
 	syntax_assert(typeof fn !== "undefined", ref, `Cannot export undeclared function ${name}`);
@@ -326,7 +333,7 @@ function wrap_exported_function(ref: WAST.SourceReference, name: string, ctx: Co
 }
 
 function visit_expression(node: Node, ctx: Context, type_hint: TypeHint): WAST.WASTExpressionNode {
-	const source_ref = WAST.SourceReference.from_node(node);
+	const source_ref = WAST.Ref.from_node(node);
 	switch (node.type) {
 		case "block": {
 			return visit_block_expression(source_ref, ctx, node, type_hint);
@@ -463,7 +470,7 @@ function should_create_int (value: string): boolean {
 	return !value.includes(".");
 }
 
-function visit_block_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: TypeHint) {
+function visit_block_expression (ref: WAST.Ref, ctx: Context, node: Node, type_hint: TypeHint) {
 	const node_list = new WAST.WASTNodeList(ref);
 	const statements = node.data as Array<Node>;
 	
@@ -475,13 +482,13 @@ function visit_block_expression (ref: WAST.SourceReference, ctx: Context, node: 
 	const rest = statements.slice(0, -1);
 	
 	for (const stmt of rest) {
-		const statement_ref = WAST.SourceReference.from_node(stmt);
+		const statement_ref = WAST.Ref.from_node(stmt);
 		const result = visit_local_statement(statement_ref, stmt, ctx, null);
 		node_list.nodes.push(result);
 	}
 
 	if (last) {
-		const statement_ref = WAST.SourceReference.from_node(last);
+		const statement_ref = WAST.Ref.from_node(last);
 		const result = visit_local_statement(statement_ref, last, ctx, type_hint);
 		node_list.nodes.push(result);
 		last_node = result;
@@ -496,12 +503,12 @@ function visit_block_expression (ref: WAST.SourceReference, ctx: Context, node: 
 	return node_list;
 }
 
-function visit_group_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: AtiumType | null) {
+function visit_group_expression (ref: WAST.Ref, ctx: Context, node: Node, type_hint: AtiumType | null) {
 	const inner = node.data as Node;
 	return visit_expression(inner, ctx, type_hint);
 }
 
-function visit_constructor_expression (ref: WAST.SourceReference, ctx: Context, node: Node): WAST.WASTExpressionNode {
+function visit_constructor_expression (ref: WAST.Ref, ctx: Context, node: Node): WAST.WASTExpressionNode {
 	const data = node.data as {
 		target: Node,
 		fields: Map<string, Node>
@@ -555,7 +562,7 @@ function visit_constructor_expression (ref: WAST.SourceReference, ctx: Context, 
 	return result;
 }
 
-function visit_tuple_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: TypeHint) {
+function visit_tuple_expression (ref: WAST.Ref, ctx: Context, node: Node, type_hint: TypeHint) {
 	const data = node.data as {
 		values: Array<Node>
 	};
@@ -618,7 +625,7 @@ function visit_tuple_expression (ref: WAST.SourceReference, ctx: Context, node: 
 	return result;
 }
 
-function visit_call_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
+function visit_call_expression (ref: WAST.Ref, ctx: Context, node: Node) {
 	const value = node.data as {
 		callee: Node,
 		arguments: Array<Node>
@@ -651,7 +658,7 @@ function visit_call_expression (ref: WAST.SourceReference, ctx: Context, node: N
 	return new WAST.WASTCallNode(ref, fn.id, function_name, fn.type, args)
 }
 
-function visit_not_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
+function visit_not_expression (ref: WAST.Ref, ctx: Context, node: Node) {
 	const value = node.data as {
 		subnode: Node
 	};
@@ -660,7 +667,7 @@ function visit_not_expression (ref: WAST.SourceReference, ctx: Context, node: No
 	return invert_boolean_expression(ref, inner);
 }
 
-function visit_if_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: TypeHint) {
+function visit_if_expression (ref: WAST.Ref, ctx: Context, node: Node, type_hint: TypeHint) {
 	const value = node.data as {
 		condition: Node
 		thenBranch: Node
@@ -686,7 +693,7 @@ function visit_if_expression (ref: WAST.SourceReference, ctx: Context, node: Nod
 	}
 }
 
-function visit_while_loop_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: TypeHint) {
+function visit_while_loop_expression (ref: WAST.Ref, ctx: Context, node: Node, type_hint: TypeHint) {
 	const value = node.data as {
 		condition: Node
 		block: Node
@@ -766,7 +773,7 @@ function visit_while_loop_expression (ref: WAST.SourceReference, ctx: Context, n
 	return node_list;
 }
 
-function invert_boolean_expression (ref: WAST.SourceReference, expr: WAST.WASTExpressionNode) {
+function invert_boolean_expression (ref: WAST.Ref, expr: WAST.WASTExpressionNode) {
 	// NOTE as an optmisation if it's
 	// already inverted (e.g. while !false {} ) then we just remove that
 	// inversion
@@ -781,7 +788,7 @@ function invert_boolean_expression (ref: WAST.SourceReference, expr: WAST.WASTEx
 	}
 }
 
-function visit_boolean_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
+function visit_boolean_expression (ref: WAST.Ref, ctx: Context, node: Node) {
 	const value = node.data as string;
 	const type = BOOL_TYPE
 	if (value === "false") {
@@ -795,7 +802,7 @@ function visit_boolean_expression (ref: WAST.SourceReference, ctx: Context, node
 	}
 }
 
-function visit_identifier_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
+function visit_identifier_expression (ref: WAST.Ref, ctx: Context, node: Node) {
 	const name = node.data as string;
 	const variable = ctx.get_variable(name)!;
 
@@ -804,7 +811,7 @@ function visit_identifier_expression (ref: WAST.SourceReference, ctx: Context, n
 	return new WAST.WASTGetLocalNode(ref, variable.id, name, variable.type);
 }
 
-function visit_member_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
+function visit_member_expression (ref: WAST.Ref, ctx: Context, node: Node) {
 	const value = node.data as {
 		target: Node,
 		member: string
@@ -826,7 +833,7 @@ function visit_member_expression (ref: WAST.SourceReference, ctx: Context, node:
 	type_error(ref, `Target does not have any properties`);
 }
 
-function visit_tuple_member_expression (ref: WAST.SourceReference, ctx: Context, target: WAST.WASTExpressionNode, target_type: TupleAtiumType, member: string) {
+function visit_tuple_member_expression (ref: WAST.Ref, ctx: Context, target: WAST.WASTExpressionNode, target_type: TupleAtiumType, member: string) {
 	const index = parseInt(member);
 
 	compiler_assert(isFinite(index), ref, `Expected index to be a finite number`);
@@ -840,7 +847,7 @@ function visit_tuple_member_expression (ref: WAST.SourceReference, ctx: Context,
 	return new WAST.WASTLoadNode(ref, type, target, offset);
 }
 
-function visit_struct_member_expression (ref: WAST.SourceReference, ctx: Context, target: WAST.WASTExpressionNode, target_type: StructAtiumType, member: string) {
+function visit_struct_member_expression (ref: WAST.Ref, ctx: Context, target: WAST.WASTExpressionNode, target_type: StructAtiumType, member: string) {
 	const member_type = target_type.types.get(member)!;
 
 	type_assert(member_type !== null, ref, `Cannot read member ${member} of tuple, as it doesn't contain a field of that name.`);
@@ -850,7 +857,7 @@ function visit_struct_member_expression (ref: WAST.SourceReference, ctx: Context
 	return new WAST.WASTLoadNode(ref, type, target, offset);
 }
 
-function visit_as_expression (ref: WAST.SourceReference, ctx: Context, node: Node ): WAST.WASTExpressionNode {
+function visit_as_expression (ref: WAST.Ref, ctx: Context, node: Node ): WAST.WASTExpressionNode {
 	const value = node.data as {
 		expr: Node, 
 		type: TypePattern
@@ -881,7 +888,7 @@ function visit_as_expression (ref: WAST.SourceReference, ctx: Context, node: Nod
 	}
 }
 
-function visit_assignment_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
+function visit_assignment_expression (ref: WAST.Ref, ctx: Context, node: Node) {
 	const value = node.data as {
 		left: Node
 		right: Node
@@ -903,7 +910,7 @@ function visit_assignment_expression (ref: WAST.SourceReference, ctx: Context, n
 	return new WAST.WASTTeeLocalNode(ref, variable.id, variable.name, new_value, variable.type);
 }
 
-function visit_logical_and_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
+function visit_logical_and_expression (ref: WAST.Ref, ctx: Context, node: Node) {
 	const {left, right } = visit_boolean_binary_expression(ctx, node);
 
 	/*
@@ -926,7 +933,7 @@ function visit_logical_and_expression (ref: WAST.SourceReference, ctx: Context, 
 	return new WAST.WASTConditionalNode(ref, boolean_type, left, then_branch, else_branch);
 }
 
-function visit_logical_or_expression (ref: WAST.SourceReference, ctx: Context, node: Node) {
+function visit_logical_or_expression (ref: WAST.Ref, ctx: Context, node: Node) {
 	const {left, right } = visit_boolean_binary_expression(ctx, node);
 
 	/*
@@ -949,7 +956,7 @@ function visit_logical_or_expression (ref: WAST.SourceReference, ctx: Context, n
 	return new WAST.WASTConditionalNode(ref, boolean_type, left, then_branch, else_branch);
 }
 
-function visit_bitwise_or_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: TypeHint) {
+function visit_bitwise_or_expression (ref: WAST.Ref, ctx: Context, node: Node, type_hint: TypeHint) {
 	const checked_type_hint = type_hint?.is_integer() || type_hint?.is_boolean() ? type_hint : null;
 	const { left, right, type } = visit_binary_expresson(ctx, node, checked_type_hint);
 	const operand = node.type;
@@ -959,7 +966,7 @@ function visit_bitwise_or_expression (ref: WAST.SourceReference, ctx: Context, n
 	return new WAST.WASTBitwiseOrNode(ref, type, left, right);
 }
 
-function visit_bitwise_and_expression (ref: WAST.SourceReference, ctx: Context, node: Node, type_hint: TypeHint) {
+function visit_bitwise_and_expression (ref: WAST.Ref, ctx: Context, node: Node, type_hint: TypeHint) {
 	const checked_type_hint = type_hint?.is_integer() || type_hint?.is_boolean() ? type_hint : null;
 	const { left, right, type } = visit_binary_expresson(ctx, node, checked_type_hint);
 	const operand = node.type;
@@ -1030,7 +1037,7 @@ function visit_binary_expresson (ctx: Context, node: Node, type_hint: TypeHint) 
 	};
 }
 
-function visit_local_statement(ref: WAST.SourceReference, node: Node, ctx: Context, type_hint: TypeHint): WAST.WASTExpressionNode {
+function visit_local_statement(ref: WAST.Ref, node: Node, ctx: Context, type_hint: TypeHint): WAST.WASTExpressionNode {
 	switch (node.type) {
 		case "expression":
 		return visit_expression(node.data as Node, ctx, type_hint);
@@ -1086,7 +1093,7 @@ function wrap_boolean_cast(expr: WAST.WASTExpressionNode): WAST.WASTExpressionNo
 	type_error(expr.source, `unable to cast expression to boolean`);
 }
 
-function default_initialiser(ref: WAST.SourceReference, value_type: AtiumType): WAST.WASTExpressionNode {
+function default_initialiser(ref: WAST.Ref, value_type: AtiumType): WAST.WASTExpressionNode {
 	if (value_type.is_boolean() || value_type.is_numeric()) {
 		return new WAST.WASTConstNode(ref, value_type, "0");
 	}
@@ -1094,7 +1101,7 @@ function default_initialiser(ref: WAST.SourceReference, value_type: AtiumType): 
 	compiler_error(ref, `Unable to zero initialise`);
 }
 
-function initialise_function_environment (ref: WAST.SourceReference, ctx: Context, fn_decl: FunctionDeclaration) {
+function initialise_function_environment (ref: WAST.Ref, ctx: Context, fn_decl: FunctionDeclaration) {
 	const fn_wast = new WAST.WASTFunctionNode(ref, fn_decl.id, fn_decl.name, fn_decl.type);
 	
 	ctx.environment = new Environment(fn_decl.parameters);

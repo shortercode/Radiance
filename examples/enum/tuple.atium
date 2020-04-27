@@ -1,0 +1,4 @@
+enum Barcode {
+	case upc (i32, i32, i32, i32)
+	case qrcode (string)
+}

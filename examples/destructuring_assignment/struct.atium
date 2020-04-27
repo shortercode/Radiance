@@ -1,0 +1,5 @@
+struct Example { a: i32, b: i32 }
+
+func main () {
+	let { a, b } = Example { a: 12, b: 14 }
+}

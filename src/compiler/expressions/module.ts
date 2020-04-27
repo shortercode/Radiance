@@ -1,7 +1,7 @@
 import { WASTStatementNode } from "../../WASTNode";
 import { AST, Compiler } from "../core";
 import { hoist_struct_declaration } from "./struct";
-import { hoist_function, hoist_function_declaration } from "./function";
+import { hoist_function_declaration } from "./function";
 
 function read_node_data (node: AST) {
 	return node.data as Array<AST>;

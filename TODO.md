@@ -22,6 +22,7 @@
 	- [ ] Add global variables
 	- [X] Read tuple values back!
 	- [ ] Tuple destructuring assignment
+	- [ ] Add type casting inference
 - [ ] Hard
 	- [ ] Array types
 	- [X] Structs

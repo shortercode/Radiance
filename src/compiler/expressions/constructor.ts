@@ -29,7 +29,7 @@ export function visit_constructor_expression (compiler: Compiler, node: AST, typ
 
 	for (const [name, { offset, type }] of struct_type.types) {
 		const value_node = data.fields.get(name)!;
-		syntax_assert(value_node instanceof Node, node, `Field ${name} is missing on constructor`);
+		syntax_assert(is_defined(value_node), node, `Field ${name} is missing on constructor`);
 		const value = compiler.visit_expression(value_node, type);
 		type_assert(value.value_type.equals(type), node, `Unable to assign field ${name} to type ${value.value_type.name}`);
 		const init = new WASTStoreNode(node, get_pointer_expr, offset, value);

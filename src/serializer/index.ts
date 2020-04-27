@@ -352,22 +352,8 @@ function write_section_9 (module_ctx: ModuleContext, table_nodes: Array<WASTTabl
 		const node = table_nodes[i];
 		writer.writeUVint(i);
 
-		/*
-		We have to write an expression here to designate the offset of this Table element segment,
-		but we are using them very simply with only 1 segment that start at 0. Hence we have to
-		construct a small nodelist containing a single constant (0) and serialise it
-		*/
-		{
-			const unknown_reference = Ref.unknown();
-			const offset_list_expr = new WASTNodeList(unknown_reference);
-			const offset_const_expr = new WASTConstNode(unknown_reference, I32_TYPE, "0");
-
-			offset_list_expr.nodes.push(offset_const_expr);
-			offset_list_expr.value_type = I32_TYPE;
-
-			write_expression(empty_function_context, offset_list_expr);
-			writer.writeUint8(Opcode.end);
-		}
+		write_expression(empty_function_context, node.offset_expr);
+		writer.writeUint8(Opcode.end);
 
 		const elements = node.elements;
 		writer.writeUVint(elements.length);

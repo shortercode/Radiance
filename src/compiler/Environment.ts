@@ -1,6 +1,6 @@
 import { AtiumType } from "./AtiumType";
 import { Variable } from "./Variable";
-import { Ref } from "../WASTNode";
+import { AST } from "./core";
 
 type Frame = Map<string, Variable>
 
@@ -29,21 +29,21 @@ export class Environment {
 		this.frame_stack.shift();
 	}
 	
-	declare (ref: Ref, name: string, type: AtiumType): Variable {
+	declare (node: AST, name: string, type: AtiumType): Variable {
 		if (this.current_frame.has(name)) {
 			throw new Error(`Variable ${name} already exists in the current scope`);
 		}
-		const variable = this.create_variable(ref, name, type);
+		const variable = this.create_variable(node, name, type);
 		this.current_frame.set(name, variable);
 		return variable;
 	}
 	
-	declare_hidden (ref: Ref, name: string, type: AtiumType): Variable {
-		return this.create_variable(ref, name, type);
+	declare_hidden (node: AST, name: string, type: AtiumType): Variable {
+		return this.create_variable(node, name, type);
 	}
 	
-	private create_variable (ref: Ref, name: string, type: AtiumType): Variable {
-		const variable = new Variable(ref, type, name, this.id_counter++);
+	private create_variable (node: AST, name: string, type: AtiumType): Variable {
+		const variable = new Variable(node, type, name, this.id_counter++);
 		this.variables.push(variable);
 		return variable;
 	} 

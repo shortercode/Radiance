@@ -1,6 +1,7 @@
 import { Variable } from "./compiler/Variable";
 import { AtiumType, VOID_TYPE, BOOL_TYPE } from "./compiler/AtiumType";
 import ParserNode from "./pratt/Node";
+import { AST } from "./compiler/core";
 
 export interface WASTNode {
 	type: WASTNodeType
@@ -126,8 +127,8 @@ export class WASTModuleNode implements WASTNode {
 	
 	statements: Array<WASTStatementNode> = []
 	
-	constructor (source: Ref) {
-		this.source = source;
+	constructor (node: AST) {
+		this.source = Ref.from_node(node);
 	}
 }
 
@@ -141,8 +142,8 @@ export class WASTExportNode implements WASTNode {
 	target: number
 	target_type: ExportType
 	
-	constructor (source: Ref, type: ExportType, name: string, target: number) {
-		this.source = source;
+	constructor (node: AST, type: ExportType, name: string, target: number) {
+		this.source = Ref.from_node(node);
 		this.name = name;
 		this.target = target;
 		this.target_type = type;
@@ -158,8 +159,8 @@ export class WASTImportFunctionNode implements WASTNode {
 	parameters: Array<AtiumType>
 	result: AtiumType
 
-	constructor (source: Ref, id: number, name: string, result: AtiumType, parameters: Array<AtiumType>) {
-		this.source = source;
+	constructor (node: AST, id: number, name: string, result: AtiumType, parameters: Array<AtiumType>) {
+		this.source = Ref.from_node(node);
 		this.id = id;
 		this.name = name;
 		this.result = result;
@@ -172,10 +173,12 @@ export class WASTTableNode implements WASTNode {
 	source: Ref
 
 	elements: Array<WASTFunctionNode>
+	offset_expr: WASTExpressionNode 
 
-	constructor (source: Ref, elements: Array<WASTFunctionNode>) {
-		this.source = source;
+	constructor (node: AST, offset: WASTExpressionNode, elements: Array<WASTFunctionNode>) {
+		this.source = Ref.from_node(node);
 		this.elements = elements;
+		this.offset_expr = offset;
 	}
 }
 
@@ -188,8 +191,8 @@ export class WASTGlobalNode implements WASTNode {
 	id: number
 	initialiser: WASTNodeList
 
-	constructor (source: Ref, id: number, type: AtiumType, init: WASTNodeList) {
-		this.source = source;
+	constructor (node: AST, id: number, type: AtiumType, init: WASTNodeList) {
+		this.source = Ref.from_node(node);
 		this.id = id;
 		this.value_type = type;
 		this.initialiser = init;
@@ -207,12 +210,12 @@ export class WASTFunctionNode implements WASTNode {
 	body: WASTNodeList
 	locals: Array<Variable> = []
 	
-	constructor (source: Ref, id: number, name: string, result: AtiumType) {
-		this.source = source;
+	constructor (node: AST, id: number, name: string, result: AtiumType) {
+		this.body = new WASTNodeList(node);
+		this.source = Ref.from_node(node);
 		this.name = name;
 		this.id = id;
 		this.result = result;
-		this.body = new WASTNodeList(source);
 	}
 }
 
@@ -224,9 +227,9 @@ export class WASTMemoryNode implements WASTNode {
 	size: number
 	id: number
 	
-	constructor (source: Ref, id: number, name: string, size: number) {
+	constructor (node: AST, id: number, name: string, size: number) {
 		this.id = id;
-		this.source = source;
+		this.source = Ref.from_node(node);
 		this.name = name;
 		this.size = size;
 	}
@@ -238,9 +241,9 @@ export class WASTBlockNode implements WASTNode {
 	
 	body: WASTNodeList
 
-	constructor (source: Ref) {
-		this.source = source;
-		this.body = new WASTNodeList(source);
+	constructor (node: AST) {
+		this.source = Ref.from_node(node);
+		this.body = new WASTNodeList(node);
 	}
 	
 	get value_type () {
@@ -268,8 +271,8 @@ export class WASTEqualsNode implements WASTNode {
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
-	constructor (source: Ref, left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.left = left;
 		this.right = right;
 	}
@@ -283,8 +286,8 @@ export class WASTNotEqualsNode implements WASTNode {
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
-	constructor (source: Ref, left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.left = left;
 		this.right = right;
 	}
@@ -298,8 +301,8 @@ export class WASTLessThanNode implements WASTNode {
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
-	constructor (source: Ref, left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.left = left;
 		this.right = right;
 	}
@@ -313,8 +316,8 @@ export class WASTGreaterThanNode implements WASTNode {
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
-	constructor (source: Ref, left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.left = left;
 		this.right = right;
 	}
@@ -328,8 +331,8 @@ export class WASTLessThanEqualsNode implements WASTNode {
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
-	constructor (source: Ref, left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.left = left;
 		this.right = right;
 	}
@@ -343,8 +346,8 @@ export class WASTGreaterThanEqualsNode implements WASTNode {
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
-	constructor (source: Ref, left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.left = left;
 		this.right = right;
 	}
@@ -357,12 +360,12 @@ export class WASTConstNode implements WASTNode {
 	value_type: AtiumType
 	value: string
 	
-	constructor (source: Ref, type: AtiumType, value: string) {
+	constructor (node: AST, type: AtiumType, value: string) {
 		if (isNaN(parseFloat(value))) {
 			throw new Error(`Constant must be a valid numeric value`);
 		}
 		
-		this.source = source;
+		this.source = Ref.from_node(node);
 		this.value_type = type;
 		this.value = value;
 	}
@@ -376,8 +379,8 @@ export class WASTAddNode implements WASTNode {
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
-	constructor (source: Ref, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.value_type = type;
 		this.left = left;
 		this.right = right;
@@ -392,8 +395,8 @@ export class WASTSubNode implements WASTNode {
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
-	constructor (source: Ref, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.value_type = type;
 		this.left = left;
 		this.right = right;
@@ -408,8 +411,8 @@ export class WASTMultiplyNode implements WASTNode {
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
-	constructor (source: Ref, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.value_type = type;
 		this.left = left;
 		this.right = right;
@@ -424,8 +427,8 @@ export class WASTDivideNode implements WASTNode {
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
-	constructor (source: Ref, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.value_type = type;
 		this.left = left;
 		this.right = right;
@@ -440,8 +443,8 @@ export class WASTModuloNode implements WASTNode {
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
-	constructor (source: Ref, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.value_type = type;
 		this.left = left;
 		this.right = right;
@@ -457,8 +460,8 @@ export class WASTGetLocalNode implements WASTNode {
 	id: number
 	name: string
 	
-	constructor (source: Ref, id: number, name: string, type: AtiumType) {
-		this.source = source;
+	constructor (node: AST, id: number, name: string, type: AtiumType) {
+		this.source = Ref.from_node(node);
 		this.id = id;
 		this.name = name;
 		this.value_type = type;
@@ -475,8 +478,8 @@ export class WASTTeeLocalNode implements WASTNode {
 	name: string
 	value: WASTExpressionNode
 	
-	constructor (source: Ref, id: number, name: string, value: WASTExpressionNode, type: AtiumType) {
-		this.source = source;
+	constructor (node: AST, id: number, name: string, value: WASTExpressionNode, type: AtiumType) {
+		this.source = Ref.from_node(node);
 		this.id = id;	
 		this.name = name;
 		this.value = value;
@@ -494,8 +497,8 @@ export class WASTSetLocalNode implements WASTNode {
 	name: string
 	value: WASTExpressionNode
 	
-	constructor (source: Ref, id: number, name: string, value: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, id: number, name: string, value: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.id = id;	
 		this.name = name;
 		this.value = value;
@@ -511,8 +514,8 @@ export class WASTGetGlobalNode implements WASTNode {
 	id: number
 	name: string
 	
-	constructor (source: Ref, id: number, name: string, type: AtiumType) {
-		this.source = source;
+	constructor (node: AST, id: number, name: string, type: AtiumType) {
+		this.source = Ref.from_node(node);
 		this.id = id;
 		this.name = name;
 		this.value_type = type;
@@ -529,8 +532,8 @@ export class WASTSetGlobalNode implements WASTNode {
 	name: string
 	value: WASTExpressionNode
 	
-	constructor (source: Ref, id: number, name: string, value: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, id: number, name: string, value: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.id = id;	
 		this.name = name;
 		this.value = value;
@@ -545,8 +548,8 @@ export class WASTLoadNode implements WASTNode {
 	location: WASTExpressionNode
 	offset: number
 	
-	constructor (source: Ref, type: AtiumType, location: WASTExpressionNode, offset: number) {
-		this.source = source;
+	constructor (node: AST, type: AtiumType, location: WASTExpressionNode, offset: number) {
+		this.source = Ref.from_node(node);
 		this.value_type = type;
 		this.location = location;
 		this.offset = offset;
@@ -562,8 +565,8 @@ export class WASTStoreNode implements WASTNode {
 	value: WASTExpressionNode
 	offset: number
 	
-	constructor (source: Ref, location: WASTExpressionNode, offset: number, value: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, location: WASTExpressionNode, offset: number, value: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.location = location;
 		this.value = value;
 		this.offset = offset;
@@ -579,8 +582,8 @@ export class WASTCallNode implements WASTNode {
 	id: number
 	arguments: Array<WASTExpressionNode>
 	
-	constructor (source: Ref, id: number, name: string, type: AtiumType, args: Array<WASTExpressionNode>) {
-		this.source = source;
+	constructor (node: AST, id: number, name: string, type: AtiumType, args: Array<WASTExpressionNode>) {
+		this.source = Ref.from_node(node);
 		this.id = id;
 		this.name = name;
 		this.value_type = type;
@@ -597,8 +600,8 @@ export class WASTConditionalNode implements WASTNode {
 	then_branch: WASTNodeList
 	else_branch: WASTNodeList
 	
-	constructor(source: Ref, type: AtiumType, condition: WASTExpressionNode, then_branch: WASTNodeList, else_branch: WASTNodeList) {
-		this.source = source;
+	constructor(node: AST, type: AtiumType, condition: WASTExpressionNode, then_branch: WASTNodeList, else_branch: WASTNodeList) {
+		this.source = Ref.from_node(node);
 		this.value_type = type;
 		this.condition = condition;
 		this.then_branch = then_branch;
@@ -613,8 +616,8 @@ export class WASTLoopNode implements WASTNode {
 	value_type: AtiumType = VOID_TYPE
 	body: Array<WASTExpressionNode> = []
 
-	constructor (source: Ref) {
-		this.source = source;
+	constructor (node: AST) {
+		this.source = Ref.from_node(node);
 	}
 }
 
@@ -625,8 +628,8 @@ export class WASTBranchNode implements WASTNode {
 	value_type: AtiumType = VOID_TYPE
 	index: number
 	
-	constructor (source: Ref, index: number) {
-		this.source = source;
+	constructor (node: AST, index: number) {
+		this.source = Ref.from_node(node);
 		this.index = index;
 	}
 }
@@ -639,8 +642,8 @@ export class WASTConditionalBranchNode implements WASTNode {
 	index: number = 0
 	condition: WASTExpressionNode
 	
-	constructor (source: Ref, condition: WASTExpressionNode, index: number) {
-		this.source = source;
+	constructor (node: AST, condition: WASTExpressionNode, index: number) {
+		this.source = Ref.from_node(node);
 		this.condition = condition;
 		this.index = index;
 	}
@@ -653,8 +656,8 @@ export class WASTNotNode implements WASTNode {
 	readonly value_type: AtiumType = BOOL_TYPE
 	inner: WASTExpressionNode
 	
-	constructor (source: Ref, inner: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, inner: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 
 		// TODO verify that the inner returns a boolean
 		this.inner = inner;
@@ -668,8 +671,8 @@ export class WASTNodeList implements WASTNode {
 	value_type: AtiumType = VOID_TYPE;
 	nodes: Array<WASTExpressionNode> = []
 
-	constructor (source: Ref) {
-		this.source = source;
+	constructor (node: AST) {
+		this.source = Ref.from_node(node);
 	}
 	
 	get does_return_value () {
@@ -690,8 +693,8 @@ export class WASTLeftShiftNode implements WASTNode {
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
-	constructor (source: Ref, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.value_type = type;
 		this.left = left;
 		this.right = right;
@@ -707,8 +710,8 @@ export class WASTRightShiftNode implements WASTNode {
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
-	constructor (source: Ref, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.value_type = type;
 		this.left = left;
 		this.right = right;
@@ -724,8 +727,8 @@ export class WASTBitwiseOrNode implements WASTNode {
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
-	constructor (source: Ref, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.value_type = type;
 		this.left = left;
 		this.right = right;
@@ -741,8 +744,8 @@ export class WASTBitwiseAndNode implements WASTNode {
 	left: WASTExpressionNode
 	right: WASTExpressionNode
 	
-	constructor (source: Ref, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, type: AtiumType, left: WASTExpressionNode, right: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.value_type = type;
 		this.left = left;
 		this.right = right;
@@ -757,8 +760,8 @@ export class WASTConvertToFloat implements WASTNode {
 
 	input: WASTExpressionNode
 
-	constructor (source: Ref, type: AtiumType, input: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, type: AtiumType, input: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.value_type = type;
 		this.input = input;
 	}
@@ -772,8 +775,8 @@ export class WASTConvertToInt implements WASTNode {
 
 	input: WASTExpressionNode
 
-	constructor (source: Ref, type: AtiumType, input: WASTExpressionNode) {
-		this.source = source;
+	constructor (node: AST, type: AtiumType, input: WASTExpressionNode) {
+		this.source = Ref.from_node(node);
 		this.value_type = type;
 		this.input = input;
 	}

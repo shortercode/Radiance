@@ -8,6 +8,10 @@ function get_line_number (reference: PositionOrNode) {
 	return isNaN(value) ? "?" : value.toString();
 }
 
+export function is_defined (val: unknown) {
+	return typeof val !== "undefined";
+}
+
 export function type_assert(condition: boolean, reference: PositionOrNode, str: string) {
 	if (condition === false) {
 		type_error(reference, str);

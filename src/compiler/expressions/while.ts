@@ -2,6 +2,7 @@ import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTBlockNode, WASTNodeList, WASTSetLocalNode, WASTLoopNode, WASTConditionalBranchNode, WASTBranchNode, WASTGetLocalNode } from "../../WASTNode";
 import { BOOL_TYPE } from "../AtiumType";
 import { invert_boolean_expression } from "./boolean";
+import { default_initialiser } from "../default_initialiser";
 
 function read_node_data (node: AST) {
 	return node.data as {

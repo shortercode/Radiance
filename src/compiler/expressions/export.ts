@@ -1,24 +1,23 @@
 import { Compiler, AST } from "../core";
 import { WASTStatementNode, WASTGetLocalNode, WASTExpressionNode, WASTCallNode, WASTExportNode, WASTFunctionNode } from "../../WASTNode";
 import { initialise_function_environment, complete_function_environment, visit_function } from "./function";
-import { syntax_assert, is_defined, syntax_error, compiler_assert } from "../error";
-import { FunctionDeclaration } from "../FunctionDeclaration";
+import { syntax_assert, is_defined, compiler_assert } from "../error";
 
 export function visit_export (compiler: Compiler, node: AST): Array<WASTStatementNode> {
 	const data = node.data as {
 		name: string
 	};
 	
-	const export_wast = export_function(compiler, node, data.name);
 	const wrapper_fn_node = wrap_exported_function(compiler, node, data.name);
+	const export_wast = export_function(compiler, node, wrapper_fn_node);
 	
 	return [export_wast, wrapper_fn_node];
 }
 
 export function visit_export_function (compiler: Compiler, node: AST): Array<WASTStatementNode> {
 	const fn_wast = compile_function(compiler, node);
-	const export_wast = export_function(compiler, node, fn_wast.name);
 	const wrapper_fn_node = wrap_exported_function(compiler, node, fn_wast.name);
+	const export_wast = export_function(compiler, node, wrapper_fn_node);
 
 	return [fn_wast, export_wast, wrapper_fn_node];
 }
@@ -35,27 +34,20 @@ function compile_function (compiler: Compiler, node: AST): WASTFunctionNode {
 	return fn_stmt
 }
 
-
-function export_function(compiler: Compiler, node: AST, fn_name: string) {
+function export_function(compiler: Compiler, node: AST, fn: WASTFunctionNode) {
 	const ctx = compiler.ctx;
-
-	const fn = ctx.user_globals.get(fn_name);
 	
-	syntax_assert(typeof fn !== "undefined", node, `Cannot export undeclared function ${fn_name}`);
+	syntax_assert(typeof fn !== "undefined", node, `Cannot export undeclared function ${fn.name}`);
 	
-	if (fn instanceof FunctionDeclaration) {
-		for (const { name, type } of fn.parameters) {
-			syntax_assert(type.is_exportable(), node, `Cannot export function ${fn_name} because the parameter ${name} is not an exportable type`);
-		}
-		syntax_assert(fn.type.is_exportable(), node, `Cannot export function ${fn_name} because the return value is not an exportable type`);
-	}
-	else {
-		syntax_error(node, `Cannot export ${fn_name} as it's not a function`);
+	for (const { name, type } of fn.parameters) {
+		syntax_assert(type.is_exportable(), node, `Cannot export function ${fn.name} because the parameter ${name} is not an exportable type`);
 	}
 
-	ctx.define_export(node, fn_name);
+	syntax_assert(fn.result.is_exportable(), node, `Cannot export function ${fn.name} because the return value is not an exportable type`);
 
-	return new WASTExportNode(node, "function", fn_name, fn.id);
+	ctx.define_export(node, fn.name);
+
+	return new WASTExportNode(node, "function", fn.name, fn.id);
 }
 
 function wrap_exported_function(compiler: Compiler, node: AST, name: string) {

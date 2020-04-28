@@ -34,12 +34,14 @@ import { write_load_expression } from "./load";
 import { write_store_expression } from "./store";
 import { write_cast_float_expression } from "./cast_float";
 import { write_cast_int_expression } from "./cast_int";
+import { write_trap_expression } from "./trap";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 type WriterFunction = (ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) => void
 
 const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 	["@list", write_list_expression],
+	["trap", write_trap_expression],
 	
 	["add", write_add_expression],
 	["sub", write_sub_expression],

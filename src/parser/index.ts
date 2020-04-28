@@ -3,7 +3,7 @@ import Node from "../pratt/Node";
 import Iterator from "../pratt/Iterator";
 import Token from "../pratt/Token";
 
-export type TypePattern = { style: "tuple", types: Array<TypePattern> } | { style: "class", type: string };
+export type TypePattern = { style: "tuple", types: Array<TypePattern> } | { style: "class", type: string } | { style: "array", type: string, count: number };
 
 /*
 This class is the first stage of the process. It converts a text stream into an
@@ -70,6 +70,7 @@ class AtiumParser extends Parser {
 		this.addPrefix("identifier:not",		9, this.parseNotExpression);
 		this.addPrefix("identifier:if", 		9, this.parseIfExpression);
 		this.addPrefix("symbol:{", 					9, this.parseBlockExpression);
+		this.addPrefix("symbol:[", 					9, this.parseArrayExpression);
 		this.addPrefix("identifier:while", 	9, this.parseWhileExpression);
 		
 		this.addInfix("symbol:(", 					10, this.parseCallExpression);
@@ -426,6 +427,25 @@ class AtiumParser extends Parser {
 		
 		return new Node("block", start, end, statements); 
 	}
+
+	parseArrayExpression (tokens: Iterator<Token>): Node {
+		const values = [];
+		const start = tokens.previous()!.start;
+
+		while (tokens.incomplete()) { 
+			if (this.match(tokens, "symbol:]")) {
+				break; // exit if a closing bracket is the next token
+			}
+			values.push(this.parseStatement(tokens));
+		}
+		
+		this.ensure(tokens, "symbol:]");
+		
+		// NOTE previous token is the "symbol:}" read above
+		const end = tokens.previous()!.end;
+		
+		return new Node("array", start, end, values); 
+	}
 	
 	parseParameterBlock (tokens: Iterator<Token>): Array<{ name: string, type: TypePattern }> {
 		const values: Array<{ name: string, type: TypePattern }> = [];
@@ -481,6 +501,21 @@ class AtiumParser extends Parser {
 		}
 		else {
 			const type = this.ensure(tokens, "identifier:");
+
+			if (this.match(tokens, "symbol:[")) {
+				const count = this.ensure(tokens, "number:");
+				const value = parseFloat(count);
+				if (count.includes(".") || isNaN(value) || value < 0) {
+					throw new Error(`Invalid array length ${count}`);
+				}
+				this.ensure(tokens, "symbol:]");
+				
+				return {
+					style: "array",
+					type,
+					count: value
+				}
+			}
 			return {
 				style: "class",
 				type

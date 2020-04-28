@@ -40,7 +40,7 @@ const numeric_types = new Set([
 	...float_types
 ]);
 
-export type AtiumType = PrimativeAtiumType | TupleAtiumType | StructAtiumType;
+export type AtiumType = PrimativeAtiumType | TupleAtiumType | StructAtiumType | ArrayAtiumType;
 
 class PrimativeAtiumType {
 	private readonly type: PrimativeTypes
@@ -98,6 +98,10 @@ class PrimativeAtiumType {
 		return null;
 	}
 
+	as_array (): null {
+		return null;
+	}
+
 	is_exportable (): boolean {
 		return this.type !== PrimativeTypes.i64;
 	}
@@ -144,6 +148,10 @@ class AtiumObjectType {
 	}
 
 	as_struct (): StructAtiumType | null {
+		return null;
+	}
+
+	as_array (): ArrayAtiumType | null {
 		return null;
 	}
 
@@ -200,7 +208,7 @@ export class TupleAtiumType extends AtiumObjectType{
 	}
 }
 
-export class StructAtiumType extends AtiumObjectType{
+export class StructAtiumType extends AtiumObjectType {
 	readonly types: Map<string, {
 		type: AtiumType,
 		offset: number
@@ -241,6 +249,29 @@ export class StructAtiumType extends AtiumObjectType{
 	}
 }
 
+export class ArrayAtiumType extends AtiumObjectType {
+	readonly type: AtiumType
+	readonly size: number = 4
+	readonly count: number
+
+	constructor (type: AtiumType, name: string, count: number) {
+		super(name);
+		this.type = type;
+		this.count = count;
+	}
+
+	equals (other: AtiumType): boolean {
+		if (other instanceof ArrayAtiumType) {
+			return this.type === other.type && this.count === other.count;
+		}
+		return false;
+	}
+
+	as_array (): ArrayAtiumType {
+		return this;
+	}
+}
+
 function validate_primative_type (name: string): PrimativeTypes {
 	switch (name) {
 		case "f32":
@@ -259,8 +290,11 @@ function type_pattern_name (pattern: TypePattern): string {
 	if (pattern.style === "class") {
 		return pattern.type;
 	}
-	else {
+	else if (pattern.style === "tuple") {
 		return `(${pattern.types.map(type => type_pattern_name(type)).join(",")})`;
+	}
+	else {
+		return `${pattern.type}[${pattern.count}]`;
 	}
 }
 
@@ -269,10 +303,15 @@ export function create_tuple_type (types: Array<AtiumType>) {
 	return new TupleAtiumType(types, name);
 }
 
+export function create_array_type (type: AtiumType, count: number) {
+	const name = `${type.name}[${count}]`;
+	return new ArrayAtiumType(type, name, count);
+}
+
 export function parse_type (pattern: TypePattern, ctx: Context): AtiumType {
 	const name = type_pattern_name(pattern);
 	if (pattern.style === "class") {
-		const struct_decl = ctx.get_struct(name);
+		const struct_decl = ctx.get_struct(pattern.type);
 
 		if (struct_decl) {
 			return struct_decl.type;
@@ -282,9 +321,21 @@ export function parse_type (pattern: TypePattern, ctx: Context): AtiumType {
 			return new PrimativeAtiumType(type_enum, name);
 		}
 	}
-	else {
+	else if (pattern.style === "tuple") {
 		const types: Array<AtiumType> = pattern.types.map(type => parse_type(type, ctx));
 		return new TupleAtiumType(types, name);
+	}
+	else {
+		const struct_decl = ctx.get_struct(pattern.type);
+
+		if (struct_decl) {
+			return new ArrayAtiumType(struct_decl.type, name, pattern.count);
+		}
+		else {
+			const type_enum = validate_primative_type(pattern.type);
+			const type = new PrimativeAtiumType(type_enum, pattern.type);
+			return new ArrayAtiumType(type, name, pattern.count);
+		}
 	}
 }
 

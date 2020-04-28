@@ -432,13 +432,18 @@ class AtiumParser extends Parser {
 		const values = [];
 		const start = tokens.previous()!.start;
 
-		while (tokens.incomplete()) { 
-			if (this.match(tokens, "symbol:]")) {
-				break; // exit if a closing bracket is the next token
+		if (this.match(tokens, "symbol:]") === false) {
+			while (tokens.incomplete()) { 
+				values.push(this.parseExpression(tokens));
+				if (this.match(tokens, "symbol:,")) {
+					tokens.next();
+				}
+				else {
+					break;
+				}
 			}
-			values.push(this.parseStatement(tokens));
 		}
-		
+
 		this.ensure(tokens, "symbol:]");
 		
 		// NOTE previous token is the "symbol:}" read above
@@ -503,6 +508,7 @@ class AtiumParser extends Parser {
 			const type = this.ensure(tokens, "identifier:");
 
 			if (this.match(tokens, "symbol:[")) {
+				tokens.next();
 				const count = this.ensure(tokens, "number:");
 				const value = parseFloat(count);
 				if (count.includes(".") || isNaN(value) || value < 0) {

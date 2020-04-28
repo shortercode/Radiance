@@ -29,6 +29,7 @@ import { visit_bitwise_or_expression, visit_bitwise_and_expression } from "./exp
 import { visit_remainder_expression, visit_left_shift_expression, visit_right_shift_expression } from "./expressions/binary_integer";
 import { visit_module } from "./expressions/module";
 import { visit_array_expression } from "./expressions/array";
+import { visit_subscript_expression } from "./expressions/subscript";
 
 export type TypeHint = AtiumType | null;
 export type AST = Node;
@@ -81,6 +82,7 @@ export class Compiler {
 			["call", visit_call_expression],
 			["not", visit_not_expression],
 			["member", visit_member_expression],
+			["subscript", visit_subscript_expression],
 
 			["=", visit_assignment_expression],
 			["==", visit_equality_expression],

@@ -28,6 +28,7 @@ import { visit_logical_and_expression, visit_logical_or_expression } from "./exp
 import { visit_bitwise_or_expression, visit_bitwise_and_expression } from "./expressions/bitwise";
 import { visit_remainder_expression, visit_left_shift_expression, visit_right_shift_expression } from "./expressions/binary_integer";
 import { visit_module } from "./expressions/module";
+import { visit_array_expression } from "./expressions/array";
 
 export type TypeHint = AtiumType | null;
 export type AST = Node;
@@ -66,6 +67,7 @@ export class Compiler {
 			["if", visit_if_expression],
 			["while", visit_while_expression],
 			["block", visit_block_expression],
+			["array", visit_array_expression],
 
 			["number", visit_number_expression],
 			["boolean", visit_boolean_expression],

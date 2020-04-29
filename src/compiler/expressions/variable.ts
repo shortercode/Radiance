@@ -33,7 +33,7 @@ export function visit_variable (compiler: Compiler, node: AST, type_hint: TypeHi
 	const variable = ctx.declare_variable(node, data.name, type);
 	const value = compiler.visit_expression(data.initial, variable.type);
 
-	type_assert(value.value_type.equals(type), node, `Initialiser type ${value.value_type.name} doesn't match variable type ${type.name}`);
+	type_assert(type.equals(value.value_type), node, `Initialiser type ${value.value_type.name} doesn't match variable type ${type.name}`);
 
 	return new WASTSetLocalNode(node, variable.id, data.name, value);
 }

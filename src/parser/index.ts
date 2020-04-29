@@ -3,7 +3,7 @@ import Node from "../pratt/Node";
 import Iterator from "../pratt/Iterator";
 import Token from "../pratt/Token";
 
-export type TypePattern = { style: "tuple", types: Array<TypePattern> } | { style: "class", type: string } | { style: "array", type: string, count: number };
+export type TypePattern = { style: "tuple", types: Array<TypePattern> } | { style: "class", type: string } | { style: "array", type: TypePattern, count: number };
 
 /*
 This class is the first stage of the process. It converts a text stream into an
@@ -483,6 +483,8 @@ class AtiumParser extends Parser {
 	}
 	
 	parseType(tokens: Iterator<Token>): TypePattern {
+		let result: TypePattern;
+
 		if (this.match(tokens, "symbol:(")) {
 			tokens.next();
 			const types = [];
@@ -499,34 +501,41 @@ class AtiumParser extends Parser {
 
 			this.ensure(tokens, "symbol:)");
 
-			return {
+			result = {
 				style: "tuple",
 				types
-			}
+			};
 		}
 		else {
 			const type = this.ensure(tokens, "identifier:");
 
-			if (this.match(tokens, "symbol:[")) {
-				tokens.next();
-				const count = this.ensure(tokens, "number:");
-				const value = parseFloat(count);
-				if (count.includes(".") || isNaN(value) || value < 0) {
-					throw new Error(`Invalid array length ${count}`);
-				}
-				this.ensure(tokens, "symbol:]");
-				
-				return {
-					style: "array",
-					type,
-					count: value
-				}
-			}
-			return {
+			result = {
 				style: "class",
 				type
 			};
 		}
+
+		if (this.match(tokens, "symbol:[")) {
+			tokens.next();
+			let count = -1;
+			if (this.match(tokens, "symbol:]") === false) {
+				const count_str = this.ensure(tokens, "number:");
+				count = parseFloat(count_str);
+				if (count_str.includes(".") || isNaN(count) || count < 0) {
+					throw new Error(`Invalid array length ${count_str}`);
+				}
+			}
+			
+			this.ensure(tokens, "symbol:]");
+			
+			result = {
+				style: "array",
+				type: result,
+				count
+			};
+		}
+
+		return result;
 	}
 }
 

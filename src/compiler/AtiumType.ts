@@ -260,9 +260,13 @@ export class ArrayAtiumType extends AtiumObjectType {
 		this.count = count;
 	}
 
+	is_sized () {
+		return this.count >= 0;
+	}
+
 	equals (other: AtiumType): boolean {
 		if (other instanceof ArrayAtiumType) {
-			return this.type === other.type && this.count === other.count;
+			return this.type.equals(other.type) && (this.is_sized() ? this.count === other.count : true);
 		}
 		return false;
 	}
@@ -294,7 +298,8 @@ function type_pattern_name (pattern: TypePattern): string {
 		return `(${pattern.types.map(type => type_pattern_name(type)).join(",")})`;
 	}
 	else {
-		return `${pattern.type}[${pattern.count}]`;
+		const size_label = pattern.count < 0 ? "" : pattern.count.toString();
+		return `${type_pattern_name(pattern.type)}[${size_label}]`;
 	}
 }
 
@@ -304,37 +309,32 @@ export function create_tuple_type (types: Array<AtiumType>) {
 }
 
 export function create_array_type (type: AtiumType, count: number) {
-	const name = `${type.name}[${count}]`;
+	const size_label = count < 0 ? "" : count.toString();
+	const name = `${type.name}[${size_label}]`;
 	return new ArrayAtiumType(type, name, count);
 }
 
 export function parse_type (pattern: TypePattern, ctx: Context): AtiumType {
 	const name = type_pattern_name(pattern);
-	if (pattern.style === "class") {
-		const struct_decl = ctx.get_struct(pattern.type);
+	switch (pattern.style) {
+		case "class": {
+			const struct_decl = ctx.get_struct(pattern.type);
 
-		if (struct_decl) {
-			return struct_decl.type;
+			if (struct_decl) {
+				return struct_decl.type;
+			}
+			else {
+				const type_enum = validate_primative_type(pattern.type);
+				return new PrimativeAtiumType(type_enum, name);
+			}
 		}
-		else {
-			const type_enum = validate_primative_type(pattern.type);
-			return new PrimativeAtiumType(type_enum, name);
+		case "tuple": {
+			const types: Array<AtiumType> = pattern.types.map(type => parse_type(type, ctx));
+			return new TupleAtiumType(types, name);
 		}
-	}
-	else if (pattern.style === "tuple") {
-		const types: Array<AtiumType> = pattern.types.map(type => parse_type(type, ctx));
-		return new TupleAtiumType(types, name);
-	}
-	else {
-		const struct_decl = ctx.get_struct(pattern.type);
-
-		if (struct_decl) {
-			return new ArrayAtiumType(struct_decl.type, name, pattern.count);
-		}
-		else {
-			const type_enum = validate_primative_type(pattern.type);
-			const type = new PrimativeAtiumType(type_enum, pattern.type);
-			return new ArrayAtiumType(type, name, pattern.count);
+		case "array": {
+			const inner_type = parse_type(pattern.type, ctx);
+			return new ArrayAtiumType(inner_type, name, pattern.count);
 		}
 	}
 }

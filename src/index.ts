@@ -67,6 +67,7 @@ async function test () {
 	const point = mod.point as (x: number, y: number) => number
 	const point_x = mod.point_x as (p: number) => number
 	const point_y = mod.point_y as (p: number) => number
+	const array_test = mod.array_test as (p: number) => number
 	const main = mod.main as () => void
 	const memory = mod.memory as WebAssembly.Memory;
 
@@ -76,7 +77,8 @@ async function test () {
 		const pt = point(691, 8888);
 		const a = point_x(pt);
 		const b = point_y(pt);
-		console.log(`${a}, ${b}`);
+		const c = array_test(i);
+		console.log(`${c} = ${a}, ${b}`);
 	}
 
 	const result = new Uint8Array(memory.buffer, 0, 80);

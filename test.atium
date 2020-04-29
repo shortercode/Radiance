@@ -7,6 +7,12 @@ export func factorial (count: i32) -> i32 {
 	}
 }
 
+export func array_test (index: i32) -> i32 {
+	let array: i32[] = [0,1,2,3,4,5,6];
+	array = [7, 8, 9]
+	array[index]
+}
+
 export func fibonacci(n: i32) -> i32 {
 	if n <= 1 {
 		n

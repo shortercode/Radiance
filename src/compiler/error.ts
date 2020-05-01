@@ -9,7 +9,7 @@ function get_line_number (reference: PositionOrNode) {
 }
 
 export function is_defined (val: unknown) {
-	return typeof val !== "undefined";
+	return val != null;
 }
 
 export function type_assert(condition: boolean, reference: PositionOrNode, str: string) {

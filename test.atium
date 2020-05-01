@@ -35,6 +35,7 @@ export func point_y(p: (f32, f32)) -> f32 {
 }
 
 import func log_i32 (v: i32)
+import func log_u32 (v: u32)
 import func log_f32 (v: f32)
 
 import func set_color (r: f64, g: f64, b: f64)
@@ -61,7 +62,13 @@ func draw_point (point: Point, color: Color) {
  	draw_rect(point.x - 0.5, point.y - 0.5, 1, 1)
 }
 
+func underflow () {
+	let a: u32 = 10 - 12
+	log_u32(a)
+}
+
 export func main () {
+	underflow()
 	let red = create_color(1, 0, 0)
 	let i = 0
 	while i < 12 {

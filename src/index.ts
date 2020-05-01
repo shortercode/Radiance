@@ -51,6 +51,7 @@ async function test () {
 	const importObject = {
 		"imports": {
 			log_i32: (v:number) => console.log(`i32: ${v}`),
+			log_u32: (v:number) => console.log(`u32: ${v}`),
 			log_f32: (v:number) => console.log(`f32: ${v}`),
 			set_color: (r:number, g:number, b:number) => console.log(`rgb(${r},${g},${b})`),
 			draw_rect: (x:number,y:number,width:number,height:number) => console.log(`rect(${x},${y},${width},${height})`)

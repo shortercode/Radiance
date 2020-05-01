@@ -24,10 +24,12 @@ export function write_store_expression(ctx: FunctionContext, node: WASTExpressio
 		case PrimativeTypes.f64:
 		ctx.writer.writeUint8(Opcode.f64_store);
 		break;
+		case PrimativeTypes.u32:
 		case PrimativeTypes.i32:
 		case PrimativeTypes.boolean:
 		ctx.writer.writeUint8(Opcode.i32_store);
 		break;
+		case PrimativeTypes.u64:
 		case PrimativeTypes.i64:
 		ctx.writer.writeUint8(Opcode.i64_store);
 		break;

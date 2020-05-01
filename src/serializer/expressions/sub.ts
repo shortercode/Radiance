@@ -17,9 +17,11 @@ export function write_sub_expression(ctx: FunctionContext, node: WASTExpressionN
 		case PrimativeTypes.f64:
 		ctx.writer.writeUint8(Opcode.f64_sub);
 		break;
+		case PrimativeTypes.u32:
 		case PrimativeTypes.i32:
 		ctx.writer.writeUint8(Opcode.i32_sub);
 		break;
+		case PrimativeTypes.u64:
 		case PrimativeTypes.i64:
 		ctx.writer.writeUint8(Opcode.i64_sub);
 		break;

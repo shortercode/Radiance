@@ -18,9 +18,11 @@ export function write_add_expression(ctx: FunctionContext, node: WASTExpressionN
 		ctx.writer.writeUint8(Opcode.f64_add);
 		break;
 		case PrimativeTypes.i32:
+		case PrimativeTypes.u32:
 		ctx.writer.writeUint8(Opcode.i32_add);
 		break;
-		case PrimativeTypes.f64:
+		case PrimativeTypes.i64:
+		case PrimativeTypes.u64:
 		ctx.writer.writeUint8(Opcode.i64_add);
 		break;
 		default:

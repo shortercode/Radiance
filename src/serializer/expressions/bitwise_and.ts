@@ -12,10 +12,12 @@ export function write_bitwise_and_expression(ctx: FunctionContext, node: WASTExp
 	
 	switch (node.value_type.wasm_type()) {
 		case PrimativeTypes.i32:
+		case PrimativeTypes.u32:
 		case PrimativeTypes.boolean:
 		ctx.writer.writeUint8(Opcode.i32_and);
 		break;
 		case PrimativeTypes.i64:
+		case PrimativeTypes.u64:
 		ctx.writer.writeUint8(Opcode.i64_and);
 		break;
 		default:

@@ -17,9 +17,11 @@ export function write_multiply_expression(ctx: FunctionContext, node: WASTExpres
 		case PrimativeTypes.f64:
 		ctx.writer.writeUint8(Opcode.f64_mul);
 		break;
+		case PrimativeTypes.u32:
 		case PrimativeTypes.i32:
 		ctx.writer.writeUint8(Opcode.i32_mul);
 		break;
+		case PrimativeTypes.u64:
 		case PrimativeTypes.i64:
 		ctx.writer.writeUint8(Opcode.i64_mul);
 		break;

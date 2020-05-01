@@ -19,10 +19,12 @@ export function write_const_expression(ctx: FunctionContext, node: WASTExpressio
 		ctx.writer.writeFloat64(parseFloat(const_node.value));
 		break;
 		case PrimativeTypes.boolean:
+		case PrimativeTypes.u32:
 		case PrimativeTypes.i32:
 		ctx.writer.writeUint8(Opcode.i32_const);
 		ctx.writer.writeUVint(parseInt(const_node.value, 10));
 		break;
+		case PrimativeTypes.u64:
 		case PrimativeTypes.i64:
 		ctx.writer.writeUint8(Opcode.i64_const);
 		// WARN node.value may not fit into a JS number literal!

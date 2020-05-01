@@ -11,9 +11,11 @@ export function write_shift_left_expression(ctx: FunctionContext, node: WASTExpr
 	write_binary_prefix(ctx, node as WASTBinaryExpressionNode, write_expression);
 	
 	switch (node.value_type.wasm_type()) {
+		case PrimativeTypes.u32:
 		case PrimativeTypes.i32:
 		ctx.writer.writeUint8(Opcode.i32_shl);
 		break;
+		case PrimativeTypes.u64:
 		case PrimativeTypes.i64:
 		ctx.writer.writeUint8(Opcode.i64_shl);
 		break;

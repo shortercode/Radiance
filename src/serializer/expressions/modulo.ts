@@ -17,6 +17,12 @@ export function write_modulo_expression(ctx: FunctionContext, node: WASTExpressi
 		case PrimativeTypes.i64:
 		ctx.writer.writeUint8(Opcode.i64_rem_s);
 		break;
+		case PrimativeTypes.u32:
+		ctx.writer.writeUint8(Opcode.i32_rem_u);
+		break;
+		case PrimativeTypes.u64:
+		ctx.writer.writeUint8(Opcode.i64_rem_u);
+		break;
 		default:
 		compiler_error(node.source, `Invalid primative for ${node.type} ${node.value_type.name}`);
 	}

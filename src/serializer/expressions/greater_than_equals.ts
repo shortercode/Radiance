@@ -23,6 +23,12 @@ export function write_greater_than_equals_expression(ctx: FunctionContext, node:
 		case PrimativeTypes.i64:
 		ctx.writer.writeUint8(Opcode.i64_ge_s);
 		break;
+		case PrimativeTypes.u32:
+		ctx.writer.writeUint8(Opcode.i32_ge_u);
+		break;
+		case PrimativeTypes.u64:
+		ctx.writer.writeUint8(Opcode.i64_ge_u);
+		break;
 		default:
 		compiler_error(node.source, `Invalid primative for ${node.type} ${node.value_type.name}`);
 	}

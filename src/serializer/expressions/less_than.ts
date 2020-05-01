@@ -23,6 +23,12 @@ export function write_less_than_expression(ctx: FunctionContext, node: WASTExpre
 		case PrimativeTypes.i64:
 		ctx.writer.writeUint8(Opcode.i64_lt_s);
 		break;
+		case PrimativeTypes.u32:
+		ctx.writer.writeUint8(Opcode.i32_lt_u);
+		break;
+		case PrimativeTypes.u64:
+		ctx.writer.writeUint8(Opcode.i64_lt_u);
+		break;
 		default:
 		compiler_error(node.source, `Invalid primative for ${node.type} ${node.value_type.name}`);
 	}

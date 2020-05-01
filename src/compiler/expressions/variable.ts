@@ -31,7 +31,7 @@ export function visit_variable (compiler: Compiler, node: AST, type_hint: TypeHi
 	type_assert(is_defined(type), node, `Unable to infer type of ${data.name} please include an explicit type`);
 
 	const variable = ctx.declare_variable(node, data.name, type);
-	const value = compiler.visit_expression(data.initial, variable.type);
+	const value = compiler.visit_expression(data.initial, type);
 
 	type_assert(type.equals(value.value_type), node, `Initialiser type ${value.value_type.name} doesn't match variable type ${type.name}`);
 

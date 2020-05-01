@@ -3,6 +3,9 @@ import { WASTEqualsNode, WASTExpressionNode, WASTNotEqualsNode, WASTLessThanNode
 import { type_assert } from "../error";
 import { Compiler, AST, TypeHint } from "../core";
 
+// NOTE the type_hint for comparisons will be "boolean" which the children don't
+// care about. So pass null to the inner expressions
+
 export function visit_equality_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
 	const { left, right } = visit_numeric_binary_expression(compiler, node, null);
 	return new WASTEqualsNode(node, left, right);
@@ -34,23 +37,23 @@ export function visit_greater_than_equals_expression (compiler: Compiler, node: 
 }
 
 export function visit_addition_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
-	const { type, left, right } = visit_numeric_binary_expression(compiler, node, null);
+	const { type, left, right } = visit_numeric_binary_expression(compiler, node, type_hint);
 	return new WASTAddNode(node, type, left, right);
 }
 
 export function visit_subtraction_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
-	const { type, left, right } = visit_numeric_binary_expression(compiler, node, null);
+	const { type, left, right } = visit_numeric_binary_expression(compiler, node, type_hint);
 	return new WASTSubNode(node, type, left, right);
 
 }
 
 export function visit_multiplication_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
-	const { type, left, right } = visit_numeric_binary_expression(compiler, node, null);
+	const { type, left, right } = visit_numeric_binary_expression(compiler, node, type_hint);
 	return new WASTMultiplyNode(node, type, left, right);
 }
 
 export function visit_division_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
-	const { type, left, right } = visit_numeric_binary_expression(compiler, node, null);
+	const { type, left, right } = visit_numeric_binary_expression(compiler, node, type_hint);
 	return new WASTDivideNode(node, type, left, right);
 }
 

@@ -6,9 +6,11 @@ import { compiler_error } from "../compiler/error";
 export function write_value_type (writer: Writer, type: AtiumType) {
 	switch (type.wasm_type()) {
 		case PrimativeTypes.boolean:
+		case PrimativeTypes.u32:
 		case PrimativeTypes.i32:
 		writer.writeUint8(0x7F);
 		break;
+		case PrimativeTypes.u64:
 		case PrimativeTypes.i64:
 		writer.writeUint8(0x7E);
 		break;

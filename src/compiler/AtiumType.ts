@@ -12,6 +12,8 @@ export enum PrimativeTypes {
 	f64,
 	i32,
 	i64,
+	u32,
+	u64,
 	void,
 	boolean
 }
@@ -22,6 +24,8 @@ export function get_primative_name (type: PrimativeTypes): string {
 		case PrimativeTypes.f64: return "f64";
 		case PrimativeTypes.i32: return "i32";
 		case PrimativeTypes.i64: return "i64";
+		case PrimativeTypes.u32: return "u32";
+		case PrimativeTypes.u64: return "u64";
 		case PrimativeTypes.void: return "void";
 		case PrimativeTypes.boolean: return "boolean";
 	}
@@ -29,7 +33,9 @@ export function get_primative_name (type: PrimativeTypes): string {
 
 const integer_types = new Set([
 	PrimativeTypes.i32,
-	PrimativeTypes.i64
+	PrimativeTypes.i64,
+	PrimativeTypes.u32,
+	PrimativeTypes.u64
 ]);
 const float_types = new Set([
 	PrimativeTypes.f32,
@@ -51,7 +57,7 @@ class PrimativeAtiumType {
 		this.type = type;
 		this.name = name;
 
-		if (this.type === PrimativeTypes.f64 || this.type === PrimativeTypes.i64) {
+		if (this.type === PrimativeTypes.f64 || this.type === PrimativeTypes.i64 || this.type === PrimativeTypes.u64) {
 			this.size = 8;
 		}
 		else {
@@ -282,6 +288,8 @@ function validate_primative_type (name: string): PrimativeTypes {
 		case "f64":
 		case "i32":
 		case "i64":
+		case "u32":
+		case "u64":
 		case "void":
 		case "boolean":
 		return PrimativeTypes[name];

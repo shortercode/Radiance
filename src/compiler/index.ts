@@ -1,7 +1,7 @@
-import { AtiumType, I32_TYPE } from "./AtiumType";
+import { I32_TYPE } from "./AtiumType";
 import { Context } from "./Context";
 import { Variable } from "./Variable";
-import { compiler_error, compiler_assert } from "./error";
+import { compiler_assert } from "./error";
 import { Compiler, AST } from "./core";
 import { initialise_function_environment, complete_function_environment } from "./expressions/function";
 import { WASTModuleNode, WASTExportNode, WASTMemoryNode, WASTNodeList, WASTGlobalNode, WASTGetGlobalNode, WASTGetLocalNode, WASTAddNode, WASTSetLocalNode, WASTSetGlobalNode, WASTConstNode, WASTExpressionNode } from "../WASTNode";

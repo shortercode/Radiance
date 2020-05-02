@@ -26,6 +26,12 @@ export function write_cast_float_expression (ctx: FunctionContext, node: WASTExp
 			case PrimativeTypes.i64:
 				ctx.writer.writeUVint(Opcode.f32_convert_i64_s);
 				break;
+			case PrimativeTypes.u32:
+				ctx.writer.writeUVint(Opcode.f32_convert_i32_u);
+				break;
+			case PrimativeTypes.u64:
+				ctx.writer.writeUVint(Opcode.f32_convert_i64_u);
+				break;
 		}
 	}
 	else {
@@ -38,6 +44,12 @@ export function write_cast_float_expression (ctx: FunctionContext, node: WASTExp
 				break;
 			case PrimativeTypes.i64:
 				ctx.writer.writeUVint(Opcode.f64_convert_i64_s);
+				break;
+			case PrimativeTypes.u32:
+				ctx.writer.writeUVint(Opcode.f64_convert_i32_u);
+				break;
+			case PrimativeTypes.u64:
+				ctx.writer.writeUVint(Opcode.f64_convert_i64_u);
 				break;
 		}
 	}

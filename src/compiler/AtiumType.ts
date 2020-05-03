@@ -291,7 +291,7 @@ function validate_primative_type (name: string): PrimativeTypes {
 		case "u32":
 		case "u64":
 		case "void":
-		case "boolean":
+		case "bool":
 		return PrimativeTypes[name];
 		default:
 		throw new Error(`Cannot parse type "${name}" as primative type`);

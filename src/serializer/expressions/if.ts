@@ -12,7 +12,7 @@ export function write_if_expression(ctx: FunctionContext, node: WASTExpressionNo
 	const does_emit_value = expr.value_type.is_void() === false;
 	
 	write_expression(ctx, expr.condition);
-	ctx.consume_value(PrimativeTypes.boolean, node.source);
+	ctx.consume_value(PrimativeTypes.bool, node.source);
 	ctx.writer.writeUint8(Opcode.if);
 	write_value_type(ctx.writer, expr.value_type);
 	

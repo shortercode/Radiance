@@ -15,7 +15,8 @@ export enum PrimativeTypes {
 	u32,
 	u64,
 	void,
-	bool
+	bool,
+	str
 }
 
 export function get_primative_name (type: PrimativeTypes): string {
@@ -28,6 +29,7 @@ export function get_primative_name (type: PrimativeTypes): string {
 		case PrimativeTypes.u64: return "u64";
 		case PrimativeTypes.void: return "void";
 		case PrimativeTypes.bool: return "bool";
+		case PrimativeTypes.str: return "str";
 	}
 }
 
@@ -292,6 +294,7 @@ function validate_primative_type (name: string): PrimativeTypes {
 		case "u64":
 		case "void":
 		case "bool":
+		case "str":
 		return PrimativeTypes[name];
 		default:
 		throw new Error(`Cannot parse type "${name}" as primative type`);
@@ -352,3 +355,4 @@ export const VOID_TYPE = new PrimativeAtiumType(PrimativeTypes.void, "void");
 export const F64_TYPE = new PrimativeAtiumType(PrimativeTypes.f64, "f64");
 export const I32_TYPE = new PrimativeAtiumType(PrimativeTypes.i32, "i32");
 export const I64_TYPE = new PrimativeAtiumType(PrimativeTypes.i64, "i64");
+export const STR_TYPE = new PrimativeAtiumType(PrimativeTypes.str, "str");

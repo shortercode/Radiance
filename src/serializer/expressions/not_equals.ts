@@ -17,7 +17,7 @@ export function write_not_equals_expression(ctx: FunctionContext, node: WASTExpr
 		case PrimativeTypes.f64:
 		ctx.writer.writeUint8(Opcode.f64_ne);
 		break;
-		case PrimativeTypes.boolean:
+		case PrimativeTypes.bool:
 		case PrimativeTypes.u32:
 		case PrimativeTypes.i32:
 		ctx.writer.writeUint8(Opcode.i32_ne);

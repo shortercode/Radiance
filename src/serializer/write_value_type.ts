@@ -5,7 +5,7 @@ import { compiler_error } from "../compiler/error";
 
 export function write_value_type (writer: Writer, type: AtiumType) {
 	switch (type.wasm_type()) {
-		case PrimativeTypes.boolean:
+		case PrimativeTypes.bool:
 		case PrimativeTypes.u32:
 		case PrimativeTypes.i32:
 		writer.writeUint8(0x7F);

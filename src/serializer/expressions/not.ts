@@ -11,7 +11,7 @@ export function write_not_expression(ctx: FunctionContext, node: WASTExpressionN
 	const subnode = not_node.inner;
 	write_expression(ctx, subnode);
 	
-	ctx.consume_value(PrimativeTypes.boolean, node.source);
+	ctx.consume_value(PrimativeTypes.bool, node.source);
 	ctx.writer.writeUint8(Opcode.i32_eqz);
-	ctx.push_value(PrimativeTypes.boolean);
+	ctx.push_value(PrimativeTypes.bool);
 }

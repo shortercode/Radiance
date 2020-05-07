@@ -1,3 +1,5 @@
+import { encode_string } from "../encode_string";
+
 const PAGE_SIZE = 2048;
 
 function transfer_arraybuffer (source: ArrayBuffer, new_length: number) {
@@ -8,22 +10,6 @@ function transfer_arraybuffer (source: ArrayBuffer, new_length: number) {
 	const destView = new Uint8Array(new ArrayBuffer(new_length));
 	destView.set(sourceView);
 	return destView.buffer;
-}
-
-function encode_string (str: string): Uint8Array {
-	// TODO add support for unicode ( yes I know it should already... )
-	const chars = [...str];
-	const result = new Uint8Array(chars.length);
-	
-	for (let i = 0; i < chars.length; i++) {
-		const code = chars[i].charCodeAt(0);
-		if (code > 127) {
-			throw new Error("Unable to encode non-ascii characters");
-		}
-		result[i] = code;
-	}
-	
-	return result;
 }
 
 export class Writer {

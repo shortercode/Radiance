@@ -18,7 +18,7 @@ export function write_const_expression(ctx: FunctionContext, node: WASTExpressio
 		ctx.writer.writeUint8(Opcode.f64_const);
 		ctx.writer.writeFloat64(parseFloat(const_node.value));
 		break;
-		case PrimativeTypes.boolean:
+		case PrimativeTypes.bool:
 		case PrimativeTypes.u32:
 		case PrimativeTypes.i32:
 		ctx.writer.writeUint8(Opcode.i32_const);

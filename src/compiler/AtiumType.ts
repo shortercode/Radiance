@@ -15,7 +15,7 @@ export enum PrimativeTypes {
 	u32,
 	u64,
 	void,
-	boolean
+	bool
 }
 
 export function get_primative_name (type: PrimativeTypes): string {
@@ -27,7 +27,7 @@ export function get_primative_name (type: PrimativeTypes): string {
 		case PrimativeTypes.u32: return "u32";
 		case PrimativeTypes.u64: return "u64";
 		case PrimativeTypes.void: return "void";
-		case PrimativeTypes.boolean: return "boolean";
+		case PrimativeTypes.bool: return "bool";
 	}
 }
 
@@ -89,7 +89,7 @@ class PrimativeAtiumType {
 	}
 
 	is_boolean (): boolean {
-		return this.type === PrimativeTypes.boolean;
+		return this.type === PrimativeTypes.bool;
 	}
 
 	is_void (): boolean {
@@ -291,7 +291,7 @@ function validate_primative_type (name: string): PrimativeTypes {
 		case "u32":
 		case "u64":
 		case "void":
-		case "boolean":
+		case "bool":
 		return PrimativeTypes[name];
 		default:
 		throw new Error(`Cannot parse type "${name}" as primative type`);
@@ -347,7 +347,7 @@ export function parse_type (pattern: TypePattern, ctx: Context): AtiumType {
 	}
 }
 
-export const BOOL_TYPE = new PrimativeAtiumType(PrimativeTypes.boolean, "boolean");
+export const BOOL_TYPE = new PrimativeAtiumType(PrimativeTypes.bool, "bool");
 export const VOID_TYPE = new PrimativeAtiumType(PrimativeTypes.void, "void");
 export const F64_TYPE = new PrimativeAtiumType(PrimativeTypes.f64, "f64");
 export const I32_TYPE = new PrimativeAtiumType(PrimativeTypes.i32, "i32");

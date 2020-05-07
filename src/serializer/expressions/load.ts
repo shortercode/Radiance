@@ -26,7 +26,7 @@ export function write_load_expression(ctx: FunctionContext, node: WASTExpression
 		break;
 		case PrimativeTypes.u32:
 		case PrimativeTypes.i32:
-		case PrimativeTypes.boolean:
+		case PrimativeTypes.bool:
 		ctx.writer.writeUint8(Opcode.i32_load);
 		ctx.push_value(type);
 		break;

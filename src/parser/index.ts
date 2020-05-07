@@ -81,6 +81,7 @@ class AtiumParser extends Parser {
 		this.addInfix("identifier:as",			12, this.parseTypeCast);
 		
 		this.addPrefix("number:", 					12, this.literal("number"));
+		this.addPrefix("string:",						12, this.literal("string"))
 		this.addPrefix("identifier:", 			12, this.literal("identifier"));
 		this.addPrefix("identifier:true", 	12, this.literal("boolean"));
 		this.addPrefix("identifier:false", 	12, this.literal("boolean"));

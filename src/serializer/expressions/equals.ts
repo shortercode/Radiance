@@ -17,7 +17,7 @@ export function write_equals_expression(ctx: FunctionContext, node: WASTExpressi
 		case PrimativeTypes.f64:
 		ctx.writer.writeUint8(Opcode.f64_eq);
 		break;
-		case PrimativeTypes.boolean:
+		case PrimativeTypes.bool:
 		case PrimativeTypes.i32:
 		ctx.writer.writeUint8(Opcode.i32_eq);
 		break;

@@ -456,7 +456,13 @@ class AtiumParser extends Parser {
 	parseParameterBlock (tokens: Iterator<Token>): Array<{ name: string, type: TypePattern }> {
 		const values: Array<{ name: string, type: TypePattern }> = [];
 		
-		this.ensure(tokens, "symbol:(")
+		// NOTE this makes the parameter block of a function OPTIONAL! ( no params )
+		if (this.match(tokens, "symbol:(") === false) {
+			return values;
+		}
+		else {
+			tokens.next();
+		}
 		
 		if (this.match(tokens, "symbol:)")) {
 			tokens.next();

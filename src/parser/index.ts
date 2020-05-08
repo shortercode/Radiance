@@ -19,7 +19,7 @@ class AtiumParser extends Parser {
 		
 		this.addStatement("identifier:export", this.parseExport);
 		this.addStatement("identifier:import", this.parseImport);
-		this.addStatement("identifier:func", this.parseFunction);
+		this.addStatement("identifier:fn", this.parseFunction);
 		this.addStatement("identifier:struct", this.parseStruct);
 		this.addStatement("identifier:let", this.parseVariable);
 		
@@ -265,7 +265,7 @@ class AtiumParser extends Parser {
 	}
 	
 	parseFunction (tokens: Iterator<Token>): Node {
-		// NOTE previous token is the "identifier:func" read by statement matcher
+		// NOTE previous token is the "identifier:fn" read by statement matcher
 		const start = tokens.previous()!.start;
 		const name = this.ensure(tokens, "identifier:");
 		const parameters = this.parseParameterBlock(tokens);
@@ -326,14 +326,14 @@ class AtiumParser extends Parser {
 		const start = tokens.previous()!.start;
 		const label = this.ensure(tokens, "identifier:");
 		
-		const exportable_statements = new Set(["func"]);
+		const exportable_statements = new Set(["fn"]);
 		
 		if (exportable_statements.has(label) === false) {
 			this.throwUnexpectedToken(tokens.previous()!);
 		}
 
 		switch (label) {
-			case "func": {
+			case "fn": {
 				const name = this.ensure(tokens, "identifier:");
 				const parameters = this.parseParameterBlock(tokens);
 		
@@ -360,11 +360,11 @@ class AtiumParser extends Parser {
 		const start = tokens.previous()!.start;
 		const label = this.ensure(tokens, "identifier:");
 		
-		const exportable_statements = new Set(["func"]); // NOTE will likely add memory, globals etc. later
+		const exportable_statements = new Set(["fn"]); // NOTE will likely add memory, globals etc. later
 		
 		if (exportable_statements.has(label)) {
 			switch (label) {
-				case "func": {
+				case "fn": {
 					const fn = this.parseFunction(tokens);
 					return new Node("export_function", start, fn.end, fn.data);
 				}

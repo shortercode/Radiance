@@ -1,7 +1,7 @@
 import { WASTCallNode, WASTExpressionNode } from "../../WASTNode";
 import { Opcode } from "../OpCode";
 import { FunctionContext } from "../FunctionContext";
-import { compiler_assert } from "../../compiler/error";
+import { compiler_assert, is_defined } from "../../compiler/error";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 
@@ -10,7 +10,7 @@ export function write_call_expression(ctx: FunctionContext, node: WASTExpression
 	
 	const function_id = ctx.function_lookup.get(call_node.id)!;
 	
-	compiler_assert(typeof function_id !== "number", node.source, `Cannot find function ${call_node.name}`);
+	compiler_assert(is_defined(function_id), node.source, `Cannot find function ${call_node.name}`);
 
 	for (const arg of call_node.arguments) {
 		write_expression(ctx, arg);

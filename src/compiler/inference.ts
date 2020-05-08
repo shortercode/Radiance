@@ -58,6 +58,9 @@ export function guess_expression_type (node: Node, ctx: InferContext): TypeHint 
 		case "or":
 		return BOOL_TYPE;
 
+		case "as":
+		return guess_type_cast_type(node, ctx);
+
 		case "&":
 		case "|":
 		return null
@@ -238,6 +241,12 @@ function guess_binary_numerical_type (node: Node, ctx: InferContext): TypeHint {
 	else {
 		return null
 	}
+}
+
+function guess_type_cast_type (node: Node, ctx: InferContext): TypeHint {
+	const data = node.data as { expr: Node, type: TypePattern };
+	// WARN this does not return null for invalid conversions!
+	return parse_type(data.type, ctx.ctx);
 }
 
 function guess_identifier_type (node: Node, ctx: InferContext): TypeHint {

@@ -20,6 +20,10 @@ export function visit_subscript_expression (compiler: Compiler, node: AST, type_
 		return visit_array_subscript_expression(compiler, node, target, value.accessor);
 	}
 
+	if (target.value_type.is_string()) {
+		return visit_string_subscript_expression(compiler, node, target, value.accessor);
+	}
+
 	type_error(node, `Target does not have any entries`);
 }
 
@@ -29,6 +33,16 @@ function visit_array_subscript_expression (compiler: Compiler, node: AST, target
 	const index = bounds_check(compiler, node, target, accessor_expression);
 	const type = target.value_type.as_array()!.type;
 	return new WASTLoadNode(node, type, index, 0);
+}
+
+function visit_string_subscript_expression (compiler: Compiler, node: AST, target: WASTExpressionNode, accessor: AST) {	
+	const accessor_expression = ensure_int32(node, compiler.visit_expression(accessor, I32_TYPE));
+
+	const index = bounds_check(compiler, node, target, accessor_expression);
+	
+	throw new Error(`String subscript operator is not implented yet. We cannot yet load u8 values from memory`);
+
+	return new WASTLoadNode(node, I32_TYPE, index, 0);
 }
 
 function bounds_check (compiler: Compiler, node: AST, target: WASTExpressionNode, accessor: WASTExpressionNode): WASTExpressionNode {

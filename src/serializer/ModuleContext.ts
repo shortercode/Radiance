@@ -1,5 +1,6 @@
 import { Writer } from "./Writer";
-import { PrimativeTypes, AtiumType } from "../compiler/AtiumType";
+import { AtiumType } from "../compiler/AtiumType";
+import { WASTDataNode } from "../WASTNode";
 
 export class ModuleContext {
 	readonly writer: Writer
@@ -11,6 +12,7 @@ export class ModuleContext {
 	readonly function_index_map: Map<number, number> = new Map
 	readonly memory_index_map: Map<number, number> = new Map
 	readonly global_index_map: Map<number, number> = new Map
+	readonly data_index_map: Map<WASTDataNode, number> = new Map
 	
 	constructor(writer: Writer) {
 		this.writer = writer;

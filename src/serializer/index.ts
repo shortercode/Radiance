@@ -1,13 +1,13 @@
 import { Writer } from "./Writer";
 import { Variable } from "../compiler/Variable";
-import { AtiumType, I32_TYPE, PrimativeTypes, get_primative_name } from "../compiler/AtiumType";
+import { AtiumType } from "../compiler/AtiumType";
 import { Opcode } from "./OpCode";
 import { FunctionContext } from "./FunctionContext";
 import { write_value_type } from "./write_value_type";
 import { write_expression } from "./expressions/expression";
-import { WASTModuleNode, WASTStatementNode, WASTMemoryNode, WASTExportNode, WASTFunctionNode, Ref, WASTTableNode, WASTNodeList, WASTConstNode, WASTGlobalNode, WASTImportFunctionNode } from "../WASTNode";
+import { WASTModuleNode, WASTStatementNode, WASTMemoryNode, WASTExportNode, WASTFunctionNode, Ref, WASTTableNode, WASTGlobalNode, WASTImportFunctionNode, WASTDataNode, WASTConstNode } from "../WASTNode";
 import { ModuleContext } from "./ModuleContext";
-import { compiler_assert } from "../compiler/error";
+import { compiler_assert, is_defined } from "../compiler/error";
 
 const IMPORTS_LABEL = "imports";
 
@@ -24,7 +24,8 @@ export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 		export_nodes,
 		table_nodes,
 		global_nodes,
-		import_nodes
+		import_nodes,
+		data_nodes
 	} = seperate_statement_nodes(ast.statements);
 
 	const requires_exports = export_nodes.length > 0;
@@ -33,13 +34,15 @@ export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 	const requires_memory = memory_nodes.length > 0;
 	const requires_function = function_nodes.length > 0;
 	const requires_globals = global_nodes.length > 0;
+	const requires_data = data_nodes.length > 0;
+
+	const requires_types = requires_function || requires_imports;
 	
 	const import_offset = generate_import_types(module_ctx, import_nodes);
 	generate_function_types(module_ctx, import_offset, function_nodes);
+	generate_static_memory(module_ctx, ast, data_nodes, global_nodes);
 
-
-	// TODO some of the "requires" checks might need changing since we added type deduplication
-	if (requires_function) {
+	if (requires_types) {
 		write_section_1(module_ctx);
 	}
 	if (requires_imports) {
@@ -66,6 +69,9 @@ export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 	if (requires_function) {
 		write_section_10(module_ctx, function_nodes);
 	}
+	if (requires_data) {
+		write_section_11(module_ctx, data_nodes);
+	}
 	
 	return writer.complete();
 }
@@ -84,6 +90,35 @@ function generate_function_types (ctx: ModuleContext, import_offset: number, sta
 			i += 1;
 		}
 	}
+}
+
+function generate_static_memory (module_ctx: ModuleContext, ast: WASTModuleNode, data_nodes: Array<WASTDataNode>, global_nodes: Array<WASTGlobalNode>) {
+	/*
+		We delay calculating the offsets of static data blocks until serialisation to
+		allow for possible optimisations such as removing unneeded block. This means
+		that we have to modify the initial value of the variable that indicates the
+		end of the static data block now. This is a little tricky unforunately,
+		the option we have gone for is to place the variable into the module_node
+		then search all the nodes of the module for the global_declaration node.
+		Then we can modify the initialiser of the global_declaration with our freshly
+		calculated offset.
+	*/
+	const memory_offset = calculate_data_node_offsets(module_ctx, data_nodes);
+	const top_variable = ast.static_data_top;
+
+	let global_declaration: WASTGlobalNode|null = null;
+
+	for (const node of global_nodes) {
+		if (node.id === top_variable.id) {
+			global_declaration = node;
+		}
+	}
+	
+	compiler_assert(is_defined(global_declaration), ast.source, `Unable to locate the "static_data_top" initialiser`);
+	compiler_assert(global_declaration!.initialiser instanceof WASTConstNode, ast.source, `"static_data_top" initialiser isn't a const`);
+
+	const value_node = global_declaration!.initialiser as WASTConstNode;
+	value_node.value = memory_offset.toString();
 }
 
 function generate_import_types (ctx: ModuleContext, statements: Array<WASTImportFunctionNode>) {
@@ -113,6 +148,7 @@ function seperate_statement_nodes (statements: Array<WASTStatementNode>) {
 	const table_nodes: Array<WASTTableNode> = [];
 	const global_nodes: Array<WASTGlobalNode> = [];
 	const import_nodes: Array<WASTImportFunctionNode> = [];
+	const data_nodes: Array<WASTDataNode> = [];
 	
 	for (const node of statements) {
 		switch (node.type) {
@@ -134,6 +170,9 @@ function seperate_statement_nodes (statements: Array<WASTStatementNode>) {
 			case "global":
 			global_nodes.push(node);
 			break;
+			case "data":
+			data_nodes.push(node);
+			break;
 		}
 	}
 	
@@ -143,7 +182,8 @@ function seperate_statement_nodes (statements: Array<WASTStatementNode>) {
 		export_nodes,
 		table_nodes,
 		global_nodes,
-		import_nodes
+		import_nodes,
+		data_nodes
 	};
 }
 
@@ -286,13 +326,14 @@ function write_section_6 (module_ctx: ModuleContext, global_nodes: Array<WASTGlo
 	const count = global_nodes.length;
 	writer.writeUVint(count);
 
-	const empty_function_context = new FunctionContext(writer, new Map, new Map, []);
+	const empty_function_context = new FunctionContext(writer, module_ctx, []);
 
 	for (let i = 0; i < count; i++) {
 		const node = global_nodes[i];
 		write_value_type(writer, node.value_type);
 		const flag = node.mutable ? 1 : 0;
 		writer.writeUint8(flag);
+		// TODO change to use write_offset_expression
 		write_expression(empty_function_context, node.initialiser);
 		writer.writeUint8(Opcode.end);
 		module_ctx.global_index_map.set(node.id, i);
@@ -346,12 +387,13 @@ function write_section_9 (module_ctx: ModuleContext, table_nodes: Array<WASTTabl
 	compiler_assert(count < 2, Ref.unknown(), `Cannot have more than 1 table node`);	
 	writer.writeUVint(count);
 
-	const empty_function_context = new FunctionContext(writer, new Map, new Map, []);
+	const empty_function_context = new FunctionContext(writer, module_ctx, []);
 	
 	for (let i = 0; i < count; i++) {
 		const node = table_nodes[i];
 		writer.writeUVint(i);
 
+		// TODO change to use write_offset_expression
 		write_expression(empty_function_context, node.offset_expr);
 		writer.writeUint8(Opcode.end);
 
@@ -398,15 +440,48 @@ function write_section_10 (module_ctx: ModuleContext, function_nodes: Array<WAST
 		}
 		
 		const locals = node.locals;
-		const fn_map = module_ctx.function_index_map;
-		const global_map = module_ctx.global_index_map;
-		const ctx = new FunctionContext(writer,	fn_map, global_map, locals);
+		const ctx = new FunctionContext(writer,	module_ctx, locals);
 		
 		write_expression(ctx, node.body);
 		writer.writeUint8(Opcode.end);
 		
 		const code_block_length = writer.getCurrentOffset() - code_block_start - 5;
 		writer.changeFixedSizeUVint(code_block_start, code_block_length);
+	}
+	
+	finish_section_header(writer, section_offset);
+}
+
+function calculate_data_node_offsets (module_ctx: ModuleContext, data_nodes: Array<WASTDataNode>) {
+	let offset = 0;
+
+	for (let i = 0; i < data_nodes.length; i++) {
+		const node = data_nodes[i];
+		module_ctx.data_index_map.set(node, offset);
+		offset += node.bytes.byteLength;
+	}
+
+	return offset;
+}
+
+function write_section_11 (module_ctx: ModuleContext, data_nodes: Array<WASTDataNode>) {
+	// Section 11 - Data
+	const writer = module_ctx.writer;
+	const section_offset = write_section_header(writer, 11);
+	
+	const count = data_nodes.length;
+	writer.writeUVint(count);
+	
+	let offset = 0;
+	for (let i = 0; i < count; i++) {
+		const node = data_nodes[i];
+		const memory_id = 0; // only 1 memory allowed ATM
+		const length = node.bytes.length;
+		writer.writeUVint(memory_id);
+		write_offset_expression(writer, offset);
+		offset += length;
+		writer.writeUVint(length);
+		writer.writeBuffer(node.bytes);
 	}
 	
 	finish_section_header(writer, section_offset);
@@ -455,6 +530,12 @@ function compress_local_variables (locals: Array<Variable>) {
 	}
 	
 	return output;
+}
+
+function write_offset_expression (writer: Writer, offset: number) {
+	writer.writeUint8(0x41);
+	writer.writeUVint(offset);
+	writer.writeUint8(0x0B);
 }
 
 function write_unbounded_limit (writer: Writer, min: number) {

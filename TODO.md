@@ -22,9 +22,11 @@
 	- [ ] Add global variables
 	- [X] Read tuple values back!
 	- [ ] Tuple destructuring assignment
-	- [ ] Add type casting inference
+	- [X] Add type casting inference
+	- [ ] Allow assigning sized array to unsized array variable
+	- [ ] Optimise const lookups into sized arrays
 - [ ] Hard
-	- [ ] Array types
+	- [X] Array types
 	- [X] Structs
 	- [X] Tuples
 	- [ ] Escape analysis
@@ -33,6 +35,7 @@
 	- [ ] Generics
 	- [X] Pointers
 	- [X] Basic type inference
+	- [X] Strings
 	- [ ] Full inference prepass
 	- [X] Temporary memory allocation
 	- [ ] Module system

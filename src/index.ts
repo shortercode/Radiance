@@ -68,11 +68,24 @@ async function test () {
 	const point = mod.point as (x: number, y: number) => number
 	const point_x = mod.point_x as (p: number) => number
 	const point_y = mod.point_y as (p: number) => number
+	const say_hi = mod.say_hi as () => number
 	const array_test = mod.array_test as (p: number) => number
 	const main = mod.main as () => void
 	const memory = mod.memory as WebAssembly.Memory;
 
+	function read_str (mem: WebAssembly.Memory, ptr: number) {
+		const buffer = memory.buffer;
+		const view = new DataView(buffer);
+		const length = view.getInt32(ptr, true);
+		const u8_view = new Uint8Array(buffer, ptr + 4, length);
+		const decoder = new TextDecoder;
+		const str = decoder.decode(u8_view);
+		console.log(str);
+	}
+
 	main();
+
+	read_str(memory, say_hi());
 
 	for (let i = 0; i < 10; i++) {
 		const pt = point(691, 8888);

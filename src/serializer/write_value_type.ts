@@ -8,6 +8,7 @@ export function write_value_type (writer: Writer, type: AtiumType) {
 		case PrimativeTypes.bool:
 		case PrimativeTypes.u32:
 		case PrimativeTypes.i32:
+		case PrimativeTypes.str:
 		writer.writeUint8(0x7F);
 		break;
 		case PrimativeTypes.u64:

@@ -1,4 +1,4 @@
-export func factorial (count: i32) -> i32 {
+export fn factorial (count: i32) -> i32 {
 	let result: i32 = 1;
 	let i: i32 = 0
 	while i <= count {
@@ -7,13 +7,13 @@ export func factorial (count: i32) -> i32 {
 	}
 }
 
-export func array_test (index: i32) -> i32 {
+export fn array_test (index: i32) -> i32 {
 	let array: i32[] = [0,1,2,3,4,5,6];
 	array = [7, 8, 9]
 	array[index]
 }
 
-export func fibonacci(n: i32) -> i32 {
+export fn fibonacci(n: i32) -> i32 {
 	if n <= 1 {
 		n
 	}
@@ -22,24 +22,24 @@ export func fibonacci(n: i32) -> i32 {
 	}
 }
 
-export func point (x: f32, y: f32) -> (f32, f32) {
+export fn point (x: f32, y: f32) -> (f32, f32) {
 	(x, y)
 }
 
-export func point_x(p: (f32, f32)) -> f32 {
+export fn point_x(p: (f32, f32)) -> f32 {
 	p.0
 }
 
-export func point_y(p: (f32, f32)) -> f32 {
+export fn point_y(p: (f32, f32)) -> f32 {
 	p.1
 }
 
-import func log_i32 (v: i32)
-import func log_u32 (v: u32)
-import func log_f32 (v: f32)
+import fn log_i32 (v: i32)
+import fn log_u32 (v: u32)
+import fn log_f32 (v: f32)
 
-import func set_color (r: f64, g: f64, b: f64)
-import func draw_rect (x: f64, y: f64, width: f64, height: f64)
+import fn set_color (r: f64, g: f64, b: f64)
+import fn draw_rect (x: f64, y: f64, width: f64, height: f64)
 
 struct Color {
 	r: f64, g: f64, b: f64
@@ -49,25 +49,29 @@ struct Point {
 	x: f64, y: f64
 }
 
-func create_color (r: f64, g: f64, b: f64) -> Color {
+fn create_color (r: f64, g: f64, b: f64) -> Color {
 	Color { r, g, b }
 }
 
-func create_point (x: f64, y: f64) -> Point {
+fn create_point (x: f64, y: f64) -> Point {
 	Point { x, y }
 }
 
-func draw_point (point: Point, color: Color) {
+fn draw_point (point: Point, color: Color) {
  	set_color(color.r, color.g, color.b)
  	draw_rect(point.x - 0.5, point.y - 0.5, 1, 1)
 }
 
-func underflow () {
+fn underflow {
 	let a: u32 = 10 - 12
 	log_u32(a)
 }
 
-export func main () {
+export fn say_hi -> str {
+	"hello world!"
+}
+
+export fn main {
 	underflow()
 	let red = create_color(1, 0, 0)
 	let i = 0

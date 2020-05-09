@@ -82,6 +82,10 @@ class PrimativeAtiumType {
 		return integer_types.has(this.type);
 	}
 
+	is_string (): boolean {
+		return this.type === PrimativeTypes.str;
+	}
+
 	is_float (): boolean {
 		return float_types.has(this.type);
 	}
@@ -132,6 +136,10 @@ class AtiumObjectType {
 	}
 
 	is_integer (): boolean {
+		return false;
+	}
+
+	is_string (): boolean {
 		return false;
 	}
 

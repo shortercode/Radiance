@@ -1,7 +1,7 @@
 import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTLoadNode, WASTNotNode } from "../../WASTNode";
 import { type_assert, compiler_assert, type_error, is_defined, compiler_error } from "../error";
-import { StructAtiumType, TupleAtiumType, ArrayAtiumType, I32_TYPE } from "../AtiumType";
+import { StructAtiumType, TupleAtiumType, I32_TYPE } from "../AtiumType";
 
 function read_node_data (node: AST) {
 	return node.data as {
@@ -32,6 +32,10 @@ export function visit_member_expression (compiler: Compiler, node: AST, type_hin
 		return visit_array_member_expression(node, target, value.member);
 	}
 
+	if (target.value_type.is_string()) {
+		return visit_string_member_expression(node, target, value.member);
+	}
+
 	type_error(node, `Target does not have any properties`);
 }
 
@@ -57,6 +61,20 @@ function visit_struct_member_expression (node: AST, target: WASTExpressionNode, 
 
 	const { type, offset } = member_type;
 	return new WASTLoadNode(node, type, target, offset);
+}
+
+function visit_string_member_expression (node: AST, target: WASTExpressionNode, member: string) {
+	// TODO this can be optimised for fixed length strings
+	switch (member) {
+		case "length":
+		return new WASTLoadNode(
+			node,
+			I32_TYPE,
+			target,
+			0
+		);
+	}
+	compiler_error(node, `Target does not have any properties`);
 }
 
 function visit_array_member_expression (node: AST, target: WASTExpressionNode, member: string) {

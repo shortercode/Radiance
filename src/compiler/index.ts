@@ -1,10 +1,8 @@
 import { I32_TYPE } from "./AtiumType";
-import { Context } from "./Context";
 import { Variable } from "./Variable";
-import { compiler_assert } from "./error";
 import { Compiler, AST } from "./core";
 import { initialise_function_environment, complete_function_environment } from "./expressions/function";
-import { WASTModuleNode, WASTExportNode, WASTMemoryNode, WASTNodeList, WASTGlobalNode, WASTGetGlobalNode, WASTGetLocalNode, WASTAddNode, WASTSetLocalNode, WASTSetGlobalNode, WASTConstNode, WASTExpressionNode } from "../WASTNode";
+import { WASTModuleNode, WASTExportNode, WASTMemoryNode, WASTGlobalNode, WASTGetGlobalNode, WASTGetLocalNode, WASTAddNode, WASTSetLocalNode, WASTSetGlobalNode } from "../WASTNode";
 import { default_initialiser } from "./default_initialiser";
 
 const MEMORY_EXPORT_NAME = "memory";
@@ -17,11 +15,8 @@ serialises this WebAssembly AST into a binary file.
 */
 
 export default function (node: AST): WASTModuleNode {
-	const ctx: Context = new Context;
-	const compiler: Compiler = new Compiler(ctx);
-	compiler_assert(node.type === "module", node, `Invalid node type ${node.type} expected a module`);
-	
-	const module = new WASTModuleNode(node);
+	const compiler: Compiler = new Compiler;
+	const module = create_module(compiler, node);
 
 	for (const stmt of preamble(node, compiler)) {
 		module.statements.push(stmt);
@@ -35,13 +30,26 @@ export default function (node: AST): WASTModuleNode {
 		module.statements.push(stmt);
 	}
 
+	for (const stmt of compiler.ctx.data_blocks) {
+		module.statements.push(stmt);
+	}
+
 	return module;
+}
+
+function create_module (compiler: Compiler, node: AST) {
+	const static_data_top = compiler.ctx.declare_library_global_variable(
+		node,
+		"static_data_top",
+		I32_TYPE
+	);
+	return new WASTModuleNode(node, static_data_top);
 }
 
 function* preamble (node: AST, compiler: Compiler) {
 	yield generate_malloc_function(node, compiler);
 
-	const memory_stmt = new WASTMemoryNode(node, 0,"main", 1);
+	const memory_stmt = new WASTMemoryNode(node, 0, "main", 1);
 	yield memory_stmt;
 
 	if (SHOULD_EXPORT_MEMORY) {
@@ -53,13 +61,10 @@ function* preamble (node: AST, compiler: Compiler) {
 
 function* generate_globals (node: AST, compiler: Compiler) {
 	for (const global of compiler.ctx.global_variables) {
-		// WARN this isn't the right reference...
+		// WARN this isn't the right node reference...
 		const ref = node;
-		const initialiser = new WASTNodeList(ref);
 		const value_node = default_initialiser(ref, global.type);
-		initialiser.nodes.push(value_node);
-		initialiser.value_type = global.type;
-		yield new WASTGlobalNode(ref, global.id, global.type, initialiser);
+		yield new WASTGlobalNode(ref, global.id, global.type, value_node);
 	}
 }
 

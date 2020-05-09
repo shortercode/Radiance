@@ -30,6 +30,7 @@ import { visit_remainder_expression, visit_left_shift_expression, visit_right_sh
 import { visit_module } from "./expressions/module";
 import { visit_array_expression } from "./expressions/array";
 import { visit_subscript_expression } from "./expressions/subscript";
+import { visit_string_expression } from "./expressions/string";
 
 export type TypeHint = AtiumType | null;
 export type AST = Node;
@@ -43,10 +44,9 @@ export class Compiler {
 	private local_statement_visitors: Map<string, LocalStatementVistor>
 	private expression_visitors: Map<string, ExpressionVistor>
 
-	readonly ctx: Context 
+	readonly ctx: Context = new Context
 
-	constructor (ctx: Context) {
-		this.ctx = ctx;
+	constructor () {
 
 		this.global_statement_visitors = new Map([
 			["module", visit_module],
@@ -73,6 +73,7 @@ export class Compiler {
 			["number", visit_number_expression],
 			["boolean", visit_boolean_expression],
 			["identifier", visit_identifier_expression],
+			["string", visit_string_expression],
 
 			["group", visit_group_expression],
 			

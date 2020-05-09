@@ -5,6 +5,7 @@ import { Variable } from "./Variable";
 import { syntax_assert, compiler_assert } from "./error";
 import { StructDeclaration } from "./StructDeclaration";
 import { AST } from "./core";
+import { WASTDataNode } from "../WASTNode";
 
 export class Context {
 
@@ -12,6 +13,7 @@ export class Context {
 	lib_globals: Map<string, FunctionDeclaration|Variable> = new Map
 
 	global_variables: Array<Variable> = []
+	data_blocks: Array<WASTDataNode> = []
 	exports: Set<string> = new Set
 
 	environment: Environment | null = null
@@ -130,5 +132,11 @@ export class Context {
 				return null
 			}
 		}
+	}
+
+	create_data_block (node: AST, bytes: Uint8Array): WASTDataNode {
+		const block = new WASTDataNode(node, bytes);
+		this.data_blocks.push(block);
+		return block;
 	}
 }

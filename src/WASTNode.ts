@@ -49,6 +49,7 @@ WASTNotNode |
 WASTConvertToFloat |
 WASTConvertToInt |
 WASTTrapNode |
+WASTDataRefNode |
 WASTBinaryExpressionNode;
 
 export type WASTBinaryExpressionNode = WASTEqualsNode |
@@ -73,6 +74,7 @@ WASTExpressionType |
 
 export type WASTStatementType = "function" | 
 "table" |
+"data" |
 "memory" |
 "global" |
 "export" |
@@ -96,6 +98,7 @@ export type WASTExpressionType = WASTBinaryExpressionType |
 "br_if" |
 "not" |
 "call" |
+"data_ref" |
 "convert_int" |
 "convert_float" |
 "trap";
@@ -117,6 +120,7 @@ export type WASTBinaryExpressionType = "equals" |
 "bitwise_and";
 
 export type WASTStatementNode = WASTExportNode |
+WASTDataNode |
 WASTImportFunctionNode |
 WASTTableNode |
 WASTGlobalNode |
@@ -128,9 +132,11 @@ export class WASTModuleNode implements WASTNode {
 	source: Ref
 	
 	statements: Array<WASTStatementNode> = []
+	readonly static_data_top: Variable
 	
-	constructor (node: AST) {
+	constructor (node: AST, static_data_top: Variable) {
 		this.source = Ref.from_node(node);
+		this.static_data_top = static_data_top;
 	}
 }
 
@@ -184,6 +190,18 @@ export class WASTTableNode implements WASTNode {
 	}
 }
 
+export class WASTDataNode implements WASTNode {
+	type: "data" = "data"
+	source: Ref
+
+	bytes: Uint8Array
+
+	constructor (node: AST, data: Uint8Array) {
+		this.source = Ref.from_node(node);
+		this.bytes = data;
+	}
+}
+
 export class WASTGlobalNode implements WASTNode {
 	type: "global" = "global"
 	source: Ref
@@ -191,9 +209,9 @@ export class WASTGlobalNode implements WASTNode {
 	value_type: AtiumType
 	mutable: boolean = true
 	id: number
-	initialiser: WASTNodeList
+	initialiser: WASTExpressionNode
 
-	constructor (node: AST, id: number, type: AtiumType, init: WASTNodeList) {
+	constructor (node: AST, id: number, type: AtiumType, init: WASTExpressionNode) {
 		this.source = Ref.from_node(node);
 		this.id = id;
 		this.value_type = type;
@@ -791,5 +809,18 @@ export class WASTTrapNode implements WASTNode {
 
 	constructor (node: AST) {
 		this.source = Ref.from_node(node);
+	}
+}
+
+export class WASTDataRefNode implements WASTNode {
+	type: "data_ref" = "data_ref"
+	source: Ref
+	value_type: AtiumType
+	data_node: WASTDataNode
+
+	constructor (node: AST, type: AtiumType, data_node: WASTDataNode) {
+		this.source = Ref.from_node(node);
+		this.value_type = type;
+		this.data_node = data_node;
 	}
 }

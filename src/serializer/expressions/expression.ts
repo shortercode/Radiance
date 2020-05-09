@@ -35,6 +35,7 @@ import { write_store_expression } from "./store";
 import { write_cast_float_expression } from "./cast_float";
 import { write_cast_int_expression } from "./cast_int";
 import { write_trap_expression } from "./trap";
+import { write_data_ref_expression } from "./data_ref";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 type WriterFunction = (ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) => void
@@ -81,7 +82,9 @@ const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 	["left_shift", write_shift_left_expression],
 	["right_shift", write_shift_right_expression],
 	["bitwise_and", write_bitwise_and_expression],
-	["bitwise_or", write_bitwise_or_expression]
+	["bitwise_or", write_bitwise_or_expression],
+
+	["data_ref", write_data_ref_expression]
 ]);
 
 export function write_expression(ctx: FunctionContext, node: WASTExpressionNode) {

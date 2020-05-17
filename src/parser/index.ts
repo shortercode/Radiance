@@ -393,9 +393,6 @@ class AtiumParser extends Parser {
 			tokens.next();
 			initial = this.parseExpression(tokens, 1);
 		}
-		else {
-			initial = new Node("number", start, start, "0");
-		}
 		
 		const end = this.endStatement(tokens);
 		return new Node("variable", start, end, { name, type, initial });

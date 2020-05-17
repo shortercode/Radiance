@@ -76,7 +76,7 @@ export default class Parser {
 
         // early bail here if there are no tokens
         if (!tokens.incomplete()) {
-            const pos: [number,number] = [0, 0];
+            const pos: [number,number] = [1, 0];
             return this.createNode("module", pos, pos, stmts);
         }
 

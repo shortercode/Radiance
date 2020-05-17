@@ -522,7 +522,7 @@ class AtiumParser extends Parser {
 			};
 		}
 
-		if (this.match(tokens, "symbol:[")) {
+		while (this.match(tokens, "symbol:[")) {
 			tokens.next();
 			let count = -1;
 			if (this.match(tokens, "symbol:]") === false) {

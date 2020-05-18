@@ -390,6 +390,45 @@ describe("primative literals", () => {
 	});
 });
 
+describe("constructor expression", () => {
+	test("basic constructor no fields", () => {
+		const ast = parse("Obj {}");
+		compareModule(ast, [
+			new AST("expression", [1,0],[1,6], new AST("constructor", [1,0],[1,6], {
+				target: new AST("identifier", [1, 0], [1, 3], "Obj"),
+				fields: new Map()
+			}))
+		]);
+	});
+
+	test("basic constructor with field", () => {
+		const ast = parse("Obj { a: 42 }");
+		compareModule(ast, [
+			new AST("expression", [1,0],[1,13], new AST("constructor", [1,0],[1,13], {
+				target: new AST("identifier", [1, 0], [1, 3], "Obj"),
+				fields: new Map([
+					["a", new AST("number", [1, 9], [1, 11], "42")]
+				])
+			}))
+		]);
+	});
+
+	test("basic constructor with multiple fields", () => {
+		const ast = parse("Obj { a: 42, b: \"hi\" }");
+		compareModule(ast, [
+			new AST("expression", [1,0],[1,22], new AST("constructor", [1,0],[1,22], {
+				target: new AST("identifier", [1, 0], [1, 3], "Obj"),
+				fields: new Map([
+					["a", new AST("number", [1, 9], [1, 11], "42")],
+					["b", new AST("string", [1, 16], [1, 20], "hi")]
+				])
+			}))
+		]);
+	});
+});
+
+
+
 function parse(str: string): AST {
 	return parser.parseProgram(str);
 }

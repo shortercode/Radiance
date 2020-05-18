@@ -98,7 +98,6 @@ describe("type parsing", () => {
 	});
 });
 
-
 describe("export statement", () => {
 	test("export symbol", () => {
 		const ast = parse(`export MySymbol`);
@@ -278,12 +277,12 @@ struct MyStruct {
 
 	test("struct with fields", () => {
 		const ast = parse(`
-		struct MyStruct {
-			name: void,
-			other: i32
-		}`);
+struct MyStruct {
+	name: void,
+	other: i32
+}`);
 		compareModule(ast, [
-			new AST("struct", [2, 0], [4, 1], {
+			new AST("struct", [2, 0], [5, 1], {
 				name: "MyStruct",
 				fields: new Map([
 					["name", { style: "class", type: "void" }],
@@ -292,7 +291,104 @@ struct MyStruct {
 			})
 		]);
 	});
-})
+});
+
+describe("let statement", () => {
+	test("untyped uninitialised", () => {
+		const ast = parse(`let myvar`);
+		compareModule(ast, [
+			new AST("variable", [1,0], [1, 9], { 
+				name: "myvar",
+				type: null,
+				initial: null
+			})
+		]);
+	});
+
+	test("typed uninitialised", () => {
+		const ast = parse(`let myvar: i32`);
+		compareModule(ast, [
+			new AST("variable", [1,0], [1, 14], { 
+				name: "myvar",
+				type: { style: "class", type: "i32" },
+				initial: null
+			})
+		]);
+	});
+
+	test("untyped initialised", () => {
+		const ast = parse(`let myvar = 42`);
+		compareModule(ast, [
+			new AST("variable", [1,0], [1, 14], { 
+				name: "myvar",
+				type: null,
+				initial: new AST("number", [1, 12], [1, 14], "42")
+			})
+		]);
+	});
+
+	test("typed initialised", () => {
+		const ast = parse(`let myvar: i32 = 42`);
+		compareModule(ast, [
+			new AST("variable", [1,0], [1, 19], { 
+				name: "myvar",
+				type: { style: "class", type: "i32" },
+				initial: new AST("number", [1, 17], [1, 19], "42")
+			})
+		]);
+	});
+});
+
+describe("primative literals", () => {
+	test("boolean true", () => {
+		const ast = parse(`true`);
+		compareModule(ast, [
+			new AST("expression", [1,0], [1, 4], new AST("boolean", [1,0], [1, 4], "true"))
+		]);
+	});
+	test("boolean false", () => {
+		const ast = parse(`false`);
+		compareModule(ast, [
+			new AST("expression", [1,0], [1, 5], new AST("boolean", [1,0], [1, 5], "false"))
+		]);
+	});
+	test("identifier", () => {
+		const ast = parse(`id`);
+		compareModule(ast, [
+			new AST("expression", [1,0], [1, 2], new AST("identifier", [1,0], [1, 2], "id"))
+		]);
+	});
+	test("string", () => {
+		const ast = parse(`"hello"`);
+		compareModule(ast, [
+			new AST("expression", [1,0], [1, 7], new AST("string", [1,0], [1, 7], "hello"))
+		]);
+	});
+	test("escaped string", () => {
+		const ast = parse(String.raw`"\"hello\""`);
+		compareModule(ast, [
+			new AST("expression", [1,0], [1, 11], new AST("string", [1,0], [1, 11], "\"hello\""))
+		]);
+	});
+	test("integer", () => {
+		const ast = parse("42");
+		compareModule(ast, [
+			new AST("expression", [1,0], [1,2], new AST("number", [1,0], [1,2], "42"))
+		]);
+	});
+	test("integer part only", () => {
+		const ast = parse("42.");
+		compareModule(ast, [
+			new AST("expression", [1,0], [1,3], new AST("number", [1,0], [1,3], "42"))
+		]);
+	});
+	test("fractional part only", () => {
+		const ast = parse(".1");
+		compareModule(ast, [
+			new AST("expression", [1,0], [1,2], new AST("number", [1,0], [1,2], ".1"))
+		]);
+	});
+});
 
 function parse(str: string): AST {
 	return parser.parseProgram(str);

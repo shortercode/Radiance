@@ -1,4 +1,4 @@
-import { WASTExpressionNode, WASTLoadNode, WASTNodeList, WASTTeeLocalNode, WASTGreaterThanEqualsNode, WASTConstNode, WASTGetLocalNode, WASTLessThanNode, WASTBitwiseAndNode, WASTNotNode, WASTConditionalNode, WASTTrapNode, WASTSetLocalNode, WASTAddNode, WASTMultiplyNode } from "../../WASTNode";
+import { WASTExpressionNode, WASTLoadNode, WASTNodeList, WASTTeeLocalNode, WASTGreaterThanEqualsNode, WASTConstNode, WASTGetLocalNode, WASTLessThanNode, WASTBitwiseAndNode, WASTNotNode, WASTConditionalNode, WASTTrapNode, WASTSetLocalNode, WASTAddNode, WASTMultiplyNode, Ref } from "../../WASTNode";
 import { Compiler, AST, TypeHint } from "../core";
 import { type_error, type_assert } from "../error";
 import { I32_TYPE, VOID_TYPE, BOOL_TYPE } from "../AtiumType";
@@ -32,7 +32,7 @@ function visit_array_subscript_expression (compiler: Compiler, node: AST, target
 
 	const index = bounds_check(compiler, node, target, accessor_expression);
 	const type = target.value_type.as_array()!.type;
-	return new WASTLoadNode(node, type, index, 0);
+	return new WASTLoadNode(Ref.from_node(node), type, index, 0);
 }
 
 function visit_string_subscript_expression (compiler: Compiler, node: AST, target: WASTExpressionNode, accessor: AST) {	
@@ -42,27 +42,28 @@ function visit_string_subscript_expression (compiler: Compiler, node: AST, targe
 	
 	throw new Error(`String subscript operator is not implented yet. We cannot yet load u8 values from memory`);
 
-	return new WASTLoadNode(node, I32_TYPE, index, 0);
+	return new WASTLoadNode(Ref.from_node(node), I32_TYPE, index, 0);
 }
 
 function bounds_check (compiler: Compiler, node: AST, target: WASTExpressionNode, accessor: WASTExpressionNode): WASTExpressionNode {
-	const variables = compiler.ctx.environment!.get_array_variables(node);
+	const ref = Ref.from_node(node);
+	const variables = compiler.ctx.environment!.get_array_variables(ref);
 	const { id: target_id, name: target_name } = variables.target;
 	const { id: index_id, name: index_name } = variables.index;
 	const { id: length_id, name: length_name } = variables.length;
 
-	const trap_condition_branch = new WASTNodeList(node);
-	trap_condition_branch.nodes.push(new WASTTrapNode(node));
+	const trap_condition_branch = new WASTNodeList(ref);
+	trap_condition_branch.nodes.push(new WASTTrapNode(ref));
 
 	const get_length_expression = new WASTSetLocalNode(
-		node,
+		ref,
 		length_id,
 		length_name,
 		new WASTLoadNode(
-			node,
+			ref,
 			I32_TYPE,
 			new WASTTeeLocalNode(
-				node,
+				ref,
 				target_id,
 				target_name,
 				target,
@@ -73,59 +74,59 @@ function bounds_check (compiler: Compiler, node: AST, target: WASTExpressionNode
 	);
 
 	const conditional_trap_expression = new WASTConditionalNode(
-		node,
+		ref,
 		VOID_TYPE,
 		new WASTNotNode(
-			node,
+			ref,
 			new WASTBitwiseAndNode(
-				node,
+				ref,
 				BOOL_TYPE,
 				new WASTGreaterThanEqualsNode(
-					node, 
+					ref, 
 					new WASTTeeLocalNode(
-						node,
+						ref,
 						index_id,
 						index_name,
 						accessor,
 						I32_TYPE
 					),
 					new WASTConstNode(
-						node,
+						ref,
 						I32_TYPE,
 						"0"
 					)
 				),
 				new WASTLessThanNode(
-					node,
-					new WASTGetLocalNode(node, index_id, index_name, I32_TYPE),
-					new WASTGetLocalNode(node, length_id, length_name, I32_TYPE),
+					ref,
+					new WASTGetLocalNode(ref, index_id, index_name, I32_TYPE),
+					new WASTGetLocalNode(ref, length_id, length_name, I32_TYPE),
 				)
 			)
 		),
 		trap_condition_branch,
-		new WASTNodeList(node)
+		new WASTNodeList(ref)
 	);
 
 	const array_type = target.value_type.as_array()!;
 
 	const retrieve_location_expression = new WASTAddNode(
-		node,
+		ref,
 		I32_TYPE,
 		new WASTAddNode(
-			node,
+			ref,
 			I32_TYPE,
-			new WASTGetLocalNode(node, target_id, target_name, I32_TYPE),
-			new WASTConstNode(node, I32_TYPE, I32_TYPE.size.toString())
+			new WASTGetLocalNode(ref, target_id, target_name, I32_TYPE),
+			new WASTConstNode(ref, I32_TYPE, I32_TYPE.size.toString())
 		),
 		new WASTMultiplyNode(
-			node,
+			ref,
 			I32_TYPE,
-			new WASTGetLocalNode(node, index_id, index_name, I32_TYPE),
-			new WASTConstNode(node, I32_TYPE, array_type.type.size.toString())
+			new WASTGetLocalNode(ref, index_id, index_name, I32_TYPE),
+			new WASTConstNode(ref, I32_TYPE, array_type.type.size.toString())
 		)
 	);
 
-	const result_expression = new WASTNodeList(node);
+	const result_expression = new WASTNodeList(ref);
 	result_expression.nodes.push(
 		get_length_expression,
 		conditional_trap_expression,

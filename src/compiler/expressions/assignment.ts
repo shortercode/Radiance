@@ -1,5 +1,5 @@
 import { Compiler, AST, TypeHint } from "../core";
-import { WASTExpressionNode, WASTTeeLocalNode } from "../../WASTNode";
+import { WASTExpressionNode, WASTTeeLocalNode, Ref } from "../../WASTNode";
 import { syntax_assert, is_defined, type_assert } from "../error";
 
 function read_node_data (node: AST) {
@@ -10,7 +10,8 @@ function read_node_data (node: AST) {
 }
 export function visit_assignment_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
 	const value = read_node_data(node);
-	
+	const ref = Ref.from_node(node);
+
 	syntax_assert(value.left.type === "identifier", node, `Invalid left hand side of assignment`);
 	
 	const variable_name = value.left.data as string;
@@ -24,5 +25,5 @@ export function visit_assignment_expression (compiler: Compiler, node: AST, type
 	// TODO improve error message
 	type_assert(variable.type.equals(new_value.value_type), node, `Assignment value doesn't match variable type`);
 	
-	return new WASTTeeLocalNode(node, variable.id, variable.name, new_value, variable.type);
+	return new WASTTeeLocalNode(ref, variable.id, variable.name, new_value, variable.type);
 }

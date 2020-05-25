@@ -2,6 +2,7 @@ import { Compiler, TypeHint, AST } from "../core";
 import { InferContext } from "../InferContext";
 import { guess_expression_type } from "../inference";
 import { type_assert } from "../error";
+import { Ref } from "../../WASTNode";
 
 function read_node_data (node: AST) {
 	return node.data as {
@@ -12,6 +13,7 @@ function read_node_data (node: AST) {
 
 export function visit_binary_expresson (compiler: Compiler, node: AST, type_hint: TypeHint) {
 	const data = read_node_data(node);
+	const ref = Ref.from_node(node);
 
 	if (!type_hint) {
 		const infer_ctx = new InferContext(compiler.ctx);
@@ -32,6 +34,7 @@ export function visit_binary_expresson (compiler: Compiler, node: AST, type_hint
 	return {
 		type: left.value_type,
 		left,
-		right
+		right,
+		source: ref
 	};
 }

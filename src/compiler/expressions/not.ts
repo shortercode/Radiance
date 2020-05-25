@@ -9,5 +9,5 @@ export function visit_not_expression (compiler: Compiler, node: AST, type_hint: 
 	};
 
 	const inner = compiler.visit_expression(value.subnode, BOOL_TYPE);
-	return invert_boolean_expression(node, inner);
+	return invert_boolean_expression(inner);
 }

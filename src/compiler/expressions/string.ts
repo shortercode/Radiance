@@ -1,5 +1,5 @@
 import { Compiler, AST, TypeHint } from "../core";
-import { WASTExpressionNode, WASTDataRefNode } from "../../WASTNode";
+import { WASTExpressionNode, WASTDataRefNode, Ref } from "../../WASTNode";
 import { encode_string } from "../../encode_string";
 import { STR_TYPE } from "../AtiumType";
 
@@ -19,10 +19,11 @@ function encode_byte_array (bytes: Uint8Array) {
 }
 
 export function visit_string_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
+	const ref = Ref.from_node(node);
 	const data = node.data as string;
 	const str = encode_string(data);
 	const byte_array = encode_byte_array(str);
-	const data_block = compiler.ctx.create_data_block(node, byte_array);
+	const data_block = compiler.ctx.create_data_block(ref, byte_array);
 
 	/* TODO we need a psuedo type for a codepoint (u32) so that users can pass
 	around codepoints instead of bytes for certain uses. This doesn't resolve
@@ -35,5 +36,5 @@ export function visit_string_expression (compiler: Compiler, node: AST, type_hin
 	not a string.
 	*/
 
-	return new WASTDataRefNode(node, STR_TYPE, data_block);
+	return new WASTDataRefNode(ref, STR_TYPE, data_block);
 }

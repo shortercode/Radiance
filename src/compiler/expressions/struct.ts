@@ -2,6 +2,7 @@ import { AST, Compiler } from "../core";
 import { TypePattern } from "../../parser/index";
 import { syntax_assert } from "../error";
 import { parse_type } from "../AtiumType";
+import { Ref } from "../../WASTNode";
 
 function read_node_data (node: AST) {
 	return node.data as {
@@ -23,5 +24,5 @@ export function hoist_struct_declaration(compiler: Compiler, node: AST) {
 		fields.set(name, type);
 	}
 
-	ctx.declare_struct(node, data.name, fields);
+	ctx.declare_struct(Ref.from_node(node), data.name, fields);
 }

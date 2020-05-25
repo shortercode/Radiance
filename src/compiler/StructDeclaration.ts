@@ -1,5 +1,4 @@
 import { AtiumType, StructAtiumType } from "./AtiumType";
-import { AST } from "./core";
 import { Ref } from "../WASTNode";
 
 export class StructDeclaration {
@@ -9,8 +8,8 @@ export class StructDeclaration {
 	fields: Map<string, AtiumType>
 	source: Ref
 	
-	constructor (node: AST, name: string, fields: Map<string, AtiumType>) {
-		this.source = Ref.from_node(node);
+	constructor (ref: Ref, name: string, fields: Map<string, AtiumType>) {
+		this.source = ref;
 		this.name = name;
 		this.fields = fields;
 		this.type = new StructAtiumType(fields, name);

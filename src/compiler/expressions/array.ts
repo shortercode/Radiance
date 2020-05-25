@@ -1,6 +1,6 @@
 import { Compiler, AST, TypeHint } from "../core";
-import { WASTExpressionNode, WASTConstNode } from "../../WASTNode";
-import { syntax_assert, type_assert, type_error } from "../error";
+import { WASTExpressionNode, WASTConstNode, Ref } from "../../WASTNode";
+import { type_assert } from "../error";
 import { create_object } from "./object";
 import { create_array_type, I32_TYPE } from "../AtiumType";
 
@@ -11,6 +11,7 @@ function read_node_data (node: AST) {
 export function visit_array_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
 	const values = [];
 	const statements = read_node_data(node);
+	const ref = Ref.from_node(node);
 
 	let inner_type_hint = null;
 
@@ -29,9 +30,10 @@ export function visit_array_expression (compiler: Compiler, node: AST, type_hint
 
 		inner_type = first_element.value_type;
 
-		for (const stmt of rest) {
+		for (let i = 0; i < rest.length; i++) {
+			const stmt = rest[i];
 			const result = compiler.visit_expression(stmt, inner_type);
-			type_assert(inner_type.equals(result.value_type), stmt, ``);
+			type_assert(inner_type.equals(result.value_type), stmt, `Inconsistent array literal types. First element is ${inner_type.name}, but element ${i + 1} is ${result.value_type.name}`);
 			values.push(result);
 		}
 	}
@@ -44,7 +46,7 @@ export function visit_array_expression (compiler: Compiler, node: AST, type_hint
 
 	// Arrays contain an additional value at the start which contains the length
 
-	const length_value = new WASTConstNode(node, I32_TYPE, values.length.toString());
+	const length_value = new WASTConstNode(ref, I32_TYPE, values.length.toString());
 	values.unshift(length_value);
 	
 	return create_object(compiler, node, array_type, values);

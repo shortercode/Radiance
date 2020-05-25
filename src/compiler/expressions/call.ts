@@ -1,5 +1,5 @@
 import { Compiler, AST, TypeHint } from "../core";
-import { WASTExpressionNode, WASTCallNode } from "../../WASTNode";
+import { WASTExpressionNode, WASTCallNode, Ref } from "../../WASTNode";
 import { type_assert, syntax_assert, is_defined } from "../error";
 
 function read_node_data (node: AST) {
@@ -36,5 +36,5 @@ export function visit_call_expression (compiler: Compiler, node: AST, type_hint:
 		args.push(expr);
 	}
 	
-	return new WASTCallNode(node, fn.id, function_name, fn.type, args)
+	return new WASTCallNode(Ref.from_node(node), fn.id, function_name, fn.type, args)
 }

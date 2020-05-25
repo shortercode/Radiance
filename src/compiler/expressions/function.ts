@@ -3,7 +3,7 @@ import { TypePattern } from "../../parser/index";
 import { Context } from "../Context";
 import { FunctionDeclaration } from "../FunctionDeclaration";
 import { compiler_assert, is_defined, type_assert } from "../error";
-import { WASTFunctionNode, WASTStatementNode } from "../../WASTNode";
+import { WASTFunctionNode, WASTStatementNode, Ref } from "../../WASTNode";
 import { Environment } from "../Environment";
 import { parse_type } from "../AtiumType";
 import { Variable } from "../Variable";
@@ -20,24 +20,26 @@ function read_node_data (node: AST) {
 export function hoist_function_declaration (compiler: Compiler, node: AST) {
 	const data = read_node_data(node);
 	const ctx = compiler.ctx;
+	const ref = Ref.from_node(node);
 
 	const parameters = data.parameters.map((param, index) => {
 		const type = parse_type(param.type, ctx);
-		return new Variable(node, type, param.name, index);
+		return new Variable(ref, type, param.name, index);
 	});
 
 	const return_type = parse_type(data.type, compiler.ctx);
-	ctx.declare_function(node, data.name, return_type, parameters);
+	ctx.declare_function(ref, data.name, return_type, parameters);
 }
 
 export function visit_function (compiler: Compiler, node: AST): Array<WASTStatementNode> {
 	const data = read_node_data(node);
+	const ref = Ref.from_node(node);
 	
 	const fn_decl = compiler.ctx.get_function(data.name)!; 
 	
 	compiler_assert(is_defined(fn_decl), node, "Cannot locate function declaration");
 
-	const fn_wast = initialise_function_environment(node, compiler.ctx, fn_decl);
+	const fn_wast = initialise_function_environment(ref, compiler.ctx, fn_decl);
 	
 	const last = data.body.slice(-1)[0];
 	const rest = data.body.slice(0, -1);
@@ -57,8 +59,8 @@ export function visit_function (compiler: Compiler, node: AST): Array<WASTStatem
 	return [fn_wast];
 }
 
-export function initialise_function_environment(node: AST, ctx: Context, decl: FunctionDeclaration) {
-	const fn_wast = new WASTFunctionNode(node, decl.id, decl.name, decl.type);
+export function initialise_function_environment(ref: Ref, ctx: Context, decl: FunctionDeclaration) {
+	const fn_wast = new WASTFunctionNode(ref, decl.id, decl.name, decl.type);
 	
 	ctx.environment = new Environment(decl.parameters);
 	

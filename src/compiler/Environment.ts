@@ -1,6 +1,6 @@
 import { AtiumType, I32_TYPE } from "./AtiumType";
 import { Variable } from "./Variable";
-import { AST } from "./core";
+import { Ref } from "../WASTNode";
 
 type Frame = Map<string, Variable>
 type ArrayAccessVariables = { index: Variable, target: Variable, length: Variable }
@@ -31,33 +31,33 @@ export class Environment {
 		this.frame_stack.shift();
 	}
 	
-	declare (node: AST, name: string, type: AtiumType): Variable {
+	declare (ref: Ref, name: string, type: AtiumType): Variable {
 		if (this.current_frame.has(name)) {
 			throw new Error(`Variable ${name} already exists in the current scope`);
 		}
-		const variable = this.create_variable(node, name, type);
+		const variable = this.create_variable(ref, name, type);
 		this.current_frame.set(name, variable);
 		return variable;
 	}
 	
-	declare_hidden (node: AST, name: string, type: AtiumType): Variable {
-		return this.create_variable(node, name, type);
+	declare_hidden (ref: Ref, name: string, type: AtiumType): Variable {
+		return this.create_variable(ref, name, type);
 	}
 
-	get_array_variables (node: AST) {
+	get_array_variables (ref: Ref) {
 		if (this.array_access_varables === null) {
 			// WARN isn't really correct using the node of the first accessor
 			this.array_access_varables = {
-				index: this.declare_hidden(node, "index", I32_TYPE),
-				target: this.declare_hidden(node, "target", I32_TYPE),
-				length: this.declare_hidden(node, "length", I32_TYPE)
+				index: this.declare_hidden(ref, "index", I32_TYPE),
+				target: this.declare_hidden(ref, "target", I32_TYPE),
+				length: this.declare_hidden(ref, "length", I32_TYPE)
 			};
 		}
 		return this.array_access_varables;
 	}
 	
-	private create_variable (node: AST, name: string, type: AtiumType): Variable {
-		const variable = new Variable(node, type, name, this.id_counter++);
+	private create_variable (ref: Ref, name: string, type: AtiumType): Variable {
+		const variable = new Variable(ref, type, name, this.id_counter++);
 		this.variables.push(variable);
 		return variable;
 	} 

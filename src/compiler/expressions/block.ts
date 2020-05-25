@@ -1,10 +1,11 @@
 import { Compiler, AST, TypeHint } from "../core";
-import { WASTExpressionNode, WASTNodeList } from "../../WASTNode";
+import { WASTExpressionNode, WASTNodeList, Ref } from "../../WASTNode";
 import { VOID_TYPE } from "../AtiumType";
 
 export function visit_block_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
 	const ctx = compiler.ctx;
-	const node_list = new WASTNodeList(node);
+	const ref = Ref.from_node(node);
+	const node_list = new WASTNodeList(ref);
 	const statements = node.data as Array<AST>;
 	
 	ctx.environment!.push_frame();

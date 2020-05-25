@@ -1,5 +1,5 @@
 import { Compiler, AST, TypeHint } from "../core";
-import { WASTExpressionNode, WASTNodeList, WASTConditionalNode } from "../../WASTNode";
+import { WASTExpressionNode, WASTNodeList, WASTConditionalNode, Ref } from "../../WASTNode";
 import { BOOL_TYPE, VOID_TYPE } from "../AtiumType";
 import { ensure_expression_emits_boolean } from "./boolean";
 
@@ -13,9 +13,10 @@ function read_node_data (node: AST) {
 
 export function visit_if_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
 	const data = read_node_data(node);
+	const ref = Ref.from_node(node);
 
 	let condition = compiler.visit_expression(data.condition, BOOL_TYPE);
-	condition = ensure_expression_emits_boolean(node, condition);
+	condition = ensure_expression_emits_boolean(condition);
 	
 	const then_branch = compiler.visit_expression(data.thenBranch, type_hint) as WASTNodeList;
 	let value_type = then_branch.value_type;
@@ -25,10 +26,10 @@ export function visit_if_expression (compiler: Compiler, node: AST, type_hint: T
 		if (else_branch.value_type.equals(value_type) === false) {
 			value_type = VOID_TYPE;
 		}
-		return new WASTConditionalNode(node, value_type, condition, then_branch, else_branch);
+		return new WASTConditionalNode(ref, value_type, condition, then_branch, else_branch);
 	}
 	else {
-		const else_branch = new WASTNodeList(node);
-		return new WASTConditionalNode(node, value_type, condition, then_branch, else_branch);
+		const else_branch = new WASTNodeList(ref);
+		return new WASTConditionalNode(ref, value_type, condition, then_branch, else_branch);
 	}
 }

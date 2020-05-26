@@ -1,18 +1,18 @@
-import { AtiumType, StructAtiumType } from "./AtiumType";
+import { LangType, StructLangType } from "./LangType";
 import { Ref } from "../WASTNode";
 
 export class StructDeclaration {
 	name: string
-	type: StructAtiumType
+	type: StructLangType
 	size: number
-	fields: Map<string, AtiumType>
+	fields: Map<string, LangType>
 	source: Ref
 	
-	constructor (ref: Ref, name: string, fields: Map<string, AtiumType>) {
+	constructor (ref: Ref, name: string, fields: Map<string, LangType>) {
 		this.source = ref;
 		this.name = name;
 		this.fields = fields;
-		this.type = new StructAtiumType(fields, name);
+		this.type = new StructLangType(fields, name);
 
 		let size = 0;
 		for (const type of fields.values()) {

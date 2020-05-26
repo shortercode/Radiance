@@ -1,7 +1,7 @@
 import { AST, Compiler } from "../core";
 import { TypePattern } from "../../parser/index";
 import { syntax_assert } from "../error";
-import { parse_type } from "../AtiumType";
+import { parse_type } from "../LangType";
 import { Ref } from "../../WASTNode";
 
 function read_node_data (node: AST) {

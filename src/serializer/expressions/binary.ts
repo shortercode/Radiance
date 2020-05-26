@@ -1,11 +1,11 @@
 import { FunctionContext } from "../FunctionContext";
 import { WASTBinaryExpressionNode, WASTExpressionNode } from "../../WASTNode";
-import { AtiumType } from "../../compiler/AtiumType";
+import { LangType } from "../../compiler/LangType";
 import { compiler_assert } from "../../compiler/error";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 
-export function write_binary_prefix(ctx: FunctionContext, node: WASTBinaryExpressionNode, write_expression: WriteExpression): AtiumType {
+export function write_binary_prefix(ctx: FunctionContext, node: WASTBinaryExpressionNode, write_expression: WriteExpression): LangType {
 	write_expression(ctx, node.left);
 	write_expression(ctx, node.right);
 	

@@ -48,9 +48,9 @@ const numeric_types = new Set([
 	...float_types
 ]);
 
-export type AtiumType = PrimativeAtiumType | TupleAtiumType | StructAtiumType | ArrayAtiumType;
+export type LangType = PrimativeLangType | TupleLangType | StructLangType | ArrayLangType;
 
-class PrimativeAtiumType {
+class PrimativeLangType {
 	private readonly type: PrimativeTypes
 	readonly name: string
 	readonly size: number
@@ -67,8 +67,8 @@ class PrimativeAtiumType {
 		}
 	}
 
-	equals (other: AtiumType): boolean {
-		if (other instanceof PrimativeAtiumType) {
+	equals (other: LangType): boolean {
+		if (other instanceof PrimativeLangType) {
 			return this.type === other.type;
 		}
 		return false;
@@ -119,7 +119,7 @@ class PrimativeAtiumType {
 	}
 }
 
-class AtiumObjectType {
+class ObjectLangType {
 	readonly name: string
 	readonly size: number = 4
 
@@ -127,7 +127,7 @@ class AtiumObjectType {
 		this.name = name;
 	}
 
-	equals (other: AtiumType): boolean {
+	equals (other: LangType): boolean {
 		throw new Error("Should not use direct instances of AtiumObjectType");
 	}
 
@@ -159,15 +159,15 @@ class AtiumObjectType {
 		return false;
 	}
 
-	as_tuple (): TupleAtiumType | null {
+	as_tuple (): TupleLangType | null {
 		return null;
 	}
 
-	as_struct (): StructAtiumType | null {
+	as_struct (): StructLangType | null {
 		return null;
 	}
 
-	as_array (): ArrayAtiumType | null {
+	as_array (): ArrayLangType | null {
 		return null;
 	}
 
@@ -176,21 +176,21 @@ class AtiumObjectType {
 	}
 }
 
-export class TupleAtiumType extends AtiumObjectType{
+export class TupleLangType extends ObjectLangType{
 	readonly types: Array<{
-		type: AtiumType,
+		type: LangType,
 		offset: number
 	}>
 	readonly size: number = 4
 
-	constructor (types: Array<AtiumType>, name: string) {
+	constructor (types: Array<LangType>, name: string) {
 		super(name);
 		this.types = this.calculate_offset(types);
 	}
 
-	private calculate_offset (types: Array<AtiumType>) {
+	private calculate_offset (types: Array<LangType>) {
 		let offset = 0;
-		return types.map((type: AtiumType) => {
+		return types.map((type: LangType) => {
 			const result = {
 				type,
 				offset
@@ -200,8 +200,8 @@ export class TupleAtiumType extends AtiumObjectType{
 		});
 	}
 
-	equals (other: AtiumType): boolean {
-		if (other instanceof TupleAtiumType) {
+	equals (other: LangType): boolean {
+		if (other instanceof TupleLangType) {
 			const a = this.types;
 			const b = other.types;
 
@@ -219,27 +219,27 @@ export class TupleAtiumType extends AtiumObjectType{
 		return false;
 	}
 
-	as_tuple (): TupleAtiumType {
+	as_tuple (): TupleLangType {
 		return this;
 	}
 }
 
-export class StructAtiumType extends AtiumObjectType {
+export class StructLangType extends ObjectLangType {
 	readonly types: Map<string, {
-		type: AtiumType,
+		type: LangType,
 		offset: number
 	}>
 	readonly size: number = 4
 
-	constructor (types: Map<string, AtiumType>, name: string) {
+	constructor (types: Map<string, LangType>, name: string) {
 		super(name);
 		this.types = this.calculate_offset(types);
 	}
 
-	private calculate_offset (types: Map<string, AtiumType>) {
+	private calculate_offset (types: Map<string, LangType>) {
 		let offset = 0;
 		const result: Map<string, {
-			type: AtiumType,
+			type: LangType,
 			offset: number
 		}> = new Map;
 		for (const [name, type] of types) {
@@ -252,25 +252,25 @@ export class StructAtiumType extends AtiumObjectType {
 		return result;
 	}
 
-	equals (other: AtiumType): boolean {
-		if (other instanceof StructAtiumType) {
+	equals (other: LangType): boolean {
+		if (other instanceof StructLangType) {
 			// we dont support structural typing, so we can use direct comparison
 			return this === other;
 		}
 		return false;
 	}
 
-	as_struct (): StructAtiumType {
+	as_struct (): StructLangType {
 		return this;
 	}
 }
 
-export class ArrayAtiumType extends AtiumObjectType {
-	readonly type: AtiumType
+export class ArrayLangType extends ObjectLangType {
+	readonly type: LangType
 	readonly size: number = 4
 	readonly count: number
 
-	constructor (type: AtiumType, name: string, count: number) {
+	constructor (type: LangType, name: string, count: number) {
 		super(name);
 		this.type = type;
 		this.count = count;
@@ -280,14 +280,14 @@ export class ArrayAtiumType extends AtiumObjectType {
 		return this.count >= 0;
 	}
 
-	equals (other: AtiumType): boolean {
-		if (other instanceof ArrayAtiumType) {
+	equals (other: LangType): boolean {
+		if (other instanceof ArrayLangType) {
 			return this.type.equals(other.type) && (this.is_sized() ? this.count === other.count : true);
 		}
 		return false;
 	}
 
-	as_array (): ArrayAtiumType {
+	as_array (): ArrayLangType {
 		return this;
 	}
 }
@@ -326,18 +326,18 @@ function type_pattern_name (pattern: TypePattern): string {
 	}
 }
 
-export function create_tuple_type (types: Array<AtiumType>) {
+export function create_tuple_type (types: Array<LangType>) {
 	const name = `(${types.map(t => t.name).join(",")})`;
-	return new TupleAtiumType(types, name);
+	return new TupleLangType(types, name);
 }
 
-export function create_array_type (type: AtiumType, count: number) {
+export function create_array_type (type: LangType, count: number) {
 	const size_label = count < 0 ? "" : count.toString();
 	const name = `${type.name}[${size_label}]`;
-	return new ArrayAtiumType(type, name, count);
+	return new ArrayLangType(type, name, count);
 }
 
-export function parse_type (pattern: TypePattern, ctx: Context): AtiumType {
+export function parse_type (pattern: TypePattern, ctx: Context): LangType {
 	const name = type_pattern_name(pattern);
 	switch (pattern.style) {
 		case "class": {
@@ -348,23 +348,23 @@ export function parse_type (pattern: TypePattern, ctx: Context): AtiumType {
 			}
 			else {
 				const type_enum = validate_primative_type(pattern.type);
-				return new PrimativeAtiumType(type_enum, name);
+				return new PrimativeLangType(type_enum, name);
 			}
 		}
 		case "tuple": {
-			const types: Array<AtiumType> = pattern.types.map(type => parse_type(type, ctx));
-			return new TupleAtiumType(types, name);
+			const types: Array<LangType> = pattern.types.map(type => parse_type(type, ctx));
+			return new TupleLangType(types, name);
 		}
 		case "array": {
 			const inner_type = parse_type(pattern.type, ctx);
-			return new ArrayAtiumType(inner_type, name, pattern.count);
+			return new ArrayLangType(inner_type, name, pattern.count);
 		}
 	}
 }
 
-export const BOOL_TYPE = new PrimativeAtiumType(PrimativeTypes.bool, "bool");
-export const VOID_TYPE = new PrimativeAtiumType(PrimativeTypes.void, "void");
-export const F64_TYPE = new PrimativeAtiumType(PrimativeTypes.f64, "f64");
-export const I32_TYPE = new PrimativeAtiumType(PrimativeTypes.i32, "i32");
-export const I64_TYPE = new PrimativeAtiumType(PrimativeTypes.i64, "i64");
-export const STR_TYPE = new PrimativeAtiumType(PrimativeTypes.str, "str");
+export const BOOL_TYPE = new PrimativeLangType(PrimativeTypes.bool, "bool");
+export const VOID_TYPE = new PrimativeLangType(PrimativeTypes.void, "void");
+export const F64_TYPE = new PrimativeLangType(PrimativeTypes.f64, "f64");
+export const I32_TYPE = new PrimativeLangType(PrimativeTypes.i32, "i32");
+export const I64_TYPE = new PrimativeLangType(PrimativeTypes.i64, "i64");
+export const STR_TYPE = new PrimativeLangType(PrimativeTypes.str, "str");

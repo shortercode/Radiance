@@ -2,7 +2,7 @@ import { WASTExpressionNode, WASTConditionalNode } from "../../WASTNode";
 import { FunctionContext } from "../FunctionContext";
 import { Opcode } from "../OpCode";
 import { write_value_type } from "../write_value_type";
-import { PrimativeTypes } from "../../compiler/AtiumType";
+import { PrimativeTypes } from "../../compiler/LangType";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 

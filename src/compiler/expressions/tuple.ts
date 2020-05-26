@@ -1,6 +1,6 @@
 import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTNodeList, Ref } from "../../WASTNode";
-import { AtiumType, create_tuple_type } from "../AtiumType";
+import { LangType, create_tuple_type } from "../LangType";
 import { create_object } from "./object";
 
 function read_node_data (node: AST) {
@@ -17,7 +17,7 @@ export function visit_tuple_expression (compiler: Compiler, node: AST, type_hint
 		return new WASTNodeList(Ref.from_node(node)); // this is equivilent to returning a void value, without actually returning one ( as void is the abscense of a value )
 	}
 
-	const value_types: Array<AtiumType> = [];
+	const value_types: Array<LangType> = [];
 	const values: Array<WASTExpressionNode> = [];
 	let type_hints = null;
 

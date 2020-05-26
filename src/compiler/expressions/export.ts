@@ -2,7 +2,7 @@ import { Compiler, AST } from "../core";
 import { WASTStatementNode, WASTGetLocalNode, WASTExpressionNode, WASTCallNode, WASTExportNode, WASTFunctionNode, WASTConditionalNode, WASTEqualsNode, WASTGetGlobalNode, WASTConstNode, WASTNodeList, WASTSetGlobalNode, WASTAddNode, WASTSubNode, WASTSetLocalNode, Ref } from "../../WASTNode";
 import { initialise_function_environment, complete_function_environment, visit_function } from "./function";
 import { syntax_assert, is_defined, compiler_assert } from "../error";
-import { I32_TYPE, VOID_TYPE } from "../AtiumType";
+import { I32_TYPE, VOID_TYPE } from "../LangType";
 import { Context } from "../Context";
 
 export function visit_export (compiler: Compiler, node: AST): Array<WASTStatementNode> {

@@ -339,6 +339,70 @@ describe("let statement", () => {
 	});
 });
 
+// describe("enum statement", () => {
+// 	test("enum no options", () => {
+// 		const ast = parse(`enum Name {}`);
+// 		compareModule(ast, [
+// 			new AST("enum", [1, 0], [1, 12], {
+// 				name: "Name",
+// 				cases: []
+// 			})
+// 		]);
+// 	});
+
+// 	test("enum single case with no value", () => {
+// 		const ast = parse(`enum Name {
+// 			a
+// 		}`);
+// 		compareModule(ast, [
+// 			new AST("enum", [1, 0], [1, 12], {
+// 				name: "Name",
+// 				cases: []
+// 			})
+// 		]);
+// 	});
+
+// 	test("enum cases with no value", () => {
+// 		const ast = parse(`enum Name {
+// 			a
+// 		}`);
+// 		compareModule(ast, [
+// 			new AST("enum", [1, 0], [1, 12], {
+// 				name: "Name",
+// 				cases: []
+// 			})
+// 		]);
+// 	})
+// });
+
+describe("include statement", () => {
+	
+	// import all public declarations into the current namespace
+	`include "module_name"`;
+	// import the public declarations a, b and c into the current namespace
+	`include a, b, c from "module_name"`;
+	// import all public declarations into the namespace object module_name and add module_name to the current namespace
+	`include "module_name" as module_name`;
+});
+
+describe("public statement", () => {
+	
+	`pub fn Name {}`;
+	`pub protocol Name {}`;
+	`pub class Name {}`;
+});
+
+describe("protocol statement", () => {
+
+	`protocol Name {
+		example_field: u32 // we expect the implementor to have this field
+		example_method (a: u32) -> u32 // we expect the implementor to have this method
+		example_default_method (a: u32) -> u32 {  // the implementor can override this method, or use it
+			0
+		} 
+	}`;
+});
+
 describe("primative literals", () => {
 	test("boolean true", () => {
 		const ast = parse(`true`);
@@ -382,12 +446,6 @@ describe("primative literals", () => {
 			new AST("expression", [1,0], [1,3], new AST("number", [1,0], [1,3], "42"))
 		]);
 	});
-	test("fractional part only", () => {
-		const ast = parse(".1");
-		compareModule(ast, [
-			new AST("expression", [1,0], [1,2], new AST("number", [1,0], [1,2], ".1"))
-		]);
-	});
 });
 
 describe("constructor expression", () => {
@@ -426,6 +484,8 @@ describe("constructor expression", () => {
 		]);
 	});
 });
+
+
 
 
 

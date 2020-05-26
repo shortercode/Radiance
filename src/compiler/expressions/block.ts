@@ -1,6 +1,6 @@
 import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTNodeList, Ref } from "../../WASTNode";
-import { VOID_TYPE } from "../AtiumType";
+import { VOID_TYPE } from "../LangType";
 
 export function visit_block_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
 	const ctx = compiler.ctx;

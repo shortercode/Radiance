@@ -1,9 +1,9 @@
 import { Writer } from "./Writer";
-import { AtiumType, PrimativeTypes } from "../compiler/AtiumType";
+import { LangType, PrimativeTypes } from "../compiler/LangType";
 import { Ref } from "../WASTNode";
 import { compiler_error } from "../compiler/error";
 
-export function write_value_type (writer: Writer, type: AtiumType) {
+export function write_value_type (writer: Writer, type: LangType) {
 	switch (type.wasm_type()) {
 		case PrimativeTypes.bool:
 		case PrimativeTypes.u32:

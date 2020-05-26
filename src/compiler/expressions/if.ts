@@ -1,6 +1,6 @@
 import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTNodeList, WASTConditionalNode, Ref } from "../../WASTNode";
-import { BOOL_TYPE, VOID_TYPE } from "../AtiumType";
+import { BOOL_TYPE, VOID_TYPE } from "../LangType";
 import { ensure_expression_emits_boolean } from "./boolean";
 
 function read_node_data (node: AST) {

@@ -1,7 +1,7 @@
 import { AST, Compiler } from "../core";
 import { TypePattern } from "../../parser/index";
 import { WASTExpressionNode, WASTConvertToFloat, WASTConvertToInt, Ref } from "../../WASTNode";
-import { parse_type } from "../AtiumType";
+import { parse_type } from "../LangType";
 import { type_assert, type_error } from "../error";
 import { wrap_boolean_cast } from "./boolean";
 

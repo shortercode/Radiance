@@ -1,6 +1,6 @@
 import { Writer } from "./Writer";
 import { Variable } from "../compiler/Variable";
-import { AtiumType } from "../compiler/AtiumType";
+import { LangType } from "../compiler/LangType";
 import { Opcode } from "./OpCode";
 import { FunctionContext } from "./FunctionContext";
 import { write_value_type } from "./write_value_type";
@@ -137,7 +137,7 @@ function generate_import_types (ctx: ModuleContext, statements: Array<WASTImport
 	return i;
 }
 
-function type_label (result: AtiumType, parameters: Array<AtiumType>) {
+function type_label (result: LangType, parameters: Array<LangType>) {
 	return parameters.map(param => param.name).join(",") + "->" + result.name;
 }
 
@@ -505,12 +505,12 @@ function finish_section_header (writer: Writer, offset: number) {
 }
 
 function compress_local_variables (locals: Array<Variable>) {
-	const output: Array<[AtiumType, number]> = [];
+	const output: Array<[LangType, number]> = [];
 	
 	if (locals.length === 0)
 	return output;
 	
-	let last: [AtiumType, number] = [
+	let last: [LangType, number] = [
 		locals[0].type,
 		0
 	];

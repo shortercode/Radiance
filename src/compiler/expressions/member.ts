@@ -1,7 +1,7 @@
 import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTLoadNode, WASTNotNode, Ref } from "../../WASTNode";
 import { type_assert, compiler_assert, type_error, is_defined, compiler_error } from "../error";
-import { StructAtiumType, TupleAtiumType, I32_TYPE } from "../AtiumType";
+import { StructLangType, TupleLangType, I32_TYPE } from "../LangType";
 
 function read_node_data (node: AST) {
 	return node.data as {
@@ -40,7 +40,7 @@ export function visit_member_expression (compiler: Compiler, node: AST, type_hin
 	type_error(node, `Target does not have any properties`);
 }
 
-function visit_tuple_member_expression (ref: Ref, target: WASTExpressionNode, target_type: TupleAtiumType, member: string) {
+function visit_tuple_member_expression (ref: Ref, target: WASTExpressionNode, target_type: TupleLangType, member: string) {
 	const index = parseInt(member);
 
 	compiler_assert(isFinite(index), ref, `Expected index to be a finite number`);
@@ -54,7 +54,7 @@ function visit_tuple_member_expression (ref: Ref, target: WASTExpressionNode, ta
 	return new WASTLoadNode(ref, type, target, offset);
 }
 
-function visit_struct_member_expression (ref: Ref, target: WASTExpressionNode, target_type: StructAtiumType, member: string) {
+function visit_struct_member_expression (ref: Ref, target: WASTExpressionNode, target_type: StructLangType, member: string) {
 	const member_type = target_type.types.get(member)!;
 
 	type_assert(is_defined(member_type), ref, `Cannot read member ${member} of tuple, as it doesn't contain a field of that name.`);

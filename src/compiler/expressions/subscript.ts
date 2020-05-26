@@ -1,7 +1,7 @@
 import { WASTExpressionNode, WASTLoadNode, WASTNodeList, WASTTeeLocalNode, WASTGreaterThanEqualsNode, WASTConstNode, WASTGetLocalNode, WASTLessThanNode, WASTBitwiseAndNode, WASTNotNode, WASTConditionalNode, WASTTrapNode, WASTSetLocalNode, WASTAddNode, WASTMultiplyNode, Ref } from "../../WASTNode";
 import { Compiler, AST, TypeHint } from "../core";
 import { type_error, type_assert } from "../error";
-import { I32_TYPE, VOID_TYPE, BOOL_TYPE } from "../AtiumType";
+import { I32_TYPE, VOID_TYPE, BOOL_TYPE } from "../LangType";
 
 function read_node_data (node: AST) {
 	return node.data as {

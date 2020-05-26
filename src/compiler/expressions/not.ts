@@ -1,6 +1,6 @@
 import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode } from "../../WASTNode";
-import { BOOL_TYPE } from "../AtiumType";
+import { BOOL_TYPE } from "../LangType";
 import { invert_boolean_expression } from "./boolean";
 
 export function visit_not_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {

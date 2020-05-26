@@ -1,6 +1,6 @@
 import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTConstNode, Ref } from "../../WASTNode";
-import { I64_TYPE, F64_TYPE } from "../AtiumType";
+import { I64_TYPE, F64_TYPE } from "../LangType";
 import { type_error } from "../error";
 
 export function visit_number_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {

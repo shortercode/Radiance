@@ -1,10 +1,10 @@
 import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTDataRefNode, Ref } from "../../WASTNode";
 import { encode_string } from "../../encode_string";
-import { STR_TYPE } from "../AtiumType";
+import { STR_TYPE } from "../LangType";
 
 /*
-	Strings are basically an array of bytes. In Atium all arrays are prepended
+	Strings are basically an array of bytes. All arrays are prepended
 	with a uint32 of the length of the following array ( even if the array is empty )
 */
 function encode_byte_array (bytes: Uint8Array) {

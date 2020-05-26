@@ -1,5 +1,5 @@
 import { Writer } from "./Writer";
-import { PrimativeTypes, get_primative_name } from "../compiler/AtiumType";
+import { PrimativeTypes, get_primative_name } from "../compiler/LangType";
 import { Variable } from "../compiler/Variable";
 import { Ref, WASTDataNode } from "../WASTNode";
 import { compiler_assert } from "../compiler/error";

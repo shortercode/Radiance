@@ -2,7 +2,7 @@ import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTConstNode, Ref } from "../../WASTNode";
 import { type_assert } from "../error";
 import { create_object } from "./object";
-import { create_array_type, I32_TYPE } from "../AtiumType";
+import { create_array_type, I32_TYPE } from "../LangType";
 
 function read_node_data (node: AST) {
 	return node.data as Array<AST>;

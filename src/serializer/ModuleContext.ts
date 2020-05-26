@@ -1,12 +1,12 @@
 import { Writer } from "./Writer";
-import { AtiumType } from "../compiler/AtiumType";
+import { LangType } from "../compiler/LangType";
 import { WASTDataNode } from "../WASTNode";
 
 export class ModuleContext {
 	readonly writer: Writer
 	readonly type_index_map: Map<string, {
-		result: AtiumType,
-		parameters: Array<AtiumType>
+		result: LangType,
+		parameters: Array<LangType>
 		index: number
 	}> = new Map
 	readonly function_index_map: Map<number, number> = new Map

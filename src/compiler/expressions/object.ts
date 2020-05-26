@@ -1,9 +1,9 @@
 import { WASTExpressionNode, WASTGetLocalNode, WASTNodeList, WASTStoreNode, WASTConstNode, WASTCallNode, WASTSetLocalNode, Ref } from "../../WASTNode";
 import { Compiler, AST } from "../core";
-import { I32_TYPE, AtiumType } from "../AtiumType";
+import { I32_TYPE, LangType } from "../LangType";
 import { is_defined, compiler_assert } from "../error";
 
-export function create_object(compiler: Compiler, node: AST, type: AtiumType, values: Array<WASTExpressionNode>): WASTExpressionNode {
+export function create_object(compiler: Compiler, node: AST, type: LangType, values: Array<WASTExpressionNode>): WASTExpressionNode {
 	const ref = Ref.from_node(node);
 	const pointer = compiler.ctx.environment!.declare_hidden(ref, "pointer", I32_TYPE);
 	const get_pointer_expr = new WASTGetLocalNode(ref, pointer.id, pointer.name, pointer.type);

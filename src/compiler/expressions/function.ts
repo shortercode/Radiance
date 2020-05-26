@@ -5,7 +5,7 @@ import { FunctionDeclaration } from "../FunctionDeclaration";
 import { compiler_assert, is_defined, type_assert } from "../error";
 import { WASTFunctionNode, WASTStatementNode, Ref } from "../../WASTNode";
 import { Environment } from "../Environment";
-import { parse_type } from "../AtiumType";
+import { parse_type } from "../LangType";
 import { Variable } from "../Variable";
 
 function read_node_data (node: AST) {

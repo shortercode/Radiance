@@ -2,7 +2,7 @@ import { Compiler, AST } from "../core";
 import { WASTStatementNode, WASTImportFunctionNode, Ref } from "../../WASTNode";
 import { TypePattern } from "../../parser/index";
 import { is_defined, compiler_assert } from "../error";
-import { parse_type } from "../AtiumType";
+import { parse_type } from "../LangType";
 
 function read_node_data (node: AST) {
 	return node.data as {

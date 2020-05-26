@@ -1,7 +1,7 @@
 import { FunctionContext } from "../FunctionContext";
 import { WASTExpressionNode, WASTConvertToInt } from "../../WASTNode";
 import { Opcode } from "../OpCode";
-import { PrimativeTypes } from "../../compiler/AtiumType";
+import { PrimativeTypes } from "../../compiler/LangType";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 

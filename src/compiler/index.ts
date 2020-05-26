@@ -1,4 +1,4 @@
-import { I32_TYPE } from "./AtiumType";
+import { I32_TYPE } from "./LangType";
 import { Variable } from "./Variable";
 import { Compiler, AST } from "./core";
 import { initialise_function_environment, complete_function_environment } from "./expressions/function";
@@ -10,7 +10,7 @@ const SHOULD_EXPORT_MEMORY = true;
 
 /*
 This class is the second stage of the process after the parser. It performs type validation
-on the Atium code and converts it from a Atium AST to a WebAssembly AST. The final stage
+on the language source and converts it from a language AST to a WebAssembly AST. The final stage
 serialises this WebAssembly AST into a binary file.
 */
 

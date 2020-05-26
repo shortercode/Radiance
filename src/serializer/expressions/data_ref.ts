@@ -1,7 +1,7 @@
 import { WASTExpressionNode, WASTConstNode, WASTDataRefNode } from "../../WASTNode";
 import { FunctionContext } from "../FunctionContext";
 import { Opcode } from "../OpCode";
-import { PrimativeTypes } from "../../compiler/AtiumType";
+import { PrimativeTypes } from "../../compiler/LangType";
 import { compiler_error, compiler_assert, is_defined } from "../../compiler/error";
 
 export function write_data_ref_expression(ctx: FunctionContext, node: WASTExpressionNode) {

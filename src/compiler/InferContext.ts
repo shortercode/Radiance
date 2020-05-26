@@ -1,8 +1,8 @@
 import { Context } from "./Context";
-import { AtiumType } from "./AtiumType";
+import { LangType } from "./LangType";
 
-type Frame = Map<string, AtiumType>
-type TypeHint = AtiumType | null
+type Frame = Map<string, LangType>
+type TypeHint = LangType | null
 
 class InferEnvironment {
 	private frame_stack: Array<Frame> = [ new Map ]
@@ -19,7 +19,7 @@ class InferEnvironment {
 		return this.frame_stack[0]!;
 	}
 
-	declare (name: string, type: AtiumType) {
+	declare (name: string, type: LangType) {
 		const frame = this.current_frame;
 		if (frame.has(name)) {
 			return null

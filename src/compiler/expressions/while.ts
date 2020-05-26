@@ -1,6 +1,6 @@
 import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTBlockNode, WASTNodeList, WASTSetLocalNode, WASTLoopNode, WASTConditionalBranchNode, WASTBranchNode, WASTGetLocalNode, Ref } from "../../WASTNode";
-import { BOOL_TYPE } from "../AtiumType";
+import { BOOL_TYPE } from "../LangType";
 import { invert_boolean_expression } from "./boolean";
 import { default_initialiser } from "../default_initialiser";
 

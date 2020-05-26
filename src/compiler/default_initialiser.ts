@@ -1,8 +1,8 @@
 import { WASTConstNode, WASTExpressionNode, Ref } from "../WASTNode";
 import { compiler_error } from "./error";
-import { AtiumType } from "./AtiumType";
+import { LangType } from "./LangType";
 
-export function default_initialiser(ref: Ref, value_type: AtiumType): WASTExpressionNode {
+export function default_initialiser(ref: Ref, value_type: LangType): WASTExpressionNode {
 	if (value_type.is_boolean() || value_type.is_numeric()) {
 		return new WASTConstNode(ref, value_type, "0");
 	}

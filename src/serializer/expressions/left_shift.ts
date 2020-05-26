@@ -3,7 +3,7 @@ import { Opcode } from "../OpCode";
 import { write_binary_prefix } from "./binary";
 import { WASTExpressionNode, WASTBinaryExpressionNode } from "../../WASTNode";
 import { compiler_error } from "../../compiler/error";
-import { PrimativeTypes } from "../../compiler/AtiumType";
+import { PrimativeTypes } from "../../compiler/LangType";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 

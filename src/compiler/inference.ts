@@ -1,9 +1,9 @@
 import Node from "../pratt/Node"; 
-import { BOOL_TYPE, AtiumType, parse_type, create_tuple_type, VOID_TYPE, TupleAtiumType, StructAtiumType, I32_TYPE, F64_TYPE } from "./AtiumType";
+import { BOOL_TYPE, LangType, parse_type, create_tuple_type, VOID_TYPE, TupleLangType, StructLangType, I32_TYPE, F64_TYPE } from "./LangType";
 import { InferContext } from "./InferContext";
 import { TypePattern } from "../parser/index";
 
-type TypeHint = AtiumType | null;
+type TypeHint = LangType | null;
 
 export function guess_expression_type (node: Node, ctx: InferContext): TypeHint {
 	switch (node.type) {
@@ -149,7 +149,7 @@ function guess_tuple_type (node: Node, ctx: InferContext): TypeHint {
 		values: Array<Node>
 	};
 
-	const value_types: Array<AtiumType> = [];
+	const value_types: Array<LangType> = [];
 	for (const sub_expr of data.values) {
 		const type = guess_expression_type(sub_expr, ctx);
 		// if any part isn't obvious we have to return null
@@ -278,7 +278,7 @@ function guess_member_type (node: Node, ctx: InferContext): TypeHint {
 	return null;
 }
 
-function guess_tuple_member_type (type: TupleAtiumType, member: string): TypeHint {
+function guess_tuple_member_type (type: TupleLangType, member: string): TypeHint {
 	const index = parseInt(member);
 
 	if (isNaN(index)) {
@@ -290,7 +290,7 @@ function guess_tuple_member_type (type: TupleAtiumType, member: string): TypeHin
 	return field ? field.type : null;
 }
 
-function guess_struct_member_type (type: StructAtiumType, member: string): TypeHint {
+function guess_struct_member_type (type: StructLangType, member: string): TypeHint {
 	const field = type.types.get(member);
 	
 	return field ? field.type : null;

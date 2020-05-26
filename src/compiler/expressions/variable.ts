@@ -1,7 +1,7 @@
 import { TypePattern } from "../../parser/index";
 import { AST, Compiler, TypeHint } from "../core";
 import { WASTExpressionNode, WASTSetLocalNode, Ref } from "../../WASTNode";
-import { parse_type } from "../AtiumType";
+import { parse_type } from "../LangType";
 import { guess_expression_type } from "../inference";
 import { InferContext } from "../InferContext";
 import { is_defined, type_assert } from "../error";

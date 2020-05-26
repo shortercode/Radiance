@@ -1,7 +1,7 @@
 import { WASTExpressionNode, WASTConstNode } from "../../WASTNode";
 import { FunctionContext } from "../FunctionContext";
 import { Opcode } from "../OpCode";
-import { PrimativeTypes } from "../../compiler/AtiumType";
+import { PrimativeTypes } from "../../compiler/LangType";
 import { compiler_error } from "../../compiler/error";
 
 export function write_const_expression(ctx: FunctionContext, node: WASTExpressionNode) {

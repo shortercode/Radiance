@@ -1,5 +1,5 @@
 import { WASTNodeList, WASTConstNode, WASTConditionalNode, WASTExpressionNode } from "../../WASTNode";
-import { BOOL_TYPE } from "../AtiumType";
+import { BOOL_TYPE } from "../LangType";
 import { Compiler, AST } from "../core";
 import { visit_binary_expresson } from "./binary";
 import { ensure_expression_emits_boolean } from "./boolean";

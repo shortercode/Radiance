@@ -1,4 +1,4 @@
-import { AtiumType, I32_TYPE } from "./AtiumType";
+import { LangType, I32_TYPE } from "./LangType";
 import { Variable } from "./Variable";
 import { Ref } from "../WASTNode";
 
@@ -31,7 +31,7 @@ export class Environment {
 		this.frame_stack.shift();
 	}
 	
-	declare (ref: Ref, name: string, type: AtiumType): Variable {
+	declare (ref: Ref, name: string, type: LangType): Variable {
 		if (this.current_frame.has(name)) {
 			throw new Error(`Variable ${name} already exists in the current scope`);
 		}
@@ -40,7 +40,7 @@ export class Environment {
 		return variable;
 	}
 	
-	declare_hidden (ref: Ref, name: string, type: AtiumType): Variable {
+	declare_hidden (ref: Ref, name: string, type: LangType): Variable {
 		return this.create_variable(ref, name, type);
 	}
 
@@ -56,7 +56,7 @@ export class Environment {
 		return this.array_access_varables;
 	}
 	
-	private create_variable (ref: Ref, name: string, type: AtiumType): Variable {
+	private create_variable (ref: Ref, name: string, type: LangType): Variable {
 		const variable = new Variable(ref, type, name, this.id_counter++);
 		this.variables.push(variable);
 		return variable;

@@ -7,13 +7,13 @@ export type TypePattern = { style: "tuple", types: Array<TypePattern> } | { styl
 
 /*
 This class is the first stage of the process. It converts a text stream into an
-Atium AST ready to be processed. This validates the basic syntax but does not
+AST ready to be processed. This validates the basic syntax but does not
 do any static analsis on the source at this stage.
 */
 
 const VOID_TYPE_PATTERN: TypePattern = { style: "class", type: "void" };
 
-class AtiumParser extends Parser {
+class LangParser extends Parser {
 	constructor () {
 		super();
 		
@@ -548,4 +548,4 @@ class AtiumParser extends Parser {
 }
 
 
-export default new AtiumParser;
+export default new LangParser;

@@ -1,6 +1,6 @@
 import { WASTStatementNode, WASTExpressionNode } from "../WASTNode"
 import { Context } from "./Context"
-import { AtiumType } from "./AtiumType";
+import { LangType } from "./LangType";
 import Node from "../pratt/Node";
 import { compiler_assert, is_defined } from "./error";
 
@@ -32,7 +32,7 @@ import { visit_array_expression } from "./expressions/array";
 import { visit_subscript_expression } from "./expressions/subscript";
 import { visit_string_expression } from "./expressions/string";
 
-export type TypeHint = AtiumType | null;
+export type TypeHint = LangType | null;
 export type AST = Node;
 
 type LocalStatementVistor = (ctx: Compiler, node: AST, type_hint: TypeHint) => WASTExpressionNode

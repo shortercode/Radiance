@@ -127,7 +127,7 @@ class ObjectLangType {
 		this.name = name;
 	}
 
-	equals (other: LangType): boolean {
+	equals (_other: LangType): boolean {
 		throw new Error("Should not use direct instances of AtiumObjectType");
 	}
 

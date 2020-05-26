@@ -1,15 +1,15 @@
 # Not based on C
 
-This document discusses the blog post [Let's stop copying C](https://eev.ee/blog/2016/12/01/lets-stop-copying-c/) and how it has inspired Atium. The OP covers many aspects of the C language which are disliked by some programmers, and which have spread out to other languages. So it's an opinion piece, but the interesting part is that it compares these in context with other languages and what variations exist to solve the problems. Making it quite an interesting piece when considering the syntax and behaviour of a new language. 
+This document discusses the blog post [Let's stop copying C](https://eev.ee/blog/2016/12/01/lets-stop-copying-c/) and how it has inspired Radiance. The OP covers many aspects of the C language which are disliked by some programmers, and which have spread out to other languages. So it's an opinion piece, but the interesting part is that it compares these in context with other languages and what variations exist to solve the problems. Making it quite an interesting piece when considering the syntax and behaviour of a new language. 
 
 As a disclaimer, I don't use C very often. But I don't mind it. Many things I see in it are in part the obvious solutions to implement a language. Obvious solutions are not always the best way, but without C we would likely not know the downsides related to these solutions.
 
 ## Textual inclusion
 Including other files in a surprising number of languages breaks down to compiling the file and dropping it into the current scope. Without the concept of a namespace you end up with the possibility of conflicting definitions, and it can be quite hard to discover where the symbol is definied. The other side of this coin is that you can end up with quite complex imports if you have to specify exactly which symbol you want to import from another file.
 
-We haven't come up with a definitive answer to the module system for Atium, but we are expecting some form of namespacing and explicit exports for modules. One possible answer could be the following:
+We haven't come up with a definitive answer to the module system for Radiance, but we are expecting some form of namespacing and explicit exports for modules. One possible answer could be the following:
 
-*main.atium*
+*main.rad*
 ```rust
 import Math from math
 
@@ -18,7 +18,7 @@ export func main () {
 }
 ```
 
-*math.atium*
+*math.rad*
 ```rust
 export func pow (base: f64, power: u32) -> f64 {
   let result = base
@@ -52,7 +52,7 @@ if ((err = SSLHashSHA1.final(&hashCtx, &hashOut)) != 0)
     goto fail;
 ```
 
-The new hotness which the likes of Rust and Swift use is `if CONDITION { STATEMENT* }`, note how parentheses are not required around the condition any more but the braces must be used. This reduces the visual noise, and enforces a safer form of the body. The only downside being a slightly more complicated parsing logic, but it's much easier for humans! So this is a bit of a no brainer for Atium. 
+The new hotness which the likes of Rust and Swift use is `if CONDITION { STATEMENT* }`, note how parentheses are not required around the condition any more but the braces must be used. This reduces the visual noise, and enforces a safer form of the body. The only downside being a slightly more complicated parsing logic, but it's much easier for humans! So this is a bit of a no brainer for Radiance. 
 
 ```
 while true {
@@ -69,7 +69,7 @@ If you've ever been bitten by the following, after you've figured out what's goi
 1 | 2 == 3  // 1 | (2 == 3)
 ```
 
-The precedence of `|` and `&` is not the same as the standard arithmetic operators, as so not to confuse programmers coming from B. Although nowadays it probably causes much more confusion! It's an easy decision to correct the precedence for Atium. This usage is uncommon enough that most people won't make the assumption about the precedence being like C.  
+The precedence of `|` and `&` is not the same as the standard arithmetic operators, as so not to confuse programmers coming from B. Although nowadays it probably causes much more confusion! It's an easy decision to correct the precedence for Radiance. This usage is uncommon enough that most people won't make the assumption about the precedence being like C.  
 
 ## Negative Modulo
 In C style languages the result of a negative modulo operation is also negative. Which isn't much of a surprise, but is perhaps less useful.

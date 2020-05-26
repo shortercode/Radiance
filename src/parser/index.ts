@@ -93,7 +93,7 @@ class LangParser extends Parser {
 		return this.createNode("=", left.start, end, { left, right });
 	}
 	
-	parseCallExpression(tokens: Iterator<Token>, left: Node, precedence: number): Node {
+	parseCallExpression(tokens: Iterator<Token>, left: Node, _precedence: number): Node {
 		const start = left.start;
 		
 		const values: Array<Node> = [];
@@ -119,7 +119,7 @@ class LangParser extends Parser {
 		return new Node("call", start, end, { callee: left, arguments: values });
 	}
 
-	parseConstructor(tokens: Iterator<Token>, left: Node, precedence: number): Node {
+	parseConstructor(tokens: Iterator<Token>, left: Node, _precedence: number): Node {
 		const start = left.start;
 		const fields: Map<string, Node> = new Map;
 
@@ -176,7 +176,7 @@ class LangParser extends Parser {
 		}
 	}
  
-	parseGrouping(tokens: Iterator<Token>, precedence: number): Node {
+	parseGrouping(tokens: Iterator<Token>, _precedence: number): Node {
 		const start = tokens.previous()!.start;
 		
 		if (this.match(tokens, "symbol:)")) {
@@ -230,7 +230,7 @@ class LangParser extends Parser {
 
 	}
 	
-	parseWhileExpression(tokens: Iterator<Token>, precedence: number): Node {
+	parseWhileExpression(tokens: Iterator<Token>, _precedence: number): Node {
 		const start = tokens.previous()!.start;
 		
 		const condition = this.parseExpression(tokens, 1);
@@ -249,7 +249,7 @@ class LangParser extends Parser {
 		return new Node("not", start, end, { subnode });
 	}
 	
-	parseIfExpression(tokens: Iterator<Token>, precedence: number): Node {
+	parseIfExpression(tokens: Iterator<Token>, _precedence: number): Node {
 		const start = tokens.previous()!.start;
 		
 		const condition = this.parseExpression(tokens, 1);

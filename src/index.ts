@@ -2,102 +2,76 @@ import Parser from "./parser/index";
 import Compiler from "./compiler/index";
 import Serializer from "./serializer/index";
 
-async function main () {
-	try {
-		await test();
-	}
-	catch (e) {
-		console.error(e.stack);
-	}
-}
-
-const { PerformanceObserver, performance } = require('perf_hooks');
 const fs = require("fs").promises;
+const { PerformanceObserver, performance } = require('perf_hooks');
 
-async function parseFile (name: string) {
-	const str = await fs.readFile(name, "utf8");
-	return  Parser.parseProgram(str, name);
-}
-
-async function test () {
+export function debug_compile_string (source: string, filename: string) {
 	performance.mark("mark_1");
-	const ast = await parseFile("test.atium");
+	const ast = Parser.parseProgram(source, filename);
 	performance.mark("mark_2");
-	// console.log("AST:");
-	// console.log(JSON.stringify(ast, null, 2));
 	const wast = Compiler(ast);
 	performance.mark("mark_3");
-	// console.log("WAST:");
-	// console.log(JSON.stringify(wast, null, 2));
 	const binary = Serializer(wast);
 	performance.mark("mark_4");
 
-	const obs = new PerformanceObserver((items: any) => {
-		for (const entry of items.getEntries()) {
-			console.log(`${entry.name} ${entry.duration}`);
-		}
+	const obs: PerformanceObserver = new PerformanceObserver((list: PerformanceObserverEntryList) => {
+		const lines = list.getEntries().map((entry: PerformanceEntry) => `${entry.name}: ${entry.duration}`);
+		console.log(lines.join("\n"));
 	});
-	obs.observe({ entryTypes: ['measure'] });
+
+	obs.observe({ entryTypes: ['measure'], buffered: true });
 
 	performance.measure("Parse", "mark_1", "mark_2");
 	performance.measure("Compile", "mark_2", "mark_3");
 	performance.measure("Serialise", "mark_3", "mark_4");
 	performance.measure("Overall", "mark_1", "mark_4");
-	// console.log("Binary:");
-	console.log(`Output size ${binary.byteLength}`);
-	console.log(Buffer.from(binary).toString("hex"))
 
-	fs.writeFile("test.wasm", binary);
-	const importObject = {
-		"imports": {
-			log_i32: (v:number) => console.log(`i32: ${v}`),
-			log_u32: (v:number) => console.log(`u32: ${v}`),
-			log_f32: (v:number) => console.log(`f32: ${v}`),
-			set_color: (r:number, g:number, b:number) => console.log(`rgb(${r},${g},${b})`),
-			draw_rect: (x:number,y:number,width:number,height:number) => console.log(`rect(${x},${y},${width},${height})`)
-		}
-	};
-	const { module, instance } = await WebAssembly.instantiate(binary, importObject);
-	
-	const mod = instance.exports;
+	obs.disconnect();
 
-	// console.log((double as any)(13));
-	// console.log((sub as any)(14, 8))
-	// console.log(add(12, 30));
-	// const factorial = mod.factorial as (a: number) => number
-	const point = mod.point as (x: number, y: number) => number
-	const point_x = mod.point_x as (p: number) => number
-	const point_y = mod.point_y as (p: number) => number
-	const say_hi = mod.say_hi as () => number
-	const array_test = mod.array_test as (p: number) => number
-	const main = mod.main as () => void
-	const memory = mod.memory as WebAssembly.Memory;
-
-	function read_str (mem: WebAssembly.Memory, ptr: number) {
-		const buffer = memory.buffer;
-		const view = new DataView(buffer);
-		const length = view.getInt32(ptr, true);
-		const u8_view = new Uint8Array(buffer, ptr + 4, length);
-		const decoder = new TextDecoder;
-		const str = decoder.decode(u8_view);
-		console.log(str);
-	}
-
-	main();
-
-	read_str(memory, say_hi());
-
-	for (let i = 0; i < 10; i++) {
-		const pt = point(691, 8888);
-		const a = point_x(pt);
-		const b = point_y(pt);
-		const c = array_test(i);
-		console.log(`${c} = ${a}, ${b}`);
-	}
-
-	const result = new Uint8Array(memory.buffer, 0, 80);
-
-	console.log(Buffer.from(result).toString("hex"))
+	return binary;
 }
 
-main();
+export async function debug_compile_file (filename: string) {
+	const str = await fs.readFile(name, "utf8");
+	return debug_compile_string(str, filename);
+}
+
+export async function debug_execute_string (source: string, import_object: { [key: string]: Function } = {}) {
+	const binary = debug_compile_string(source, "");
+	const { instance } = await WebAssembly.instantiate(binary, { "imports": import_object });
+	
+	return instance.exports;
+}
+
+export async function debug_execute_file (filename: string, import_object: { [key: string]: Function } = {}) {
+	const binary = await compile_file(filename);
+	const { instance } = await WebAssembly.instantiate(binary, { "imports": import_object });
+	
+	return instance.exports;
+}
+
+export function compile_string (source: string, filename: string) {
+	const ast = Parser.parseProgram(source, filename);
+	const wast = Compiler(ast);
+	return Serializer(wast);
+
+}
+
+export async function compile_file (filename: string) {
+	const str = await fs.readFile(name, "utf8");
+	return compile_string(str, filename);
+}
+
+export async function execute_string (source: string, import_object: { [key: string]: Function } = {}) {
+	const binary = compile_string(source, "");
+	const { instance } = await WebAssembly.instantiate(binary, { "imports": import_object });
+	
+	return instance.exports;
+}
+
+export async function execute_file (filename: string, import_object: { [key: string]: Function } = {}) {
+	const binary = await compile_file(filename);
+	const { instance } = await WebAssembly.instantiate(binary, { "imports": import_object });
+	
+	return instance.exports;
+}

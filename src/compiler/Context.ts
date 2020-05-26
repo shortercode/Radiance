@@ -4,7 +4,6 @@ import { LangType } from "./LangType";
 import { Variable } from "./Variable";
 import { syntax_assert, compiler_assert } from "./error";
 import { StructDeclaration } from "./StructDeclaration";
-import { AST } from "./core";
 import { WASTDataNode, Ref } from "../WASTNode";
 
 export class Context {

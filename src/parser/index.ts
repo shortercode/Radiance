@@ -123,28 +123,30 @@ class AtiumParser extends Parser {
 		const start = left.start;
 		const fields: Map<string, Node> = new Map;
 
-		while (tokens.incomplete()) { 
-			const field_start = tokens.previous()!.end;
-			const field_name = this.ensure(tokens, "identifier:");
+		if (!this.match(tokens, "symbol:}")) {
+			while (tokens.incomplete()) { 
+				const field_start = tokens.previous()!.end;
+				const field_name = this.ensure(tokens, "identifier:");
 
-			if (this.match(tokens, "symbol::")) {
-				tokens.next();
-				const value = this.parseExpression(tokens, 0);
+				if (this.match(tokens, "symbol::")) {
+					tokens.next();
+					const value = this.parseExpression(tokens, 0);
 
-				fields.set(field_name, value);
-			}
-			else {
-				const field_end = tokens.previous()!.end;
-				const value = this.createNode("identifier", field_start, field_end, field_name);
+					fields.set(field_name, value);
+				}
+				else {
+					const field_end = tokens.previous()!.end;
+					const value = this.createNode("identifier", field_start, field_end, field_name);
 
-				fields.set(field_name, value);
-			}
-			
-			if (this.match(tokens, "symbol:,")) {
-				tokens.next();
-			}
-			else {
-				break;
+					fields.set(field_name, value);
+				}
+				
+				if (this.match(tokens, "symbol:,")) {
+					tokens.next();
+				}
+				else {
+					break;
+				}
 			}
 		}
 

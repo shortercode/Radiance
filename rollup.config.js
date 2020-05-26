@@ -4,7 +4,7 @@ export default {
     input: './src/index.ts',
     output: [
         {
-            file: "dist/atiumlang.cjs.js",
+            file: "dist/radiance.js",
             format: "cjs"
         }
     ],

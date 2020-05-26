@@ -1,11 +1,18 @@
 {
-    "compilerOptions": {
-        "outDir": "./dist",
-        "target": "es2019",
-				"declaration": true,
-				"strict": true
-    },
-    "include": [
-        "./src/**/*"
-    ]
+	"compileOnSave": true,
+	"compilerOptions": {
+		"incremental": true,
+		"declaration": true,
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"removeComments": true,
+		"target": "es2019",
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"forceConsistentCasingInFileNames": true,
+		"esModuleInterop": true
+	}
 }

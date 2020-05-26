@@ -1,4 +1,4 @@
-import { WASTExpressionNode, WASTConstNode, WASTDataRefNode } from "../../WASTNode";
+import { WASTExpressionNode, WASTDataRefNode } from "../../WASTNode";
 import { FunctionContext } from "../FunctionContext";
 import { Opcode } from "../OpCode";
 import { PrimativeTypes } from "../../compiler/LangType";

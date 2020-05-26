@@ -10,7 +10,7 @@ function read_node_data (node: AST) {
 	};
 }
 
-export function visit_subscript_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
+export function visit_subscript_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
 	const value = read_node_data(node);
 
 	const target = compiler.visit_expression(value.target, null);

@@ -3,7 +3,7 @@ import { WASTExpressionNode, WASTConstNode, WASTNotEqualsNode, WASTNotNode, Ref 
 import { BOOL_TYPE } from "../LangType";
 import { compiler_error, type_error } from "../error";
 
-export function visit_boolean_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
+export function visit_boolean_expression (_compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
 	const value = node.data as string;
 	const type = BOOL_TYPE;
 	const ref = Ref.from_node(node);

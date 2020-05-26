@@ -131,7 +131,7 @@ function guess_block_type (node: Node, ctx: InferContext): TypeHint {
 	return result;
 }
 
-function guess_number_type (node: Node, ctx: InferContext): TypeHint {
+function guess_number_type (node: Node, _ctx: InferContext): TypeHint {
 	if (should_create_int(node.data as string)) {
 		return I32_TYPE;
 	}

@@ -29,7 +29,7 @@ export default class Scanner {
                 token = this.scanString(source, buffer, label);
 
             else if (this.isSymbol(source))
-                token = this.scanSymbol(source, buffer, label);
+                token = this.scanSymbol(source, label);
 
             else if (this.isWhitespace(source))
                 source.consume();
@@ -69,9 +69,11 @@ export default class Scanner {
         for (const ch of source) {
             buffer.push(ch);
 
-            if (this.isIdentifier(source) === false && this.isNumber(source) === false)
-                return new Token("identifier", buffer.consume(), start, source.position());
-        }
+            if (this.isIdentifier(source) === false && this.isNumber(source) === false) {
+								return new Token("identifier", buffer.consume(), start, source.position());
+						}
+				}
+				throw new Error("unreachable");
     }
     scanNumber (source: CharIterator, buffer: CharBuffer) {
         const start = source.position();
@@ -132,7 +134,7 @@ export default class Scanner {
 
         SyntaxError.UnterminatedStringLiteral(source.position(), label);
     }
-    scanLineComment (source: CharIterator, buffer: CharBuffer) {
+    scanLineComment (source: CharIterator) {
         source.next();
         source.next();
         for (const ch of source) {
@@ -142,7 +144,7 @@ export default class Scanner {
             }
         }
     }
-    scanComment (source: CharIterator, buffer: CharBuffer) {
+    scanComment (source: CharIterator) {
         source.next();
         source.next();
         for (const ch of source) {
@@ -153,16 +155,16 @@ export default class Scanner {
             }
         }
     }
-    scanSymbol (source: CharIterator, buffer: CharBuffer, label: string) {
+    scanSymbol (source: CharIterator, label: string) {
         let trie = this.symbols;
 
         if (source.peek() === "/") {
             const next = source.peekNext();
 
             if (next === "*")
-                return this.scanComment(source, buffer);
+                return this.scanComment(source);
             else if (next === "/")
-                return this.scanLineComment(source, buffer);
+                return this.scanLineComment(source);
         }
 
         const start = source.position();

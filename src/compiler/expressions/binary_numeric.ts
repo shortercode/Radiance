@@ -6,32 +6,32 @@ import { Compiler, AST, TypeHint } from "../core";
 // NOTE the type_hint for comparisons will be "boolean" which the children don't
 // care about. So pass null to the inner expressions
 
-export function visit_equality_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
+export function visit_equality_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
 	const { left, right, source } = visit_numeric_binary_expression(compiler, node, null);
 	return new WASTEqualsNode(source, left, right);
 }
 
-export function visit_inequality_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
+export function visit_inequality_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
 	const { left, right, source } = visit_numeric_binary_expression(compiler, node, null);
 	return new WASTNotEqualsNode(source, left, right);
 }
 
-export function visit_less_than_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
+export function visit_less_than_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
 	const { left, right, source } = visit_numeric_binary_expression(compiler, node, null);
 	return new WASTLessThanNode(source, left, right);
 }
 
-export function visit_greater_than_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
+export function visit_greater_than_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
 	const { left, right, source } = visit_numeric_binary_expression(compiler, node, null);
 	return new WASTGreaterThanNode(source, left, right);
 }
 
-export function visit_less_than_equals_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
+export function visit_less_than_equals_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
 	const { left, right, source } = visit_numeric_binary_expression(compiler, node, null);
 	return new WASTLessThanEqualsNode(source, left, right);
 }
 
-export function visit_greater_than_equals_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
+export function visit_greater_than_equals_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
 	const { left, right, source } = visit_numeric_binary_expression(compiler, node, null);
 	return new WASTGreaterThanEqualsNode(source, left, right);
 }

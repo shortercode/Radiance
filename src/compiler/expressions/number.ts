@@ -3,7 +3,7 @@ import { WASTExpressionNode, WASTConstNode, Ref } from "../../WASTNode";
 import { I64_TYPE, F64_TYPE } from "../LangType";
 import { type_error } from "../error";
 
-export function visit_number_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
+export function visit_number_expression (_compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
 	const ref = Ref.from_node(node);
 	if (type_hint !== null && type_hint.is_numeric()) {
 		const value = node.data as string;

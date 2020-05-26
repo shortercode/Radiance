@@ -18,7 +18,7 @@ function encode_byte_array (bytes: Uint8Array) {
 	return buffer_u8_view;
 }
 
-export function visit_string_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
+export function visit_string_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
 	const ref = Ref.from_node(node);
 	const data = node.data as string;
 	const str = encode_string(data);

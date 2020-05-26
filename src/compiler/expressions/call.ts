@@ -9,7 +9,7 @@ function read_node_data (node: AST) {
 	};
 }
 
-export function visit_call_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
+export function visit_call_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
 	const value = read_node_data(node);
 	
 	type_assert(value.callee.type === "identifier", node, `${value.callee.type} is not a function`);

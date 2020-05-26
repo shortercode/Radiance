@@ -8,7 +8,7 @@ function read_node_data (node: AST) {
 		right: AST
 	};
 }
-export function visit_assignment_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
+export function visit_assignment_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
 	const value = read_node_data(node);
 	const ref = Ref.from_node(node);
 

@@ -10,7 +10,7 @@ function read_node_data (node: AST) {
 	};
 }
 
-export function visit_constructor_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
+export function visit_constructor_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
 	const ctx = compiler.ctx;
 	const data = read_node_data(node);
 	const values = [];

@@ -21,10 +21,9 @@ class InferEnvironment {
 
 	declare (name: string, type: LangType) {
 		const frame = this.current_frame;
-		if (frame.has(name)) {
-			return null
+		if (!frame.has(name)) {
+			frame.set(name, type);
 		}
-		frame.set(name, type);
 	}
 
 	get (name: string): TypeHint {

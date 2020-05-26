@@ -304,16 +304,18 @@ class AtiumParser extends Parser {
 
 		this.ensure(tokens, "symbol:{");
 
-		while (tokens.incomplete()) { 
-			const field_name = this.ensure(tokens, "identifier:");
-			this.ensure(tokens, "symbol::");
-			const field_type = this.parseType(tokens);
-			fields.set(field_name, field_type);
-			if (this.match(tokens, "symbol:,")) {
-				tokens.next();
-			}
-			else {
-				break;
+		if (!this.match(tokens, "symbol:}")) {
+			while (tokens.incomplete()) { 
+				const field_name = this.ensure(tokens, "identifier:");
+				this.ensure(tokens, "symbol::");
+				const field_type = this.parseType(tokens);
+				fields.set(field_name, field_type);
+				if (this.match(tokens, "symbol:,")) {
+					tokens.next();
+				}
+				else {
+					break;
+				}
 			}
 		}
 

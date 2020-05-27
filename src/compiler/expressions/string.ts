@@ -11,8 +11,8 @@ function encode_byte_array (bytes: Uint8Array) {
 	const length = bytes.byteLength;
 	const buffer = new ArrayBuffer(length + 4);
 	const buffer_u8_view = new Uint8Array(buffer);
-	const buffer_u32_view = new Uint32Array(buffer);
-	buffer_u32_view[0] = length;
+	const data_view = new DataView(buffer);
+	data_view.setUint32(0, length, true);
 	buffer_u8_view.set(bytes, 4);
 
 	return buffer_u8_view;

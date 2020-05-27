@@ -308,6 +308,8 @@ function validate_primative_type (name: string): PrimativeTypes {
 		return PrimativeTypes["str"];
 		case "number":
 		return PrimativeTypes["f64"];
+		case "boolean":
+		return PrimativeTypes["bool"];
 		default:
 		throw new Error(`Cannot parse type "${name}" as primative type`);
 	}

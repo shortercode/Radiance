@@ -27,7 +27,7 @@ Radiance is available via NPM. It can either be used via the CLI or as a library
 npx radiance-lang hello.rad
 ```
 The library exports the following methods:
-```typscript
+```typescript
 export declare function compile_string(source: string, filename: string): Uint8Array;
 
 export declare function compile_file(filename: string): Promise<Uint8Array>;

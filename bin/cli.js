@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 
-import { execute_file, compile_file } from "../dist/radiance.js";
-
+const { execute_file, compile_file } = require("../dist/radiance.js");
 const fs = require("fs").promises;
 const path = require("path");
+
+const VERSION = "0.1.2";
 
 main();
 
 async function main () {
 	try {
-		const options = read_arguments(process.argv);
+		const options = read_arguments(process.argv.slice(2));
 		if (options.help) {
 			console.log(help_message());
 			return;
@@ -134,7 +135,6 @@ function read_arguments (argv) {
 		if (run === false && output === null) {
 			const { dir, name } = path.parse(input);
 			output = path.join(dir, name) + ".wasm";
-			throw new Error("please specify an output file");
 		}
 	}
 
@@ -148,7 +148,7 @@ function read_arguments (argv) {
 
 function help_message () {
 return `
-	Radiance Lang version: ${process.env.npm_package_version}
+	Radiance Lang version: ${VERSION}
 	Syntax: radiance [options] [file]
 
 	Examples: radiance hello.rad

@@ -13,14 +13,14 @@ We haven't come up with a definitive answer to the module system for Radiance, b
 ```rust
 import Math from math
 
-export func main () {
+export fn main () {
   Math.pow(2, 16)
 }
 ```
 
 *math.rad*
 ```rust
-export func pow (base: f64, power: u32) -> f64 {
+export fn pow (base: f64, power: u32) -> f64 {
   let result = base
   for i of 0...power {
     result = result * base

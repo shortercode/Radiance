@@ -161,9 +161,11 @@ describe("draw points", () => {
 describe("say hi", () => {
 	let mod: Record<string, WebAssembly.ExportValue>;
 
+	const str = "hello world!!";
+
 	test("compiles", async () => {
 		mod = await execute_string(`export fn say_hi -> str {
-			"hello world!"
+			"${str}"
 		}`);
 	});
 
@@ -183,8 +185,8 @@ describe("say hi", () => {
 
 		const ptr = say_hi();
 
-		expect(read_i32(memory, ptr)).toBe(12);
-		expect(read_string(memory, ptr)).toBe("hello world!");
+		expect(read_i32(memory, ptr)).toBe(str.length);
+		expect(read_string(memory, ptr)).toBe(str);
 	});
 });
 

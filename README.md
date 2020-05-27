@@ -19,6 +19,29 @@ export fn factorial (count: i32) -> i32 {
 }
 ```
 
+## Installation
+
+Radiance is available via NPM. It can either be used via the CLI or as a library.
+
+```bash
+npx radiance-lang hello.rad
+```
+The library exports the following methods:
+```typscript
+export declare function compile_string(source: string, filename: string): Uint8Array;
+
+export declare function compile_file(filename: string): Promise<Uint8Array>;
+
+export declare function execute_string(source: string, import_object?: {
+    [key: string]: Function;
+}): Promise<Record<string, WebAssembly.ExportValue>>;
+
+export declare function execute_file(filename: string, import_object?: {
+    [key: string]: Function;
+}): Promise<Record<string, WebAssembly.ExportValue>>;
+```
+It also includes debug variants, these only differ in that they provide performance statistics on the compiler.
+
 ## Secondary goal
 In part the syntax of this language was developed from the ideas of [Let's stop copying C](https://eev.ee/blog/2016/12/01/lets-stop-copying-c/). The article is well worth a read and discusses multiple evils that C has inspired in other languages, depending on your point of view some of these may be more controvertial than others. [Not based on C](not_based_on_c.md) discusses our take on the article, and what changes this has effected on Radiance.
 

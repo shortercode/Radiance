@@ -74,7 +74,7 @@ let c: f32 = 0 // 0 is interpreted as a f32 here
 ```
 
 ### Functions: fn
-The fn statement declares a new function. Both the parameters block and the return type are optional. In the abcense of a parameter block the function will have no parameters. In the abscense of a return type the function will return void.
+The fn statement declares a new function. Both the parameters block and the return type are optional. In the abscense of a parameter block the function will have no parameters. In the abscense of a return type the function will return void.
 
 ```
 fn main {
@@ -108,3 +108,53 @@ export fn print_42 {
 }
 ```
 
+### Conditional expressions: if
+Conditional logic can be written using `if` expressions which have the following syntax.
+
+```
+if a > 12 {
+	a - 12
+}
+else {
+	12 - a
+}
+```
+
+Parenthesis are not required around the condition. If you use them it's parsed as a grouping operator ( similar to `a * (b + c)` ). The clauses of the expression **must** be blocks, hence the braces are compulsary. The else clause is optional, `else if` is not supported at this time but can be reproduced by having another conditional expression within the else clause. The value of the expression is the value of the evaluated clause. As such the type of both clauses are expected to match, if they do not the expression will instead evaluate to void.
+
+### Loop expressions: while
+Loops can be implemented using the `while` expression. Parenthesis are not required around the condition. If you use them it's parsed as a grouping operator ( similar to `a * (b + c)` ). The clause of the expression **must** be a block, hence the braces are compulsary. The value of the while expression is the value of the last execution of the clause. If the clause is not executed it will return a default value ( normally 0 ), as such while expression cannot return complex types at the moment ( because they cannot have a default value ).
+```
+let i = 0;
+let r = 0;
+while i < 10 {
+	r = r + i;
+}
+```
+
+### Block expressions: {}
+Blocks are useful in that they create a new scope, but they also emit the value of their last statement.
+```
+let a: (bool, str) = {
+	(true, "hello")
+}
+```
+
+### Binary operators
+The following binary operators are supported, in order of precedence:
+- `and`,`or`: logical AND/OR operator
+- `==`, `!=` equality operators
+- `<`, `>`, `<=`, `>=` comparison operators
+- `+`, `-` addition and subtraction operators
+- `|` binary OR operator
+- `*`, `/`, `%` multiplication, division and remainder operators
+- `&` binary AND operator
+- `<<`, `>>` bitshift operators
+
+## Documentation TODO
+
+Logical not operator
+Typecast operator
+Member access operator
+Subscript operator
+Grouping operator

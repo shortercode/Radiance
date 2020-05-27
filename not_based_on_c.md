@@ -120,7 +120,27 @@ As Radiance is a new language, we don't have to support c style for loops. Notab
 ## Switch with default fallthrough
 There's a lot I don't like about C style switch statements. They have weird scoping rules, they are verbose and then there's default fallthrough... which is a quiet and frustrating source of errors, and almost never the behaviour you actually want.
 
+I'm personally quite happy without fallthrough, provided multiple cases can match a clause. The obvious solution being what Swift has gone for:
+
+```swift
+switch value {
+  case a, b, c: do_thing(value); 
+  case d, e, f: do_other_thing(value);
+  default: do_anything(value);
+}
+```
+
+Comma delimited value for each case. It's shorter, easier to read and best of all they got rid of default fallthrough! Rust replaced the switch statement with the match expression, which is similar but with the restriction that all possible cases must have a clause. This is in part because it's an expression, and hence is expected to return a consistent type from each clause for the resulting value. Given that Radiance also follows an "expressions all the way down" style it makes sense to follow more of Rusts concepts, but I prefer some of the syntax choices swift has made.
+
 ## Type first
+Declaring variables in C/Java/etc. is done by writing the type, then the name of the variable. While initially this seems "simpler" than writing a keyword followed by a type, I believe having a single keyword at the start of the line that says *I am a variable* makes it easier to read
+
+Additionally the inlusion of keywords at the start of the line just makes it super confusing, for example: `extern const volatile _Atomic unsigned long long int * restrict foo[];`. Not only is that hard to read, but it's hard for the compiler to parse as well. It's just not good design. Type should be second, and optional!
+
+```
+let a = "hello" // it's obviously a string, we don't need a type
+let a: f32 = 12 // float or int literal? let the type decide
+```
 ## Weak typing
 ## Integer division
 ## Bytestrings

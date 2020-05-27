@@ -32,7 +32,7 @@ export function debug_compile_string (source: string, filename: string) {
 }
 
 export async function debug_compile_file (filename: string) {
-	const str = await fs.readFile(name, "utf8");
+	const str = await fs.readFile(filename, "utf8");
 	return debug_compile_string(str, filename);
 }
 
@@ -58,7 +58,7 @@ export function compile_string (source: string, filename: string) {
 }
 
 export async function compile_file (filename: string) {
-	const str = await fs.readFile(name, "utf8");
+	const str = await fs.readFile(filename, "utf8");
 	return compile_string(str, filename);
 }
 

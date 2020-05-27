@@ -2,7 +2,7 @@ enum Optional<T> {
 	case Some (T)
 	case None
 
-	func unwrap (str: String): T {
+	fn unwrap (str: String): T {
 		switch self {
 			Some(i): {
 				i

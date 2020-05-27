@@ -1,3 +1,3 @@
-func main () {
+fn main () {
 	let (a, b) = (21, 42)
 }

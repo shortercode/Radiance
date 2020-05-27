@@ -78,10 +78,48 @@ In C style languages the result of a negative modulo operation is also negative.
 Languages should not treat `013` as `11`. It's just inviting errors from developers who want their numbers to line up in a pretty way. The JS syntax of 0o13 for Octal is much better, and having different letters allows definition of other bases as well such as hexadecimal (0xFF) and binary (0b10). Wether or not having a leading zero should be a syntax error or not... well that an exercise for the reader.
 
 ## No power operator
-
+The addition of the power operator in ES2016 was a breath of fresh air. It isn't technically needed, as `Math.pow` did exactly the same thing. But it always felt odd that a basic mathmatical concept wasnt' an operator! I'd love to implement this in Radiance, but upsettingly the WASM binary format doesn't have an opcode for it. So we would have to patch through to JS land anyway. At some point I'm meaning to look into better JS integration, which would allow us to add this.
 
 ## C style for loops
+Do you know that JS has 3 different types of `for` loops?
+```javascript
+const arr = [1,2,3]
+for (let i = 0; i < arr.length; i++) {
+  const value = arr[i];
+  console.log(value);
+}
+
+for (let i in arr) {
+  const value = arr[i];
+  console.log(value);
+}
+
+for (let value of arr) {
+  console.log(value);
+}
+```
+Trying to parse that is great fun by the way, as my experiments in parsing JS found. The newest one, `for..of` is great, does exactly what you want most of the time. It calls whatever the objects iteration method is and gives you value. Awesome. It's a bit awkward if you want to also have the index, but you can work around that.
+
+`for..in` is a bit older. It enumerates over the indecies of an object. Down side is back in the wild west days of JS objects sometimes had random enumerable properties tagged on via their prototype, leading to fun code like this:
+
+```javascript
+function forEach(dict, fn) {
+    for (key in dict) {
+        if (dict.hasOwnProperty(key))
+            fn(key, dict[key]);
+    }
+}
+```
+
+Mmm not so great. Oh it does it's job, but using iterators is much more powerful and avoid funky enumerability problems.|
+
+Last and definitely least we have a carbon copy of the c style for loop ( unsurprisingly ). The syntax is goofy, and requires a lot of boilerplate to do simple array iteration.
+
+As Radiance is a new language, we don't have to support c style for loops. Notably Rust doesn't support them either. Instead it just has iteration based loops, and Radiance is going down exactly the same path. It's not the simplist route for us to implement, but it's the best for the developer.
+
 ## Switch with default fallthrough
+There's a lot I don't like about C style switch statements. They have weird scoping rules, they are verbose and then there's default fallthrough... which is a quiet and frustrating source of errors, and almost never the behaviour you actually want.
+
 ## Type first
 ## Weak typing
 ## Integer division

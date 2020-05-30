@@ -1,10 +1,9 @@
 import { WASTExpressionNode, WASTGetLocalNode, WASTNodeList, WASTStoreNode, WASTConstNode, WASTCallNode, WASTSetLocalNode, Ref } from "../../WASTNode";
-import { Compiler, AST } from "../core";
+import { Compiler } from "../core";
 import { I32_TYPE, LangType } from "../LangType";
 import { is_defined, compiler_assert } from "../error";
 
-export function create_object(compiler: Compiler, node: AST, type: LangType, values: Array<WASTExpressionNode>): WASTExpressionNode {
-	const ref = Ref.from_node(node);
+export function create_object(compiler: Compiler, ref: Ref, type: LangType, values: Array<WASTExpressionNode>): WASTExpressionNode {
 	const pointer = compiler.ctx.environment!.declare_hidden(ref, "pointer", I32_TYPE);
 	const get_pointer_expr = new WASTGetLocalNode(ref, pointer.id, pointer.name, pointer.type);
 
@@ -19,7 +18,7 @@ export function create_object(compiler: Compiler, node: AST, type: LangType, val
 	}
 
 	const malloc_fn = compiler.ctx.get_function("malloc")!;
-	compiler_assert(is_defined(malloc_fn), node, "Unable to locate malloc function");
+	compiler_assert(is_defined(malloc_fn), ref, "Unable to locate malloc function");
 
 	const call_malloc_expr = new WASTCallNode(ref, malloc_fn.id, "malloc_temp", type, [
 		new WASTConstNode(ref, I32_TYPE, value_offset.toString())

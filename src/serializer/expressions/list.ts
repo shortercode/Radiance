@@ -6,12 +6,13 @@ import { compiler_assert } from "../../compiler/error";
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 
 export function write_list_expression(ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) {
-	
+	const start_depth = ctx.stack_depth;
 	const list_node = node as WASTNodeList;
 	const statements = list_node.nodes;
 	
-	if (statements.length === 0)
-	return;
+	if (statements.length === 0) {
+		return;
+	}
 	
 	for (let i = 0; i < statements.length - 1; i++) {
 		const subnode = statements[i];
@@ -32,11 +33,13 @@ export function write_list_expression(ctx: FunctionContext, node: WASTExpression
 			ctx.writer.writeUint8(Opcode.drop);
 		}
 	}
+
+	const depth_delta = ctx.stack_depth - start_depth;
 	
 	if (list_node.value_type.is_void()) {
-		compiler_assert(ctx.stack_depth === 0, list_node.source, `Expected no values on the stack, but found ${ctx.stack_depth}`);
+		compiler_assert(depth_delta === 0, list_node.source, `Expected no values on the stack, but found ${ctx.stack_depth}`);
 	}
 	else {
-		compiler_assert(ctx.stack_depth === 1, list_node.source, `Expected 1 value on the stack, but found ${ctx.stack_depth}`);
+		compiler_assert(depth_delta === 1, list_node.source, `Expected 1 value on the stack, but found ${ctx.stack_depth}`);
 	}
 }

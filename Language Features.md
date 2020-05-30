@@ -142,19 +142,62 @@ let a: (bool, str) = {
 
 ### Binary operators
 The following binary operators are supported, in order of precedence:
-- `and`,`or`: logical AND/OR operator
+- `and`,`or`: logical AND/OR operator ( with short circuit )
 - `==`, `!=` equality operators
 - `<`, `>`, `<=`, `>=` comparison operators
 - `+`, `-` addition and subtraction operators
-- `|` binary OR operator
+- `|` binary OR operator ( can be used for boolean values, for to avoid conditionality of `or`)
 - `*`, `/`, `%` multiplication, division and remainder operators
-- `&` binary AND operator
+- `&` binary AND operator ( can be used for boolean values, for to avoid conditionality of `and`)
 - `<<`, `>>` bitshift operators
 
-## Documentation TODO
+### Grouping operator
+Expressions can be wrapped with parenthesis in order to explicitly group operands. This is useful if the operator predence does not match the order of operands you want. It can additionally be useful if the execution order of expression is complicated and you want to make it clearer. This operator affects only how the compiler interprets your expression, and has no runtime cost.
 
-Logical not operator
-Typecast operator
-Member access operator
-Subscript operator
-Grouping operator
+```
+let a = 1 + 2 * 3 // 7
+let b = (1 + 2) * 3 // 9
+```
+
+### Unary not operator
+Radiance uses the keyword `not` for the unary negation operator, instead of the archetype of `!`. This is to improve visibility of the operator and hopefully reduce errors.
+
+```
+let is_active = false
+if not is_active {
+	is_active = true
+	activate()
+}
+```
+
+### Typecast
+As Radiance provides no implicit type conversion (coercion) between primitive types. But, explicit type conversion (casting) can be performed using the as keyword. This is not a blind conversion as with TypeScript, the compiler is aware of both the input and output types and can only convert to compatible types. At the moment conversion will only occur if the input type is numeric, but there are plans to support tuples of numeric values in future. 
+
+```
+let a: u32 = 9 as f32 // illegal! no implicit conversion of f32 to u32
+let b: u32 = 9.9 as u32 // b == 9 fractional part is discarded in conversion
+let c: u32 = (0, 0) as f32 // illegal unable to cast non-numeric type
+let d: (u32, u32) = (4.1, 2.1) as (u32, u32) // doesn't corrently work, support for this is planned in future
+```
+
+### Member access
+Members of structs and tuples can be accessed using the syntax `obj.member_name` and `tuple.0` respectively. Attempting to access a member that doesn't exist is a compile time error. At the moment this syntax can only be used to read values, not to modify, but this is something that is being worked on.
+
+This syntax can be additionally used with the array and string types to access inbuilt readonly properties:
+- string.byte_length: length of the string in bytes (i32)
+- array.length: number of elements in the array (i32)
+- array.is_empty: does the array have a length of 0? (bool)
+
+### Subscript operator ( array access )
+The subscript operator can be used to access the elements of an array. Due to the dynamic nature of this operand each array access performs a bounds check on the array that is being accessed, and will trigger a panic if the index is out of range.
+
+```
+import print_i32 (val: i32)
+
+let a = [9, 8, 7, 6, 5, 4, 3, 2, 1]
+let i = 0;
+while i < a.length {
+	print_i32(a[i])
+	i = i + 1
+}
+```

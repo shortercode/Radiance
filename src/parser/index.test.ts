@@ -448,6 +448,46 @@ describe("primative literals", () => {
 	});
 });
 
+describe("member expression", () => {
+	test("basic id member", () => {
+		const ast = parse("a.name");
+		compareModule(ast, [
+			new AST("expression", [1,0],[1,6], new AST("member", [1,0],[1,6], {
+				target: new AST("identifier", [1, 0], [1, 1], "a"),
+				member: "name"
+			}))
+		]);
+	});
+
+	test("basic numerical member", () => {
+		const ast = parse("a.0");
+		compareModule(ast, [
+			new AST("expression", [1,0],[1,3], new AST("member", [1,0],[1,3], {
+				target: new AST("identifier", [1, 0], [1, 1], "a"),
+				member: "0"
+			}))
+		]);
+	});
+
+	test("nested numerical member", () => {
+		const ast = parse("a.0.0.0");
+		compareModule(ast, [
+			new AST("expression", [1,0],[1,7], new AST("member", [1,0],[1,7], {
+				target: new AST("member", [1,0],[1,5], {
+					target: new AST("member", [1,0],[1,3], {
+						target: new AST("identifier", [1, 0], [1, 1], "a"),
+						member: "0"
+					}),
+					member: "0"
+				}),
+				member: "0"
+			}))
+		]);
+	});
+
+
+})
+
 describe("constructor expression", () => {
 	test("basic constructor no fields", () => {
 		const ast = parse("Obj {}");

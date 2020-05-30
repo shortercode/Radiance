@@ -14,5 +14,8 @@
 		"noFallthroughCasesInSwitch": true,
 		"forceConsistentCasingInFileNames": true,
 		"esModuleInterop": true
-	}
+	},
+	"exclude": [
+		"**/*.test.ts"
+	]
 }

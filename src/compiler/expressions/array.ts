@@ -38,7 +38,7 @@ export function visit_array_expression (compiler: Compiler, node: AST, type_hint
 		}
 	}
 	else {
-		type_assert(inner_type !== null, node, `Unable to infer the type of empty array, please add type annotation`);
+		type_assert(inner_type !== null, ref, `Unable to infer the type of empty array, please add type annotation`);
 		inner_type = inner_type!;
 	}
 
@@ -49,5 +49,5 @@ export function visit_array_expression (compiler: Compiler, node: AST, type_hint
 	const length_value = new WASTConstNode(ref, I32_TYPE, values.length.toString());
 	values.unshift(length_value);
 	
-	return create_object(compiler, node, array_type, values);
+	return create_object(compiler, ref, array_type, values);
 }

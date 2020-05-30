@@ -11,6 +11,7 @@ function read_node_data (node: AST) {
 
 export function visit_tuple_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
 	const data = read_node_data(node);
+	const ref = Ref.from_node(node);
 
 	// TODO remove this
 	if (data.values.length === 0) {
@@ -38,5 +39,5 @@ export function visit_tuple_expression (compiler: Compiler, node: AST, type_hint
 
 	const tuple_type = create_tuple_type(value_types);
 
-	return create_object(compiler, node, tuple_type, values);
+	return create_object(compiler, ref, tuple_type, values);
 }

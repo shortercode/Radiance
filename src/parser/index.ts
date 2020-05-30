@@ -166,7 +166,32 @@ class LangParser extends Parser {
 	}
 
 	parseMemberAccess(tokens: Iterator<Token>, left: Node): Node {
-		if (this.match(tokens, "number:") || this.match(tokens, "identifier:")) {
+		if (this.match(tokens, "number:")) {
+			const member = tokens.consume()!.value;
+			const end = tokens.previous()!.end;
+
+			/*
+				HACK the scanner will group a.0.0 into (a)(0.0) thinking the latter is a number
+				this is unfortunately not trivial to solve, hence we need a small hack here to
+				split it back up.
+			*/
+			if (member.includes(".")) {
+				const [a, b] = member.split(".");
+				const end_a: [number, number] = [end[0], end[1] - 2];
+
+				return new Node("member", left.start, end, {
+					target: new Node("member", left.start, end_a, {
+						target: left,
+						member: a
+					}),
+					member: b
+				})
+			}
+			else {
+				return new Node("member", left.start, end, { target: left, member})
+			}
+		}
+		else if (this.match(tokens, "identifier:")) {
 			const member = tokens.consume()!.value;
 			const end = tokens.previous()!.end;
 			return new Node("member", left.start, end, { target: left, member})

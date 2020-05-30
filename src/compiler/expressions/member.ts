@@ -67,7 +67,7 @@ function visit_struct_member_expression (ref: Ref, target: WASTExpressionNode, t
 function visit_string_member_expression (ref: Ref, target: WASTExpressionNode, member: string) {
 	// TODO this can be optimised for fixed length strings
 	switch (member) {
-		case "length":
+		case "byte_length":
 		return new WASTLoadNode(
 			ref,
 			I32_TYPE,
@@ -88,7 +88,7 @@ function visit_array_member_expression (ref: Ref, target: WASTExpressionNode, me
 			target,
 			0
 		);
-		case "isEmpty":
+		case "is_empty":
 		return new WASTNotNode(ref, 
 			new WASTLoadNode(
 				ref,

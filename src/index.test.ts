@@ -48,6 +48,29 @@ describe("factorial", () => {
 	});
 });
 
+describe("cast tuple", () => {
+	let mod: Record<string, WebAssembly.ExportValue>;
+
+	test("compiles", async () => {
+		mod = await execute_string(`export fn cast_int_tuple (a: i32, b: i32, c: i32) -> f64 {
+			let tuple_a = ((a, b), c)
+			let tuple_b = tuple_a as ((f64, f64), f64)
+			tuple_b.0.0 / tuple_b.0.1 + tuple_b.1
+		}`);
+	});
+
+	test("export cast_int_tuple", () => {
+		expect(mod).toHaveProperty("cast_int_tuple");
+		expect(mod.cast_int_tuple).toBeInstanceOf(Function);
+	});
+
+	test("return values", () => {
+		const cast_int_tuple = mod.cast_int_tuple as (a: number, b: number, c: number) => number;
+
+		expect(cast_int_tuple(6, 5, 1)).toBeCloseTo(6/5 + 1);
+	});
+});
+
 describe("fibonacci", () => {
 	let mod: Record<string, WebAssembly.ExportValue>;
 

@@ -1,10 +1,10 @@
-export default class Node {
+export default class Node<T = unknown> {
     type: string
-    data: unknown
+    data: T
     start: [number, number]
     end: [number, number]
 
-    constructor (type: string, start: [number, number], end: [number, number], data: unknown) {
+    constructor (type: string, start: [number, number], end: [number, number], data: T) {
         this.type = type;
         this.data = data;
         this.start = start;

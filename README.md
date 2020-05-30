@@ -19,6 +19,8 @@ export fn factorial (count: i32) -> i32 {
 }
 ```
 
+A more in depth look at the language can be found [here](Language%20Features.md).
+
 ## Installation
 
 Radiance is available via NPM. It can either be used via the CLI or as a library.

@@ -366,6 +366,7 @@ export function parse_type (pattern: TypePattern, ctx: Context): LangType {
 
 export const BOOL_TYPE = new PrimativeLangType(PrimativeTypes.bool, "bool");
 export const VOID_TYPE = new PrimativeLangType(PrimativeTypes.void, "void");
+export const F32_TYPE = new PrimativeLangType(PrimativeTypes.f32, "f32");
 export const F64_TYPE = new PrimativeLangType(PrimativeTypes.f64, "f64");
 export const I32_TYPE = new PrimativeLangType(PrimativeTypes.i32, "i32");
 export const I64_TYPE = new PrimativeLangType(PrimativeTypes.i64, "i64");

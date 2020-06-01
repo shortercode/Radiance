@@ -14,6 +14,7 @@ describe("factorial", () => {
 				while i < count {
 					i = i + 1
 					result = result * i
+					result
 				}
 			}
 		}`);

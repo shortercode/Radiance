@@ -12,41 +12,41 @@ function read_node_data (node: AST) {
 
 export function visit_subscript_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
 	const value = read_node_data(node);
+	const ref = Ref.from_node(node);
 
 	const target = compiler.visit_expression(value.target, null);
 	const target_array_type = target.value_type.as_array();
 
 	if (target_array_type) {
-		return visit_array_subscript_expression(compiler, node, target, value.accessor);
+		return visit_array_subscript_expression(compiler, ref, target, value.accessor);
 	}
 
 	if (target.value_type.is_string()) {
-		return visit_string_subscript_expression(compiler, node, target, value.accessor);
+		return visit_string_subscript_expression(compiler, ref, target, value.accessor);
 	}
 
-	type_error(node, `Target does not have any entries`);
+	type_error(ref, `Target does not have any entries`);
 }
 
-function visit_array_subscript_expression (compiler: Compiler, node: AST, target: WASTExpressionNode, accessor: AST) {	
-	const accessor_expression = ensure_int32(node, compiler.visit_expression(accessor, I32_TYPE));
+function visit_array_subscript_expression (compiler: Compiler, ref: Ref, target: WASTExpressionNode, accessor: AST) {	
+	const accessor_expression = ensure_int32(ref, compiler.visit_expression(accessor, I32_TYPE));
 
-	const index = bounds_check(compiler, node, target, accessor_expression);
+	const index = bounds_check(compiler, ref, target, accessor_expression);
 	const type = target.value_type.as_array()!.type;
-	return new WASTLoadNode(Ref.from_node(node), type, index, 0);
+	return new WASTLoadNode(ref, type, index, 0);
 }
 
-function visit_string_subscript_expression (compiler: Compiler, node: AST, target: WASTExpressionNode, accessor: AST) {	
-	const accessor_expression = ensure_int32(node, compiler.visit_expression(accessor, I32_TYPE));
+function visit_string_subscript_expression (compiler: Compiler, ref: Ref, target: WASTExpressionNode, accessor: AST) {	
+	const accessor_expression = ensure_int32(ref, compiler.visit_expression(accessor, I32_TYPE));
 
-	const index = bounds_check(compiler, node, target, accessor_expression);
+	const index = bounds_check(compiler, ref, target, accessor_expression);
 	
 	throw new Error(`String subscript operator is not implented yet. We cannot yet load u8 values from memory`);
 
-	return new WASTLoadNode(Ref.from_node(node), I32_TYPE, index, 0);
+	return new WASTLoadNode(ref, I32_TYPE, index, 0);
 }
 
-function bounds_check (compiler: Compiler, node: AST, target: WASTExpressionNode, accessor: WASTExpressionNode): WASTExpressionNode {
-	const ref = Ref.from_node(node);
+export function bounds_check (compiler: Compiler, ref: Ref, target: WASTExpressionNode, accessor: WASTExpressionNode): WASTExpressionNode {
 	const variables = compiler.ctx.environment!.get_array_variables(ref);
 	const { id: target_id, name: target_name } = variables.target;
 	const { id: index_id, name: index_name } = variables.index;
@@ -137,8 +137,8 @@ function bounds_check (compiler: Compiler, node: AST, target: WASTExpressionNode
 	return result_expression;
 }
 
-function ensure_int32 (node: AST, expr: WASTExpressionNode): WASTExpressionNode {
+export function ensure_int32 (ref: Ref, expr: WASTExpressionNode): WASTExpressionNode {
 	// TODO	add a type cast here if it's a compatiblish value
-	type_assert(expr.value_type.equals(I32_TYPE), node, `Unable to index array, please ensure the input type is i32`);
+	type_assert(expr.value_type.equals(I32_TYPE), ref, `Unable to index array, please ensure the input type is i32`);
 	return expr;
 }

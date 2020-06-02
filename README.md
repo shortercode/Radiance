@@ -5,17 +5,17 @@ It's design intention is to be intuative and easy to write, while making the mos
 
 ```swift
 export fn factorial (count: i32) -> i32 {
-	let result: i32 = 1;
-	let i: i32 = 0
-	if count == 0 {
-		1
-	}
-	else {
-		while i < count {
-			i = i + 1
-			result = result * i
-		}
-	}
+  let result: i32 = 1;
+  let i: i32 = 0
+  if count == 0 {
+    1
+  }
+  else {
+    while i < count {
+      i = i + 1
+      result = result * i
+    }
+  }
 }
 ```
 
@@ -35,11 +35,11 @@ export declare function compile_string(source: string, filename: string): Uint8A
 export declare function compile_file(filename: string): Promise<Uint8Array>;
 
 export declare function execute_string(source: string, import_object?: {
-	[key: string]: Function;
+  [key: string]: Function;
 }): Promise<Record<string, WebAssembly.ExportValue>>;
 
 export declare function execute_file(filename: string, import_object?: {
-	[key: string]: Function;
+  [key: string]: Function;
 }): Promise<Record<string, WebAssembly.ExportValue>>;
 ```
 It also includes debug variants, these only differ in that they provide performance statistics on the compiler.

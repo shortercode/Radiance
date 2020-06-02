@@ -35,11 +35,11 @@ export declare function compile_string(source: string, filename: string): Uint8A
 export declare function compile_file(filename: string): Promise<Uint8Array>;
 
 export declare function execute_string(source: string, import_object?: {
-    [key: string]: Function;
+	[key: string]: Function;
 }): Promise<Record<string, WebAssembly.ExportValue>>;
 
 export declare function execute_file(filename: string, import_object?: {
-    [key: string]: Function;
+	[key: string]: Function;
 }): Promise<Record<string, WebAssembly.ExportValue>>;
 ```
 It also includes debug variants, these only differ in that they provide performance statistics on the compiler.

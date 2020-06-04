@@ -92,7 +92,7 @@ export class Context {
 
 	private create_global_variable (ref: Ref, name: string, type: LangType): Variable {
 		const index = this.global_variable_index;
-		const global_var = new Variable(ref, type, name, index);
+		const global_var = new Variable(ref, type, name, index, true);
 		this.global_variable_index += 1
 		this.global_variables.push(global_var);
 		return global_var;

@@ -57,7 +57,7 @@ export class Environment {
 	}
 	
 	private create_variable (ref: Ref, name: string, type: LangType): Variable {
-		const variable = new Variable(ref, type, name, this.id_counter++);
+		const variable = new Variable(ref, type, name, this.id_counter++, false);
 		this.variables.push(variable);
 		return variable;
 	} 

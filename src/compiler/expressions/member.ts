@@ -15,25 +15,21 @@ export function visit_member_expression (compiler: Compiler, node: AST, _type_hi
 	const ref = Ref.from_node(node);
 
 	const target = compiler.visit_expression(value.target, null);
-	const target_tuple_type = target.value_type.as_tuple();
+	const type = target.value_type;
 
-	if (target_tuple_type) {
-		return visit_tuple_member_expression(ref, target, target_tuple_type, value.member);
+	if (type.is_tuple()) {
+		return visit_tuple_member_expression(ref, target, type, value.member);
 	}
 	
-	const target_struct_type = target.value_type.as_struct();
-
-	if (target_struct_type) {
-		return visit_struct_member_expression(ref, target, target_struct_type, value.member);
+	if (type.is_struct()) {
+		return visit_struct_member_expression(ref, target, type, value.member);
 	}
 
-	const target_array_type = target.value_type.as_array();
-
-	if (target_array_type) {
+	if (type.is_array()) {
 		return visit_array_member_expression(ref, target, value.member);
 	}
 
-	if (target.value_type.is_string()) {
+	if (type.is_string()) {
 		return visit_string_member_expression(ref, target, value.member);
 	}
 

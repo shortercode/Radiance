@@ -22,8 +22,8 @@ export function visit_tuple_expression (compiler: Compiler, node: AST, type_hint
 	const values: Array<WASTExpressionNode> = [];
 	let type_hints = null;
 
-	if (type_hint && type_hint.as_tuple()) {
-		const types = type_hint.as_tuple()!.types;
+	if (type_hint && type_hint.is_tuple()) {
+		const types = type_hint.types;
 		if (types.length === data.values.length) {
 			type_hints = types.map(({ type }) => type);
 		}

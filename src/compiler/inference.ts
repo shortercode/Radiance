@@ -265,14 +265,12 @@ function guess_member_type (node: Node, ctx: InferContext): TypeHint {
 		return null;
 	}
 
-	const target_tuple_type = target.as_tuple();
-	if (target_tuple_type) {
-		return guess_tuple_member_type(target_tuple_type, value.member);
+	if (target.is_tuple()) {
+		return guess_tuple_member_type(target, value.member);
 	}
 
-	const target_struct_type = target.as_struct();
-	if (target_struct_type) {
-		return guess_struct_member_type(target_struct_type, value.member);
+	if (target.is_struct()) {
+		return guess_struct_member_type(target, value.member);
 	}
 
 	return null;

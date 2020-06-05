@@ -102,16 +102,16 @@ class PrimativeLangType {
 		return this.type === PrimativeTypes.void;
 	}
 
-	as_tuple (): null {
-		return null;
+	is_tuple (): this is TupleLangType {
+		return false;
 	}
 
-	as_struct (): null {
-		return null;
+	is_struct (): this is StructLangType {
+		return false;
 	}
 
-	as_array (): null {
-		return null;
+	is_array (): this is ArrayLangType {
+		return false;
 	}
 
 	is_exportable (): boolean {
@@ -159,16 +159,16 @@ class ObjectLangType {
 		return false;
 	}
 
-	as_tuple (): TupleLangType | null {
-		return null;
+	is_tuple (): this is TupleLangType {
+		return false;
 	}
 
-	as_struct (): StructLangType | null {
-		return null;
+	is_struct (): this is StructLangType {
+		return false;
 	}
 
-	as_array (): ArrayLangType | null {
-		return null;
+	is_array (): this is ArrayLangType {
+		return false;
 	}
 
 	is_exportable (): boolean {
@@ -219,8 +219,8 @@ export class TupleLangType extends ObjectLangType{
 		return false;
 	}
 
-	as_tuple (): TupleLangType {
-		return this;
+	is_tuple (): this is TupleLangType {
+		return true;
 	}
 }
 
@@ -260,8 +260,8 @@ export class StructLangType extends ObjectLangType {
 		return false;
 	}
 
-	as_struct (): StructLangType {
-		return this;
+	is_struct (): this is StructLangType {
+		return true;
 	}
 }
 
@@ -287,8 +287,8 @@ export class ArrayLangType extends ObjectLangType {
 		return false;
 	}
 
-	as_array (): ArrayLangType {
-		return this;
+	is_array (): this is ArrayLangType {
+		return true;
 	}
 }
 

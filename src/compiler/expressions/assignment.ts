@@ -45,16 +45,16 @@ function visit_member_assignment (compiler: Compiler, ref: Ref, left: AST<{ targ
 	const target_type = target_expr.value_type;
 	const member_name = left.data.member;
 
-	if (target_type.as_tuple() !== null) {
-		return visit_tuple_member_assignment(compiler, ref, target_expr, target_type.as_tuple()!, member_name, right);
+	if (target_type.is_tuple()) {
+		return visit_tuple_member_assignment(compiler, ref, target_expr, target_type, member_name, right);
 	}
 	
-	if (target_type.as_struct() !== null) {
-		return visit_struct_member_assignment(compiler, ref, target_expr, target_type.as_struct()!, member_name, right);
+	if (target_type.is_struct()) {
+		return visit_struct_member_assignment(compiler, ref, target_expr, target_type, member_name, right);
 	}
 
-	if (target_type.as_array() !== null) {
-		return visit_array_member_assignment(compiler, ref, target_expr, target_type.as_array()!, member_name, right);
+	if (target_type.is_array()) {
+		return visit_array_member_assignment(compiler, ref, target_expr, target_type, member_name, right);
 	}
 
 	if (target_type.is_string()) {
@@ -116,13 +116,13 @@ function visit_array_member_assignment (_compiler: Compiler, ref: Ref, _target: 
 function visit_subscript_assignment (compiler: Compiler, ref: Ref, left: AST<{ target: AST, accessor: AST }>, right: AST) {
 	
 	const target = compiler.visit_expression(left.data.target, null);
-	const target_array_type = target.value_type.as_array();
+	const type = target.value_type;
 
-	if (target_array_type) {
+	if (type.is_array()) {
 		return visit_array_subscript_assignment(compiler, ref, target, left.data.accessor, right);
 	}
 
-	if (target.value_type.is_string()) {
+	if (type.is_string()) {
 		return visit_string_subscript_assignment(compiler, ref, target, left.data.accessor, right);
 	}
 
@@ -133,11 +133,12 @@ function visit_array_subscript_assignment (compiler: Compiler, ref: Ref, target:
 	const accessor_expression = ensure_int32(ref, compiler.visit_expression(accessor, I32_TYPE));
 
 	const index = bounds_check(compiler, ref, target, accessor_expression);
-	const type = target.value_type.as_array()!.type;
+	const type = target.value_type as ArrayLangType;
+	const inner_type = type.type;
 
-	const expr = compiler.visit_expression(right, type);
+	const expr = compiler.visit_expression(right, inner_type);
 
-	assign_type_check(ref, type, expr.value_type);
+	assign_type_check(ref, inner_type, expr.value_type);
 
 	return new WASTStoreNode(ref, index, 0, expr);
 }

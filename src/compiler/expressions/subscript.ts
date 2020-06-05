@@ -1,7 +1,7 @@
 import { WASTExpressionNode, WASTLoadNode, WASTNodeList, WASTTeeLocalNode, WASTGreaterThanEqualsNode, WASTConstNode, WASTGetLocalNode, WASTLessThanNode, WASTBitwiseAndNode, WASTNotNode, WASTConditionalNode, WASTTrapNode, WASTSetLocalNode, WASTAddNode, WASTMultiplyNode, Ref } from "../../WASTNode";
 import { Compiler, AST, TypeHint } from "../core";
 import { type_error, type_assert } from "../error";
-import { I32_TYPE, VOID_TYPE, BOOL_TYPE } from "../LangType";
+import { I32_TYPE, VOID_TYPE, BOOL_TYPE, ArrayLangType } from "../LangType";
 
 function read_node_data (node: AST) {
 	return node.data as {
@@ -15,13 +15,13 @@ export function visit_subscript_expression (compiler: Compiler, node: AST, _type
 	const ref = Ref.from_node(node);
 
 	const target = compiler.visit_expression(value.target, null);
-	const target_array_type = target.value_type.as_array();
+	const type = target.value_type;
 
-	if (target_array_type) {
+	if (type.is_array()) {
 		return visit_array_subscript_expression(compiler, ref, target, value.accessor);
 	}
 
-	if (target.value_type.is_string()) {
+	if (type.is_string()) {
 		return visit_string_subscript_expression(compiler, ref, target, value.accessor);
 	}
 
@@ -32,8 +32,9 @@ function visit_array_subscript_expression (compiler: Compiler, ref: Ref, target:
 	const accessor_expression = ensure_int32(ref, compiler.visit_expression(accessor, I32_TYPE));
 
 	const index = bounds_check(compiler, ref, target, accessor_expression);
-	const type = target.value_type.as_array()!.type;
-	return new WASTLoadNode(ref, type, index, 0);
+	const type = target.value_type as ArrayLangType;
+	const inner_type = type.type;
+	return new WASTLoadNode(ref, inner_type, index, 0);
 }
 
 function visit_string_subscript_expression (compiler: Compiler, ref: Ref, target: WASTExpressionNode, accessor: AST) {	
@@ -107,7 +108,7 @@ export function bounds_check (compiler: Compiler, ref: Ref, target: WASTExpressi
 		new WASTNodeList(ref)
 	);
 
-	const array_type = target.value_type.as_array()!;
+	const array_type = target.value_type as ArrayLangType;
 
 	const retrieve_location_expression = new WASTAddNode(
 		ref,

@@ -28,8 +28,8 @@ function cast_expression (compiler: Compiler, ref: Ref, value: WASTExpressionNod
 		return value;
 	}
 
-	if (output_type.as_tuple() !== null && value.value_type.as_tuple !== null) {
-		return visit_as_tuple_expression (compiler, ref, value, value.value_type.as_tuple()!, output_type.as_tuple()!);
+	if (output_type.is_tuple() && value.value_type.is_tuple()) {
+		return visit_as_tuple_expression (compiler, ref, value, value.value_type, output_type);
 	}
 	else if (output_type.is_float()) {
 		type_assert(value.value_type.is_numeric(), ref, `Unable to cast non-numeric type ${value.value_type.name} to ${output_type.name}`);

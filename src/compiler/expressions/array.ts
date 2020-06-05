@@ -15,8 +15,8 @@ export function visit_array_expression (compiler: Compiler, node: AST, type_hint
 
 	let inner_type_hint = null;
 
-	if (type_hint && type_hint.as_array()) {
-		inner_type_hint = type_hint.as_array()!.type;
+	if (type_hint && type_hint.is_array()) {
+		inner_type_hint = type_hint.type;
 	}
 
 	let inner_type = type_hint;

@@ -72,7 +72,8 @@ class LangParser extends Parser {
 		this.addPrefix("symbol:{", 					9, this.parseBlockExpression);
 		this.addPrefix("symbol:[", 					9, this.parseArrayExpression);
 		this.addPrefix("identifier:while", 	9, this.parseWhileExpression);
-		
+		this.addPrefix("identifier:unsafe", 9, this.parseUnsafeExpression);
+
 		this.addInfix("symbol:(", 					10, this.parseCallExpression);
 		this.addInfix("symbol:[",						10, this.parseSubscript);
 		this.addInfix("symbol:.",						10, this.parseMemberAccess);
@@ -264,6 +265,11 @@ class LangParser extends Parser {
 		const end = tokens.previous()!.end;
 		
 		return new Node("while", start, end, { condition, block });
+	}
+
+	parseUnsafeExpression(tokens: Iterator<Token>, _precedence: number): Node {
+		const block = this.parseBlock(tokens);
+		return new Node("unsafe", block.start, block.end, block);
 	}
 
 	parseNotExpression(tokens: Iterator<Token>, precedence: number): Node {

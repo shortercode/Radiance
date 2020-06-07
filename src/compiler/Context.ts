@@ -19,6 +19,19 @@ export class Context {
 	
 	private global_variable_index = 0
 	private function_index = 0
+	private unsafe_mode = false
+
+	get is_unsafe (): boolean {
+		return this.unsafe_mode;
+	}
+
+	enable_unsafe () {
+		this.unsafe_mode = true;
+	}
+
+	disable_unsafe () {
+		this.unsafe_mode = false;
+	}
 
 	define_export (ref: Ref, name: string) {
 		syntax_assert(!this.exports.has(name), ref, `An export with the name "${name}" has already been defined`);

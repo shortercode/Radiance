@@ -31,6 +31,7 @@ import { visit_module } from "./expressions/module";
 import { visit_array_expression } from "./expressions/array";
 import { visit_subscript_expression } from "./expressions/subscript";
 import { visit_string_expression } from "./expressions/string";
+import { visit_unsafe_expression } from "./expressions/unsafe";
 
 export type TypeHint = LangType | null;
 export { AST };
@@ -71,6 +72,7 @@ export class Compiler {
 			["while", visit_while_expression],
 			["block", visit_block_expression],
 			["array", visit_array_expression],
+			["unsafe", visit_unsafe_expression],
 
 			["number", visit_number_expression],
 			["boolean", visit_boolean_expression],

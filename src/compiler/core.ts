@@ -7,8 +7,8 @@ import { compiler_assert, is_defined } from "./error";
 import { visit_function } from "./expressions/function";
 import { visit_import_function } from "./expressions/import";
 import { visit_export, visit_export_function } from "./expressions/export";
-import { visit_expression } from "./expressions/expression";
-import { visit_variable } from "./expressions/variable";
+import { visit_expression, visit_global_expression } from "./expressions/expression";
+import { visit_variable, visit_global_variable } from "./expressions/variable";
 import { visit_if_expression } from "./expressions/if";
 import { visit_while_expression } from "./expressions/while";
 import { visit_block_expression } from "./expressions/block";
@@ -54,7 +54,9 @@ export class Compiler {
 			["export", visit_export],
 			["export_function", visit_export_function],
 			["import_function", visit_import_function],
-			["struct", () => []]
+			["struct", () => []],
+			["variable", visit_global_variable],
+			["expression", visit_global_expression]
 			
 			// TODO allow expressions and variable here ( requires generating a "start" function )
 		]);

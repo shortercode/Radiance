@@ -81,6 +81,7 @@ WASTExpressionType |
 
 export type WASTStatementType = "function" | 
 "table" |
+"global_expression" |
 "data" |
 "memory" |
 "global" |
@@ -127,6 +128,7 @@ export type WASTBinaryExpressionType = "equals" |
 "bitwise_and";
 
 export type WASTStatementNode = WASTExportNode |
+WASTGlobalExpression |
 WASTDataNode |
 WASTImportFunctionNode |
 WASTTableNode |
@@ -144,6 +146,17 @@ export class WASTModuleNode implements WASTNode {
 	constructor (ref: Ref, static_data_top: Variable) {
 		this.source = ref;
 		this.static_data_top = static_data_top;
+	}
+}
+
+export class WASTGlobalExpression implements WASTNode {
+	type: "global_expression" = "global_expression"
+	source: Ref
+	expression: WASTExpressionNode
+
+	constructor (ref: Ref, expr: WASTExpressionNode) {
+		this.source = ref
+		this.expression = expr;
 	}
 }
 

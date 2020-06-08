@@ -1,6 +1,6 @@
 import { AST, Compiler } from "../core";
 import { TypePattern } from "../../parser/index";
-import { WASTExpressionNode, WASTConvertToFloat, WASTConvertToInt, Ref, WASTLoadNode, WASTNodeList } from "../../WASTNode";
+import { WASTExpressionNode, WASTConvertToFloat, WASTConvertToInt, Ref, WASTLoadNode, WASTNodeList, WASTUnsafeCast } from "../../WASTNode";
 import { parse_type, TupleLangType, LangType } from "../LangType";
 import { type_assert, type_error } from "../error";
 import { wrap_boolean_cast } from "./boolean";
@@ -24,29 +24,38 @@ export function visit_as_expression (compiler: Compiler, node: AST): WASTExpress
 }
 
 function cast_expression (compiler: Compiler, ref: Ref, value: WASTExpressionNode, output_type: LangType): WASTExpressionNode {
-	if (output_type.equals(value.value_type)) {
+	const input_type = value.value_type;
+	if (output_type.equals(input_type)) {
 		return value;
 	}
-
-	if (output_type.is_tuple() && value.value_type.is_tuple()) {
-		return visit_as_tuple_expression (compiler, ref, value, value.value_type, output_type);
+	if (output_type.is_tuple() && input_type.is_tuple()) {
+		return visit_as_tuple_expression (compiler, ref, value, input_type, output_type);
 	}
-	else if (output_type.is_float()) {
-		type_assert(value.value_type.is_numeric(), ref, `Unable to cast non-numeric type ${value.value_type.name} to ${output_type.name}`);
+	if (output_type.is_float()) {
+		type_assert(input_type.is_numeric(), ref, `Unable to cast non-numeric type ${input_type.name} to ${output_type.name}`);
 
 		return new WASTConvertToFloat(ref, output_type, value);
 	}
-	else if (output_type.is_integer()) {
-		type_assert(value.value_type.is_numeric(), ref, `Unable to cast non-numeric type ${value.value_type.name} to ${output_type.name}`);
+	if (output_type.is_integer()) {
+		type_assert(input_type.is_numeric(), ref, `Unable to cast non-numeric type ${input_type.name} to ${output_type.name}`);
 
 		return new WASTConvertToInt(ref, output_type, value);
 	}
-	else if (output_type.is_boolean()) {
+	if (output_type.is_boolean()) {
 		return wrap_boolean_cast(ref, value);
 	}
-	else {
-		type_error(ref, `Unable to cast ${value.value_type.name} to type ${output_type.name}`);
+	if (compiler.ctx.is_unsafe && input_type.is_integer()) {
+		if (output_type.is_object_type() || output_type.is_string()) {
+			return new WASTUnsafeCast(ref, output_type, value);
+		}
 	}
+	if (compiler.ctx.is_unsafe && output_type.is_integer()) {
+		if (input_type.is_object_type() || input_type.is_string()) {
+			return new WASTUnsafeCast(ref, output_type, value);
+		}
+	}
+
+	type_error(ref, `Unable to cast ${value.value_type.name} to type ${output_type.name}`);
 }
 
 function visit_as_tuple_expression (compiler: Compiler, ref: Ref, expr: WASTExpressionNode, input_type: TupleLangType, output_type: TupleLangType): WASTExpressionNode {

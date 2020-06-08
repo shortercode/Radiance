@@ -90,10 +90,6 @@ class PrimativeLangType {
 		return float_types.has(this.type);
 	}
 
-	wasm_type (): PrimativeTypes {
-		return this.type;
-	}
-
 	is_boolean (): boolean {
 		return this.type === PrimativeTypes.bool;
 	}
@@ -114,8 +110,16 @@ class PrimativeLangType {
 		return false;
 	}
 
+	is_object_type (): boolean {
+		return false;
+	}
+
 	is_exportable (): boolean {
 		return this.type !== PrimativeTypes.i64;
+	}
+
+	wasm_type (): PrimativeTypes {
+		return this.type;
 	}
 }
 
@@ -160,15 +164,19 @@ class ObjectLangType {
 	}
 
 	is_tuple (): this is TupleLangType {
-		return false;
+		return this instanceof TupleLangType;
 	}
 
 	is_struct (): this is StructLangType {
-		return false;
+		return this instanceof StructLangType;
 	}
 
 	is_array (): this is ArrayLangType {
-		return false;
+		return this instanceof ArrayLangType;
+	}
+
+	is_object_type (): boolean {
+		return true;
 	}
 
 	is_exportable (): boolean {
@@ -218,10 +226,6 @@ export class TupleLangType extends ObjectLangType{
 		}
 		return false;
 	}
-
-	is_tuple (): this is TupleLangType {
-		return true;
-	}
 }
 
 export class StructLangType extends ObjectLangType {
@@ -259,10 +263,6 @@ export class StructLangType extends ObjectLangType {
 		}
 		return false;
 	}
-
-	is_struct (): this is StructLangType {
-		return true;
-	}
 }
 
 export class ArrayLangType extends ObjectLangType {
@@ -285,10 +285,6 @@ export class ArrayLangType extends ObjectLangType {
 			return this.type.equals(other.type) && (this.is_sized() ? this.count === other.count : true);
 		}
 		return false;
-	}
-
-	is_array (): this is ArrayLangType {
-		return true;
 	}
 }
 

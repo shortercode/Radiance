@@ -55,6 +55,7 @@ WASTConditionalBranchNode |
 WASTNotNode |
 WASTConvertToFloat |
 WASTConvertToInt |
+WASTUnsafeCast |
 WASTTrapNode |
 WASTDataRefNode |
 WASTBinaryExpressionNode;
@@ -109,6 +110,7 @@ export type WASTExpressionType = WASTBinaryExpressionType |
 "data_ref" |
 "convert_int" |
 "convert_float" |
+"unsafe_cast" |
 "trap";
 
 export type WASTBinaryExpressionType = "equals" |
@@ -819,6 +821,19 @@ export class WASTConvertToInt implements WASTNode {
 		this.source = ref;
 		this.value_type = type;
 		this.input = input;
+	}
+}
+
+export class WASTUnsafeCast implements WASTNode {
+	type: "unsafe_cast" = "unsafe_cast"
+	source: Ref
+	value_type: LangType
+	input: WASTExpressionNode
+
+	constructor (ref: Ref, output_type: LangType, value: WASTExpressionNode) {
+		this.source = ref;
+		this.value_type = output_type;
+		this.input = value;
 	}
 }
 

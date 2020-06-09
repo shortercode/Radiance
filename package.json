@@ -1,6 +1,6 @@
 {
   "name": "radiance-lang",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Easy to write language that compiles to WASM",
 	"main": "dist/radiance.js",
 	"types": "dist/index.d.ts",

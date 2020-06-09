@@ -1,7 +1,7 @@
 import { WASTExpressionNode, WASTNodeList } from "../../WASTNode";
 import { FunctionContext } from "../FunctionContext";
 import { Opcode } from "../OpCode";
-import { compiler_assert } from "../../compiler/error";
+import { compiler_error } from "../../compiler/error";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 
@@ -27,6 +27,7 @@ export function write_list_expression(ctx: FunctionContext, node: WASTExpression
 		const last_subnode = statements[statements.length - 1];
 		write_expression(ctx, last_subnode);
 		const has_value = last_subnode.value_type.is_void() === false;
+
 		const does_not_emit_value = list_node.value_type.is_void();
 		if (has_value && does_not_emit_value) {
 			ctx.consume_value(last_subnode.value_type.wasm_type(), node.source);
@@ -37,9 +38,15 @@ export function write_list_expression(ctx: FunctionContext, node: WASTExpression
 	const depth_delta = ctx.stack_depth - start_depth;
 	
 	if (list_node.value_type.is_void()) {
-		compiler_assert(depth_delta === 0, list_node.source, `Expected no values on the stack, but found ${ctx.stack_depth}`);
+		if (depth_delta !== 0) {
+			const stack = ctx.dump_stack_values(depth_delta);
+			compiler_error(list_node.source, `Expected no values on the stack, but found ${ctx.stack_depth} [${stack.join(", ")}]`)
+		}
 	}
 	else {
-		compiler_assert(depth_delta === 1, list_node.source, `Expected 1 value on the stack, but found ${ctx.stack_depth}`);
+		if (depth_delta !== 1) {
+			const stack = ctx.dump_stack_values(depth_delta);
+			compiler_error(list_node.source, `Expected 1 value on the stack, but found ${ctx.stack_depth} [${stack.join(", ")}]`)
+		}
 	}
 }

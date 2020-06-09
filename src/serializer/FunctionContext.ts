@@ -39,6 +39,10 @@ export class FunctionContext {
 	push_value (type: PrimativeTypes) {
 		this.value_stack.push(type);
 	}
+
+	dump_stack_values (i: number): Array<string> {
+		return this.value_stack.slice(-i).map(val => get_primative_name(val));
+	}
 	
 	get stack_depth () {
 		return this.value_stack.length;

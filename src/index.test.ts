@@ -249,6 +249,87 @@ describe("array test", () => {
 	});
 });
 
+describe("return test", () => {
+	let mod: Record<string, WebAssembly.ExportValue>;
+
+	test("compiles", async () => {
+		mod = await execute_string(`
+		
+		export fn implicit (val: u32) -> u32 {
+			val
+		}
+		
+		export fn explicit (val: u32) -> u32 {
+			return val
+		}
+		
+		export fn conditional (val: u32) -> u32 {
+			if val > 42 {
+				return val
+			}
+			42
+		}
+		
+		export fn explicit_branch (val: u32) -> u32 {
+			if val > 42 {
+				return val
+			}
+			else {
+				return 42
+			}
+		}
+		
+		export fn implicit_branch (val: u32) -> u32 {
+			if val > 42 {
+				val
+			}
+			else {
+				42
+			}
+		}
+		`);
+	});
+
+	test("exports functions", () => {
+		expect(mod).toHaveProperty("implicit");
+		expect(mod).toHaveProperty("explicit");
+		expect(mod).toHaveProperty("conditional");
+		expect(mod).toHaveProperty("explicit_branch");
+		expect(mod).toHaveProperty("implicit_branch");
+
+
+		expect(mod.implicit).toBeInstanceOf(Function);
+		expect(mod.explicit).toBeInstanceOf(Function);
+		expect(mod.conditional).toBeInstanceOf(Function);
+		expect(mod.explicit_branch).toBeInstanceOf(Function);
+		expect(mod.implicit_branch).toBeInstanceOf(Function);
+	});
+
+	test("return value", () => {
+		const implicit = mod.implicit as (i: number) => number;
+		const explicit = mod.explicit as (i: number) => number;
+		const conditional = mod.conditional as (i: number) => number;
+		const explicit_branch = mod.explicit_branch as (i: number) => number;
+		const implicit_branch = mod.implicit_branch as (i: number) => number;
+
+
+		expect(implicit(12)).toBe(12);
+		expect(implicit(91)).toBe(91);
+
+		expect(explicit(12)).toBe(12);
+		expect(explicit(91)).toBe(91);
+
+		expect(conditional(12)).toBe(42);
+		expect(conditional(91)).toBe(91);
+
+		expect(explicit_branch(12)).toBe(42);
+		expect(explicit_branch(91)).toBe(91);
+
+		expect(implicit_branch(12)).toBe(42);
+		expect(implicit_branch(91)).toBe(91);
+	});
+});
+
 function read_i32 (memory: WebAssembly.Memory, ptr: number) {
 	const buffer = memory.buffer;
 	const view = new DataView(buffer);

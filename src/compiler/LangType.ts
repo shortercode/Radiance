@@ -16,7 +16,8 @@ export enum PrimativeTypes {
 	u64,
 	void,
 	bool,
-	str
+	str,
+	never
 }
 
 export function get_primative_name (type: PrimativeTypes): string {
@@ -30,6 +31,7 @@ export function get_primative_name (type: PrimativeTypes): string {
 		case PrimativeTypes.void: return "void";
 		case PrimativeTypes.bool: return "bool";
 		case PrimativeTypes.str: return "str";
+		case PrimativeTypes.never: return "never";
 	}
 }
 
@@ -54,11 +56,11 @@ class PrimativeLangType {
 	private readonly type: PrimativeTypes
 	readonly name: string
 	readonly size: number
-
+	
 	constructor (type: PrimativeTypes, name: string) {
 		this.type = type;
 		this.name = name;
-
+		
 		if (this.type === PrimativeTypes.f64 || this.type === PrimativeTypes.i64 || this.type === PrimativeTypes.u64) {
 			this.size = 8;
 		}
@@ -66,38 +68,42 @@ class PrimativeLangType {
 			this.size = 4;
 		}
 	}
-
+	
 	equals (other: LangType): boolean {
 		if (other instanceof PrimativeLangType) {
 			return this.type === other.type;
 		}
 		return false;
 	}
-
+	
 	is_numeric (): boolean {
 		return numeric_types.has(this.type);
 	}
-
+	
 	is_integer (): boolean {
 		return integer_types.has(this.type);
 	}
-
+	
 	is_string (): boolean {
 		return this.type === PrimativeTypes.str;
 	}
-
+	
 	is_float (): boolean {
 		return float_types.has(this.type);
 	}
-
+	
 	is_boolean (): boolean {
 		return this.type === PrimativeTypes.bool;
 	}
-
+	
 	is_void (): boolean {
-		return this.type === PrimativeTypes.void;
+		return this.type === PrimativeTypes.void || this.is_never();
 	}
 
+	is_never (): boolean {
+		return this.type === PrimativeTypes.never;
+	}
+	
 	is_tuple (): this is TupleLangType {
 		return false;
 	}
@@ -132,13 +138,13 @@ class ObjectLangType {
 	}
 
 	equals (_other: LangType): boolean {
-		throw new Error("Should not use direct instances of AtiumObjectType");
+		throw new Error("Should not use direct instances of ObjectLangType");
 	}
 
 	is_numeric (): boolean {
 		return false;
 	}
-
+	
 	is_integer (): boolean {
 		return false;
 	}
@@ -163,6 +169,10 @@ class ObjectLangType {
 		return false;
 	}
 
+	is_never (): boolean {
+		return false;
+	}
+	
 	is_tuple (): this is TupleLangType {
 		return this instanceof TupleLangType;
 	}
@@ -178,7 +188,7 @@ class ObjectLangType {
 	is_object_type (): boolean {
 		return true;
 	}
-
+	
 	is_exportable (): boolean {
 		return ALLOW_POINTER_EXPORTS;
 	}
@@ -190,7 +200,7 @@ export class TupleLangType extends ObjectLangType{
 		offset: number
 	}>
 	readonly size: number = 4
-
+	
 	constructor (types: Array<LangType>, name: string) {
 		super(name);
 		this.types = this.calculate_offset(types);
@@ -207,16 +217,16 @@ export class TupleLangType extends ObjectLangType{
 			return result;
 		});
 	}
-
+	
 	equals (other: LangType): boolean {
 		if (other instanceof TupleLangType) {
 			const a = this.types;
 			const b = other.types;
-
+			
 			if (a.length !== b.length) {
 				return false;
 			}
-
+			
 			for (let i = 0; i < a.length; i++) {
 				if (a[i].type.equals(b[i].type) === false) {
 					return false;
@@ -234,7 +244,7 @@ export class StructLangType extends ObjectLangType {
 		offset: number
 	}>
 	readonly size: number = 4
-
+	
 	constructor (types: Map<string, LangType>, name: string) {
 		super(name);
 		this.types = this.calculate_offset(types);
@@ -255,7 +265,7 @@ export class StructLangType extends ObjectLangType {
 		}
 		return result;
 	}
-
+	
 	equals (other: LangType): boolean {
 		if (other instanceof StructLangType) {
 			// we dont support structural typing, so we can use direct comparison
@@ -269,7 +279,7 @@ export class ArrayLangType extends ObjectLangType {
 	readonly type: LangType
 	readonly size: number = 4
 	readonly count: number
-
+	
 	constructor (type: LangType, name: string, count: number) {
 		super(name);
 		this.type = type;
@@ -279,7 +289,7 @@ export class ArrayLangType extends ObjectLangType {
 	is_sized () {
 		return this.count >= 0;
 	}
-
+	
 	equals (other: LangType): boolean {
 		if (other instanceof ArrayLangType) {
 			return this.type.equals(other.type) && (this.is_sized() ? this.count === other.count : true);
@@ -340,7 +350,7 @@ export function parse_type (pattern: TypePattern, ctx: Context): LangType {
 	switch (pattern.style) {
 		case "class": {
 			const struct_decl = ctx.get_struct(pattern.type);
-
+			
 			if (struct_decl) {
 				return struct_decl.type;
 			}
@@ -367,3 +377,4 @@ export const F64_TYPE = new PrimativeLangType(PrimativeTypes.f64, "f64");
 export const I32_TYPE = new PrimativeLangType(PrimativeTypes.i32, "i32");
 export const I64_TYPE = new PrimativeLangType(PrimativeTypes.i64, "i64");
 export const STR_TYPE = new PrimativeLangType(PrimativeTypes.str, "str");
+export const NEVER_TYPE = new PrimativeLangType(PrimativeTypes.never, "never");

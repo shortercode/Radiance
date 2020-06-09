@@ -21,6 +21,7 @@ export function write_value_type (writer: Writer, type: LangType) {
 		case PrimativeTypes.f64:
 		writer.writeUint8(0x7C);
 		break;
+		case PrimativeTypes.never:
 		case PrimativeTypes.void:
 		writer.writeUint8(0x40);
 		break;

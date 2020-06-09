@@ -166,5 +166,6 @@ function visit_variable_assignment_expression (compiler: Compiler, ref: Ref, lef
 
 function assign_type_check (ref: Ref, l_type: LangType, r_type: LangType) {
 	// TODO improve error message
+	type_assert(r_type.is_void() === false, ref, `Cannot assign value with type "void"`);
 	type_assert(l_type.equals(r_type), ref, `Assignment value doesn't match variable type`);
 }

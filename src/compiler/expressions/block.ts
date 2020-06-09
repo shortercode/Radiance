@@ -1,6 +1,7 @@
 import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTNodeList, Ref } from "../../WASTNode";
 import { VOID_TYPE } from "../LangType";
+import { syntax_assert } from "../error";
 
 export function visit_block_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
 	const ctx = compiler.ctx;
@@ -16,6 +17,7 @@ export function visit_block_expression (compiler: Compiler, node: AST, type_hint
 	for (const stmt of rest) {
 		const result = compiler.visit_local_statement(stmt, null);
 		node_list.nodes.push(result);
+		syntax_assert(result.value_type.is_never() === false, result.source, "Early exit in this statement leaves unreachable code after it");
 	}
 
 	if (last) {

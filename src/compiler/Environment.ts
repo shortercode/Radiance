@@ -1,6 +1,7 @@
 import { LangType, I32_TYPE } from "./LangType";
 import { Variable } from "./Variable";
 import { Ref } from "../WASTNode";
+import { FunctionDeclaration } from "./FunctionDeclaration";
 
 type Frame = Map<string, Variable>
 type ArrayAccessVariables = { index: Variable, target: Variable, length: Variable }
@@ -10,13 +11,15 @@ export class Environment {
 	private id_counter: number
 	variables: Array<Variable>
 	private array_access_varables: ArrayAccessVariables|null = null
+	readonly fn_type: FunctionDeclaration
 	
-	constructor (parameters: Array<Variable>) {
+	constructor (parameters: Array<Variable>, fn_type: FunctionDeclaration) {
 		this.variables = parameters.slice(0);
 		this.id_counter = this.variables.length;
 		for (const param of parameters) {
 			this.current_frame.set(param.name, param);
 		}
+		this.fn_type = fn_type;
 	}
 	
 	get current_frame () {

@@ -12,14 +12,15 @@
 	- [X] Functions not checking return type FIXME!
 	- [X] Numerical hinting
 	- [X] Explicit numerical type conversions
-	- [ ] Explicit return
+	- [X] Explicit return
 	- [ ] Break/contiue for loops
 	- [ ] Other loop types?
 	- [X] Import functions from external
 	- [X] Inline export syntax
 	- [X] Export memory
 	- [ ] Add reserved names list to variable declaration
-	- [ ] Add global variables
+	- [X] Add global variables
+	- [ ] Fix block scopes outside of functions
 	- [X] Read tuple values back!
 	- [ ] Tuple destructuring assignment
 	- [X] Add type casting inference

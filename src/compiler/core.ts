@@ -32,6 +32,7 @@ import { visit_array_expression } from "./expressions/array";
 import { visit_subscript_expression } from "./expressions/subscript";
 import { visit_string_expression } from "./expressions/string";
 import { visit_unsafe_expression } from "./expressions/unsafe";
+import { visit_return_statement } from "./expressions/return";
 
 export type TypeHint = LangType | null;
 export { AST };
@@ -58,13 +59,12 @@ export class Compiler {
 			["struct", () => []],
 			["variable", visit_global_variable],
 			["expression", visit_global_expression]
-			
-			// TODO allow expressions and variable here ( requires generating a "start" function )
 		]);
 
 		this.local_statement_visitors = new Map([
 			["expression", visit_expression],
-			["variable", visit_variable]
+			["variable", visit_variable],
+			["return", visit_return_statement]
 		]);
 
 		this.expression_visitors = new Map([

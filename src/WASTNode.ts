@@ -1,5 +1,5 @@
 import { Variable } from "./compiler/Variable";
-import { LangType, VOID_TYPE, BOOL_TYPE } from "./compiler/LangType";
+import { LangType, VOID_TYPE, BOOL_TYPE, NEVER_TYPE } from "./compiler/LangType";
 import ParserNode from "./pratt/Node";
 
 export interface WASTNode {
@@ -58,6 +58,7 @@ WASTConvertToInt |
 WASTUnsafeCast |
 WASTTrapNode |
 WASTDataRefNode |
+WASTReturnNode |
 WASTBinaryExpressionNode;
 
 export type WASTBinaryExpressionNode = WASTEqualsNode |
@@ -111,7 +112,8 @@ export type WASTExpressionType = WASTBinaryExpressionType |
 "convert_int" |
 "convert_float" |
 "unsafe_cast" |
-"trap";
+"trap" | 
+"return";
 
 export type WASTBinaryExpressionType = "equals" |
 "not_equals" |
@@ -703,6 +705,19 @@ export class WASTNotNode implements WASTNode {
 
 		// TODO verify that the inner returns a boolean
 		this.inner = inner;
+	}
+}
+
+export class WASTReturnNode implements WASTNode {
+	type: "return" = "return"
+	source: Ref
+
+	value_type: LangType = NEVER_TYPE
+	value: WASTExpressionNode | null
+
+	constructor (ref: Ref, value: WASTExpressionNode | null) {
+		this.source = ref;
+		this.value = value;
 	}
 }
 

@@ -22,6 +22,7 @@ class LangParser extends Parser {
 		this.addStatement("identifier:fn", this.parseFunction);
 		this.addStatement("identifier:struct", this.parseStruct);
 		this.addStatement("identifier:let", this.parseVariable);
+		this.addStatement("identifier:return", this.parseReturn);
 		
 		/*
 		Precedence order low to high
@@ -431,6 +432,19 @@ class LangParser extends Parser {
 		
 		const end = this.endStatement(tokens);
 		return new Node("variable", start, end, { name, type, initial });
+	}
+
+	parseReturn (tokens: Iterator<Token>): Node {
+		// NOTE previous token is the "identifier:let" read by statement matcher
+		const start = tokens.previous()!.start;
+		let value: Node | null = null
+
+		if (this.shouldEndStatement(tokens) === false) {
+			value = this.parseExpression(tokens, 1);
+		}
+		
+		const end = this.endStatement(tokens);
+		return new Node("return", start, end, value);
 	}
 	
 	parseBlockExpression(tokens: Iterator<Token>): Node {

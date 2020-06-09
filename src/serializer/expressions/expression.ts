@@ -36,6 +36,8 @@ import { write_cast_float_expression } from "./cast_float";
 import { write_cast_int_expression } from "./cast_int";
 import { write_trap_expression } from "./trap";
 import { write_data_ref_expression } from "./data_ref";
+import { write_unsafe_cast_expression } from "./unsafe_cast";
+import { write_return_expression } from "./return";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 type WriterFunction = (ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) => void
@@ -59,6 +61,7 @@ const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 
 	["convert_float", write_cast_float_expression],
 	["convert_int", write_cast_int_expression],
+	["unsafe_cast", write_unsafe_cast_expression],
 	
 	["if", write_if_expression],
 	["block", write_block_expression],
@@ -68,6 +71,7 @@ const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 	
 	["br", write_br_expression],
 	["br_if", write_br_if_expression],
+	["return", write_return_expression],
 	
 	["set_local", write_set_local_expression],
 	["get_local", write_get_local_expression],

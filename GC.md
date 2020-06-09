@@ -10,18 +10,27 @@ struct Header {
 	next: Header
 }
 
+fn align_32 (size: u32) -> u32 {
+	-(-size >> 2) << 2
+}
+
+fn align_64 (size: u32) -> u32 {
+	-(-size >> 4) << 4
+}
+
 fn malloc (size: u32) -> u32 {
-	let header = find_free(size)
+	let aligned_size = align_32(size)
+	let header = find_free(aligned_size)
 
 	header.is_free = false
 	// block is much larger, split it
-	if header.size - size >= 16 {
+	if header.size - aligned_size >= 16 {
 		let next = unsafe { header as u32 } + 12
 		next.next = header.next
 		next.is_free = true
-		next.size = header.size - (size + 12)
+		next.size = header.size - (aligned_size + 12)
 		header.next = next
-		header.size = size 
+		header.size = aligned_size 
 	}
 	return unsafe { header as u32 } + 12
 }

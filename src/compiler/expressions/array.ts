@@ -42,6 +42,8 @@ export function visit_array_expression (compiler: Compiler, node: AST, type_hint
 		inner_type = inner_type!;
 	}
 
+	type_assert(inner_type.is_void() === false, ref, `Cannot have an array of type "void"`);
+
 	const array_type = create_array_type(inner_type, values.length);
 
 	// Arrays contain an additional value at the start which contains the length

@@ -23,11 +23,14 @@ async function main () {
 		else {
 			console.log(`Compiling ${options.input} to ${options.output}`);
 			const binary = await compile_file(options.input);
+			if (options.hexdump) {
+				console.log(Buffer.from(binary).toString("hex"));
+			}
 			await fs.writeFile(options.output, binary);
 		}
 	}
 	catch (e) {
-		console.log(`Error: ${e.stack}`);
+		console.log(`Error: ${e.message}`);
 		console.log(help_message());
 	}
 }
@@ -65,6 +68,7 @@ function read_arguments (argv) {
 	let debug = false;
 	let run = false;
 	let help = false;
+	let hexdump = false;
 
 	let input = null;
 	let output = null;
@@ -91,7 +95,7 @@ function read_arguments (argv) {
 					if (!next_part || next_part.type !== "argument") {
 						throw new Error("expected the name of an input file");
 					}
-					input = next.value;
+					input = next_part.value;
 					break;
 				}
 				case "output": {
@@ -99,11 +103,15 @@ function read_arguments (argv) {
 					if (!next_part || next_part.type !== "argument") {
 						throw new Error("expected the name of an output file");
 					}
-					output = next.value;
+					output = next_part.value;
 					break;
 				}
 				case "debug": {
 					debug = true;
+					break;
+				}
+				case "hexdump": {
+					hexdump = true;
 					break;
 				}
 				case "run": {
@@ -142,6 +150,7 @@ function read_arguments (argv) {
 		input,
 		output,
 		debug,
+		hexdump,
 		run
 	}
 }

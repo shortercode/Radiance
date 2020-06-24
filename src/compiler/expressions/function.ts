@@ -115,7 +115,7 @@ export function complete_function_environment (compiler: Compiler, fn_wast: WAST
 		fn_body.consume_return_value();
 	}
 	else {
-		type_assert(fn_wast.body.value_type.equals(fn_decl.type), fn_wast.source, `Unable to return type "${fn_wast.body.value_type.name}" from ${fn_decl.name} as it is not assignable to "${fn_decl.type.name}"`);
+		type_assert(fn_decl.type.equals(fn_wast.body.value_type), fn_wast.source, `Unable to return type "${fn_wast.body.value_type.name}" from ${fn_decl.name} as it is not assignable to "${fn_decl.type.name}"`);
 	}
 	
 	const ctx = compiler.ctx;

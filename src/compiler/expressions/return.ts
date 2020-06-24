@@ -14,7 +14,7 @@ export function visit_return_statement (compiler: Compiler, node: AST, _type_hin
 	if (expr_node) {
 		const expr = compiler.visit_expression(expr_node, return_type);
 
-		type_assert(expr.value_type.equals(return_type), ref, `Unable to return type "${expr.value_type.name}" from ${fn_type.name} as it is not assignable to "${return_type.name}"`);
+		type_assert(return_type.equals(expr.value_type), ref, `Unable to return type "${expr.value_type.name}" from ${fn_type.name} as it is not assignable to "${return_type.name}"`);
 		return new WASTReturnNode(ref, expr);
 	}
 	else {

@@ -50,7 +50,7 @@ const numeric_types = new Set([
 	...float_types
 ]);
 
-export type LangType = PrimativeLangType | TupleLangType | StructLangType | ArrayLangType;
+export type LangType = PrimativeLangType | TupleLangType | StructLangType | ArrayLangType | EnumLangType | EnumCaseLangType;
 
 class PrimativeLangType {
 	private readonly type: PrimativeTypes
@@ -245,13 +245,13 @@ export class StructLangType extends ObjectLangType {
 	}>
 	readonly size: number = 4
 	
-	constructor (types: Map<string, LangType>, name: string) {
+	constructor (types: Map<string, LangType>, name: string, initial_offset: number = 0) {
 		super(name);
-		this.types = this.calculate_offset(types);
+		this.types = this.calculate_offset(types, initial_offset);
 	}
 
-	private calculate_offset (types: Map<string, LangType>) {
-		let offset = 0;
+	private calculate_offset (types: Map<string, LangType>, initial_offset: number) {
+		let offset = initial_offset;
 		const result: Map<string, {
 			type: LangType,
 			offset: number
@@ -269,6 +269,49 @@ export class StructLangType extends ObjectLangType {
 	equals (other: LangType): boolean {
 		if (other instanceof StructLangType) {
 			// we dont support structural typing, so we can use direct comparison
+			return this === other;
+		}
+		return false;
+	}
+}
+
+export class EnumLangType extends ObjectLangType {
+	readonly size: number = 4
+	readonly cases: Map<string, EnumCaseLangType>
+	
+	constructor (name: string, cases: Map<string, EnumCaseLangType>) {
+		super(name);
+		this.cases = cases;
+	}
+	
+	equals (other: LangType): boolean {
+		if (other instanceof EnumLangType) {
+			return this === other;
+		}
+		if (other instanceof EnumCaseLangType) {
+			for (const case_type of this.cases.values()) {
+				if (case_type.equals(other)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+}
+
+export class EnumCaseLangType extends ObjectLangType {
+	readonly size: number = 4
+	readonly type: StructLangType
+	readonly case_index: number
+	
+	constructor (name: string, type: StructLangType, case_index: number) {
+		super(name);
+		this.type = type;
+		this.case_index = case_index;
+	}
+
+	equals (other: LangType): boolean {
+		if (other instanceof EnumCaseLangType) {
 			return this === other;
 		}
 		return false;
@@ -325,6 +368,9 @@ function type_pattern_name (pattern: TypePattern): string {
 	if (pattern.style === "class") {
 		return pattern.type;
 	}
+	else if (pattern.style === "member") {
+		return `${type_pattern_name(pattern.type)}.${pattern.name}`;
+	}
 	else if (pattern.style === "tuple") {
 		return `(${pattern.types.map(type => type_pattern_name(type)).join(",")})`;
 	}
@@ -350,14 +396,17 @@ export function parse_type (pattern: TypePattern, ctx: Context): LangType {
 	switch (pattern.style) {
 		case "class": {
 			const struct_decl = ctx.get_struct(pattern.type);
-			
 			if (struct_decl) {
 				return struct_decl.type;
 			}
-			else {
-				const type_enum = validate_primative_type(pattern.type);
-				return new PrimativeLangType(type_enum, name);
+
+			const enum_decl = ctx.get_enum(pattern.type);
+			if (enum_decl) {
+				return enum_decl.type;
 			}
+
+			const type_enum = validate_primative_type(pattern.type);
+			return new PrimativeLangType(type_enum, name);
 		}
 		case "tuple": {
 			const types: Array<LangType> = pattern.types.map(type => parse_type(type, ctx));
@@ -366,6 +415,20 @@ export function parse_type (pattern: TypePattern, ctx: Context): LangType {
 		case "array": {
 			const inner_type = parse_type(pattern.type, ctx);
 			return new ArrayLangType(inner_type, name, pattern.count);
+		}
+		case "member": {
+			const type_namespace = parse_type(pattern.type, ctx);
+
+			if (type_namespace instanceof EnumLangType) {
+				const subtype = type_namespace.cases.get(pattern.name);
+				if (!subtype) {
+					throw new Error(`"${pattern.name}" is not a variant of "${type_namespace.name}"`)
+				}
+				return subtype;
+			}
+			else {
+				throw new Error(`"${type_namespace.name}" is not an enum`);
+			}	
 		}
 	}
 }

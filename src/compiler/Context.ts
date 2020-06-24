@@ -1,14 +1,15 @@
 import { FunctionDeclaration } from "./FunctionDeclaration";
 import { Environment } from "./Environment";
-import { LangType } from "./LangType";
+import { LangType, StructLangType } from "./LangType";
 import { Variable } from "./Variable";
 import { syntax_assert, compiler_assert } from "./error";
 import { StructDeclaration } from "./StructDeclaration";
 import { WASTDataNode, Ref } from "../WASTNode";
+import { EnumDeclaration, EnumCaseDeclaration } from "./EnumDeclaration";
 
 export class Context {
 
-	user_globals: Map<string, FunctionDeclaration|Variable|StructDeclaration> = new Map
+	user_globals: Map<string, EnumDeclaration|FunctionDeclaration|Variable|StructDeclaration> = new Map
 	lib_globals: Map<string, FunctionDeclaration|Variable> = new Map
 
 	global_variables: Array<Variable> = []
@@ -61,6 +62,32 @@ export class Context {
 		const struct = this.declare_hidden_struct(ref, name, fields);
 		this.user_globals.set(name, struct);
 		return struct;
+	}
+
+	declare_enum (ref: Ref, name: string, case_patterns: Map<string, Map<string, LangType>>): EnumDeclaration {
+		syntax_assert(this.user_globals.has(name) === false, ref, `Global ${name} already exists`)
+		
+		const cases: Map<string, EnumCaseDeclaration> = new Map;
+		const case_structs: [string, StructLangType][] = [];
+		let enum_size = 4;
+
+		for (const [case_name, case_fields] of case_patterns) {
+			const struct_type = new StructLangType(case_fields, name);
+			case_structs.push([case_name, struct_type]);
+			enum_size = Math.max(enum_size, struct_type.size + 4);
+		}
+
+		let case_index = 0;
+
+		for (const [case_name, case_struct] of case_structs) { 
+			const case_decl = new EnumCaseDeclaration(ref, case_name, case_struct, enum_size, case_index);
+			case_index += 1;
+			cases.set(case_name, case_decl);
+		}
+		
+		const enumerable = new EnumDeclaration(ref, name, cases, enum_size);
+		this.user_globals.set(name, enumerable);
+		return enumerable;
 	}
 
 	declare_hidden_struct (ref: Ref, name: string, fields: Map<string, LangType>) {
@@ -125,6 +152,16 @@ export class Context {
 		const global_struct = this.user_globals.get(name);
 		if (global_struct instanceof StructDeclaration) {
 			return global_struct;
+		}
+		else {
+			return null;
+		}
+	}
+
+	get_enum (name: string): EnumDeclaration | null {
+		const global_enum = this.user_globals.get(name);
+		if (global_enum instanceof EnumDeclaration	) {
+			return global_enum;
 		}
 		else {
 			return null;

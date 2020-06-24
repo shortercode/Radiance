@@ -57,6 +57,7 @@ export class Compiler {
 			["export_function", visit_export_function],
 			["import_function", visit_import_function],
 			["struct", () => []],
+			["enum", () => []],
 			["variable", visit_global_variable],
 			["expression", visit_global_expression]
 		]);

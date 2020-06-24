@@ -3,7 +3,7 @@ import { Compiler } from "../core";
 import { I32_TYPE, LangType } from "../LangType";
 import { is_defined, compiler_assert } from "../error";
 
-export function create_object(compiler: Compiler, ref: Ref, type: LangType, values: Array<WASTExpressionNode>): WASTExpressionNode {
+export function create_object(compiler: Compiler, ref: Ref, type: LangType, values: Array<WASTExpressionNode>, min_size: number = 0): WASTExpressionNode {
 	const pointer = compiler.ctx.environment!.declare_hidden(ref, "pointer", I32_TYPE);
 	const get_pointer_expr = new WASTGetLocalNode(ref, pointer.id, pointer.name, pointer.type);
 
@@ -17,11 +17,13 @@ export function create_object(compiler: Compiler, ref: Ref, type: LangType, valu
 		result.nodes.push(value_init);
 	}
 
+	const final_size = Math.max(min_size, value_offset);
+
 	const malloc_fn = compiler.ctx.get_function("malloc")!;
 	compiler_assert(is_defined(malloc_fn), ref, "Unable to locate malloc function");
 
 	const call_malloc_expr = new WASTCallNode(ref, malloc_fn.id, "malloc_temp", type, [
-		new WASTConstNode(ref, I32_TYPE, value_offset.toString())
+		new WASTConstNode(ref, I32_TYPE, final_size.toString())
 	]);
 
 	const set_pointer_expr = new WASTSetLocalNode(ref, pointer.id, pointer.name, call_malloc_expr);

@@ -1,29 +1,49 @@
 import { AST, Compiler, TypeHint } from "../core";
-import { type_assert, syntax_assert, is_defined } from "../error";
-import { WASTExpressionNode, Ref } from "../../WASTNode";
+import { type_assert, syntax_assert, is_defined, syntax_error, type_error } from "../error";
+import { WASTExpressionNode, Ref, WASTConstNode } from "../../WASTNode";
 import { create_object } from "./object";
+import { StructDeclaration } from "../StructDeclaration";
+import { EnumDeclaration, EnumCaseDeclaration } from "../EnumDeclaration";
+import { I32_TYPE, StructLangType } from "../LangType";
 
-function read_node_data (node: AST) {
+function read_constructor_node_data (node: AST) {
 	return node.data as {
 		target: AST,
 		fields: Map<string, AST>
 	};
 }
 
+function read_identifier_node_data (node: AST) {
+	return node.data as string;
+}
+
+function read_member_node_data (node: AST) {
+	return node.data as {
+		target: AST,
+		member: string
+	};
+}
+
 export function visit_constructor_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
-	const ctx = compiler.ctx;
-	const data = read_node_data(node);
+	const data = read_constructor_node_data(node);
 	const ref = Ref.from_node(node);
 	const values = [];
 
-	type_assert(data.target.type === "identifier", ref, `${data.target.type} is not a function`);
-	
-	const struct_name = data.target.data as string;
-	const struct_decl = ctx.get_struct(struct_name)!;
-	
-	syntax_assert(is_defined(struct_decl), ref, `Cannot construct undeclared struct ${struct_name}`);
+	const declaration = resolve_declaration(compiler, ref, data.target);
+	let struct_type: StructLangType;
 
-	const struct_type = struct_decl.type;
+	if (declaration instanceof EnumCaseDeclaration) {
+		struct_type = declaration.type.type;
+		const case_index = declaration.type.case_index;
+
+		values.push(new WASTConstNode(ref, I32_TYPE, case_index.toString()));
+	}
+	else if (declaration instanceof StructDeclaration) {
+		struct_type = declaration.type;
+	}
+	else {
+		type_error(ref, `Expected a struct or enum variant`);
+	}
 
 	for (const [name, { type }] of struct_type.types) {
 		const value_node = data.fields.get(name)!;
@@ -34,6 +54,33 @@ export function visit_constructor_expression (compiler: Compiler, node: AST, _ty
 	}
 
 	syntax_assert(struct_type.types.size === data.fields.size, ref, `Expected ${struct_type.types.size} fields but has ${data.fields.size}`);
-	
-	return create_object(compiler, ref, struct_type, values);
+
+	return create_object(compiler, ref, declaration.type, values, declaration.size);
+}
+
+type Declaration = StructDeclaration | EnumDeclaration | EnumCaseDeclaration;
+
+function resolve_declaration (compiler: Compiler, ref: Ref, node: AST): Declaration {
+	switch (node.type) {
+		case "identifier": {
+			const name = read_identifier_node_data(node);
+			const declaration = compiler.ctx.get_struct(name) || compiler.ctx.get_enum(name)!;
+			syntax_assert(is_defined(declaration), ref, `Cannot use undeclared constructor ${name}`);
+			return declaration;
+		}
+		case "member": {
+			const { target, member } = read_member_node_data(node);
+			const obj = resolve_declaration(compiler, ref, target);
+			
+			type_assert(obj instanceof EnumDeclaration, ref, `Cannot access member constructor ${member} of non-enumurable declaration`);
+			
+			const enum_case_declaration = (obj as EnumDeclaration).cases.get(member);
+			syntax_assert(is_defined(enum_case_declaration), ref, `Cannot use undeclared constructor ${member}`)
+
+			return enum_case_declaration!;
+		}
+		default: {
+			syntax_error(ref, `Invalid constructor type ${node.type}`);
+		}
+	}
 }

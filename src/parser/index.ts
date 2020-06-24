@@ -3,7 +3,10 @@ import Node from "../pratt/Node";
 import Iterator from "../pratt/Iterator";
 import Token from "../pratt/Token";
 
-export type TypePattern = { style: "tuple", types: Array<TypePattern> } | { style: "class", type: string } | { style: "array", type: TypePattern, count: number };
+export type TypePattern = { style: "tuple", types: Array<TypePattern> }
+	| { style: "class", type: string }
+	| { style: "array", type: TypePattern, count: number }
+	| { style: "member", type: TypePattern, name: string };
 
 /*
 This class is the first stage of the process. It converts a text stream into an
@@ -21,6 +24,7 @@ class LangParser extends Parser {
 		this.addStatement("identifier:import", this.parseImport);
 		this.addStatement("identifier:fn", this.parseFunction);
 		this.addStatement("identifier:struct", this.parseStruct);
+		this.addStatement("identifier:enum", this.parseEnum);
 		this.addStatement("identifier:let", this.parseVariable);
 		this.addStatement("identifier:return", this.parseReturn);
 		
@@ -334,10 +338,62 @@ class LangParser extends Parser {
 	parseStruct (tokens: Iterator<Token>): Node {
 		const start = tokens.previous()!.start;
 		const name = this.ensure(tokens, "identifier:");
-		const fields: Map<string, TypePattern> = new Map;
+
+		const fields = this.parseStructBody(tokens);
+
+		const end = tokens.previous()!.end;
+		return new Node("struct", start, end, { name, fields });
+	}
+
+	parseEnum (tokens: Iterator<Token>): Node {
+		const start = tokens.previous()!.start;
+		const name = this.ensure(tokens, "identifier:");
+
+		type Case = {
+			start: [number, number],
+			end: [number, number],
+			name: string,
+			fields: Map<string, TypePattern>|null
+		};
+
+		const cases: Map<string, Case> = new Map;
 
 		this.ensure(tokens, "symbol:{");
 
+		if (!this.match(tokens, "symbol:}")) {
+			while (tokens.incomplete()) { 
+				this.ensure(tokens, "identifier:case");
+				const start = tokens.previous()!.start;
+				const case_name = this.ensure(tokens, "identifier:");
+				let fields: Map<string, TypePattern>|null = null;
+				
+				if (this.match(tokens, "symbol:{")) {
+					fields = this.parseStructBody(tokens);
+				}
+				const end = tokens.previous()!.end;
+
+				cases.set(case_name, {
+					start, end, name: case_name, fields 
+				});
+
+				if (this.match(tokens, "symbol:,")) {
+					tokens.next();
+				}
+				else {
+					break;
+				}
+			}
+		}
+
+		this.ensure(tokens, "symbol:}");
+		const end = tokens.previous()!.end;
+		return new Node("enum", start, end, { name, cases });
+	}
+
+	parseStructBody (tokens: Iterator<Token>) {
+		const fields: Map<string, TypePattern> = new Map;
+		// parse struct with fields
+		this.ensure(tokens, "symbol:{");
 		if (!this.match(tokens, "symbol:}")) {
 			while (tokens.incomplete()) { 
 				const field_name = this.ensure(tokens, "identifier:");
@@ -352,10 +408,8 @@ class LangParser extends Parser {
 				}
 			}
 		}
-
 		this.ensure(tokens, "symbol:}");
-		const end = tokens.previous()!.end;
-		return new Node("struct", start, end, { name, fields });
+		return fields;
 	}
 	
 	parseImport (tokens: Iterator<Token>): Node {
@@ -566,6 +620,16 @@ class LangParser extends Parser {
 				style: "class",
 				type
 			};
+
+			if (this.match(tokens, "symbol:.")) {
+				tokens.next();
+				const member_name = this.ensure(tokens, "identifier:");
+				result = {
+					style: "member",
+					type: result,
+					name: member_name
+				};
+			}
 		}
 
 		while (this.match(tokens, "symbol:[")) {

@@ -2,6 +2,7 @@ import { FunctionContext } from "../FunctionContext";
 import { WASTExpressionNode, WASTLoadNode } from "../../WASTNode";
 import { Opcode } from "../OpCode";
 import { PrimativeTypes } from "../../compiler/LangType";
+import { compiler_error } from "../../compiler/error";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 
@@ -27,6 +28,7 @@ export function write_load_expression(ctx: FunctionContext, node: WASTExpression
 		case PrimativeTypes.u32:
 		case PrimativeTypes.i32:
 		case PrimativeTypes.bool:
+		case PrimativeTypes.str:
 		ctx.writer.writeUint8(Opcode.i32_load);
 		ctx.push_value(type);
 		break;
@@ -35,6 +37,8 @@ export function write_load_expression(ctx: FunctionContext, node: WASTExpression
 		ctx.writer.writeUint8(Opcode.i64_load);
 		ctx.push_value(type);
 		break;
+		default:
+		compiler_error(node.source, `Unable to load unknown type`);
 	}
 	/*
 		Offset is a fixed value that is added to the location expression

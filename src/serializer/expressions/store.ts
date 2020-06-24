@@ -2,6 +2,7 @@ import { FunctionContext } from "../FunctionContext";
 import { WASTExpressionNode, WASTStoreNode } from "../../WASTNode";
 import { Opcode } from "../OpCode";
 import { PrimativeTypes } from "../../compiler/LangType";
+import { compiler_error } from "../../compiler/error";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 
@@ -26,6 +27,7 @@ export function write_store_expression(ctx: FunctionContext, node: WASTExpressio
 		break;
 		case PrimativeTypes.u32:
 		case PrimativeTypes.i32:
+		case PrimativeTypes.str:
 		case PrimativeTypes.bool:
 		ctx.writer.writeUint8(Opcode.i32_store);
 		break;
@@ -33,6 +35,8 @@ export function write_store_expression(ctx: FunctionContext, node: WASTExpressio
 		case PrimativeTypes.i64:
 		ctx.writer.writeUint8(Opcode.i64_store);
 		break;
+		default:
+		compiler_error(node.source, `Unable to store unknown type`);
 	}
 	/*
 		Offset is a fixed value that is added to the location expression

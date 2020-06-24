@@ -96,6 +96,16 @@ describe("type parsing", () => {
 	test("parse array floating point size", () => {
 		expect(() => parseType('void[1.1]')).toThrowError("Invalid array length 1.1");
 	});
+	test("parse enum variant", () => {
+		expect(parseType('type.variant')).toStrictEqual({
+			style: "member",
+			type: {
+				style: "class",
+				type: "type"
+			},
+			name: "variant"
+		});
+	})
 });
 
 describe("export statement", () => {
@@ -339,41 +349,77 @@ describe("let statement", () => {
 	});
 });
 
-// describe("enum statement", () => {
-// 	test("enum no options", () => {
-// 		const ast = parse(`enum Name {}`);
-// 		compareModule(ast, [
-// 			new AST("enum", [1, 0], [1, 12], {
-// 				name: "Name",
-// 				cases: []
-// 			})
-// 		]);
-// 	});
+describe("enum statement", () => {
+	test("enum no cases", () => {
+		const ast = parse(`enum Name {}`);
+		compareModule(ast, [
+			new AST("enum", [1, 0], [1, 12], {
+				name: "Name",
+				cases: new Map
+			})
+		]);
+	});
 
-// 	test("enum single case with no value", () => {
-// 		const ast = parse(`enum Name {
-// 			a
-// 		}`);
-// 		compareModule(ast, [
-// 			new AST("enum", [1, 0], [1, 12], {
-// 				name: "Name",
-// 				cases: []
-// 			})
-// 		]);
-// 	});
+	test("enum single case with no value", () => {
+		const ast = parse(`
+enum Name {
+	case a
+}`);
+		compareModule(ast, [
+			new AST("enum", [2, 0], [4, 1], {
+				name: "Name",
+				cases: new Map([
+					["a", { start: [3, 1], end: [3, 7], name: "a", fields: null }]
+				])
+			})
+		]);
+	});
 
-// 	test("enum cases with no value", () => {
-// 		const ast = parse(`enum Name {
-// 			a
-// 		}`);
-// 		compareModule(ast, [
-// 			new AST("enum", [1, 0], [1, 12], {
-// 				name: "Name",
-// 				cases: []
-// 			})
-// 		]);
-// 	})
-// });
+	test("enum multiple cases no value", () => {
+		const ast = parse(`
+enum Compass {
+	case north,
+	case south,
+	case east,
+	case west
+}`);
+		compareModule(ast, [
+			new AST("enum", [2, 0], [7, 1], {
+				name: "Compass",
+				cases: new Map([
+					["north", { start: [3, 1], end: [3, 11], name: "north", fields: null }],
+					["south", { start: [4, 1], end: [4, 11], name: "south", fields: null }],
+					["east", { start: [5, 1], end: [5, 10], name: "east", fields: null }],
+					["west", { start: [6, 1], end: [6, 10], name: "west", fields: null }]
+				])
+			})
+		]);
+	});
+
+	test("enum multiple cases with values", () => {
+		const ast = parse(`
+enum Barcode {
+	case upc { a: i32, b: i32, c: i32, d: i32 },
+	case qrcode { value: string }
+}`);
+		compareModule(ast, [
+			new AST("enum", [2, 0], [5, 1], {
+				name: "Barcode",
+				cases: new Map([
+					["upc", { start: [3, 1], end: [3, 44], name: "upc", fields: new Map([
+						["a", { style: "class", type: "i32" }],
+						["b", { style: "class", type: "i32" }],
+						["c", { style: "class", type: "i32" }],
+						["d", { style: "class", type: "i32" }]
+					]) }],
+					["qrcode", { start: [4, 1], end: [4, 30], name: "qrcode", fields: new Map([
+						["value", { style: "class", type: "string" }]
+					]) }]
+				])
+			})
+		])
+	});
+});
 
 describe("include statement", () => {
 	
@@ -523,6 +569,19 @@ describe("constructor expression", () => {
 			}))
 		]);
 	});
+
+	test("member constructor with no fields", () => {
+		const ast = parse("Obj.Child {}");
+		compareModule(ast, [
+			new AST("expression", [1,0],[1,12], new AST("constructor", [1,0],[1,12], {
+				target: new AST("member", [1, 0], [1, 9], {
+					target: new AST("identifier", [1,0], [1, 3], "Obj"),
+					member: "Child"
+				}),
+				fields: new Map()
+			}))
+		]);
+	})
 });
 
 

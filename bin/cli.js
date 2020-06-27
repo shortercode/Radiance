@@ -18,7 +18,10 @@ async function main () {
 
 		if (options.run) {
 			console.log(`Executing ${options.input}`);
-			await execute_file(options.input);
+			const exps = await execute_file(options.input);
+			if (options.memdump) {
+				await fs.writeFile(options.memdump, Buffer.from(exps.memory.buffer).toString("hex"));
+			}
 		}
 		else {
 			console.log(`Compiling ${options.input} to ${options.output}`);
@@ -72,6 +75,7 @@ function read_arguments (argv) {
 
 	let input = null;
 	let output = null;
+	let memdump = null;
 
 	const aliases = new Map([
 		["i", "input"],
@@ -110,8 +114,16 @@ function read_arguments (argv) {
 					debug = true;
 					break;
 				}
-				case "hexdump": {
+				case "bindump": {
 					hexdump = true;
+					break;
+				}
+				case "memdump": {
+					const next_part = args.shift();
+					if (!next_part || next_part.type !== "argument") {
+						throw new Error("expected the name of an memdump file");
+					}
+					memdump = next_part.value;
 					break;
 				}
 				case "run": {
@@ -151,6 +163,7 @@ function read_arguments (argv) {
 		output,
 		debug,
 		hexdump,
+		memdump,
 		run
 	}
 }

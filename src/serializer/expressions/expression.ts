@@ -14,22 +14,17 @@ import { write_block_expression } from "./block";
 import { write_const_expression } from "./const";
 import { write_call_expression } from "./call";
 import { write_multiply_expression } from "./multiply";
-import { write_set_local_expression } from "./set_local";
-import { write_get_local_expression } from "./get_local";
 import { write_loop_expression } from "./loop";
 import { write_br_expression } from "./br";
 import { write_br_if_expression } from "./br_if";
 import { write_not_expression } from "./not";
 import { write_list_expression } from "./list";
 import { write_divide_expression } from "./divide";
-import { write_tee_local_expression } from "./tee_local";
 import { write_shift_left_expression } from "./left_shift";
 import { write_shift_right_expression } from "./right_shift";
 import { write_bitwise_and_expression } from "./bitwise_and";
 import { write_bitwise_or_expression } from "./bitwise_or";
 import { compiler_assert } from "../../compiler/error";
-import { write_get_global_expression } from "./get_global";
-import { write_set_global_expression } from "./set_global";
 import { write_load_expression } from "./load";
 import { write_store_expression } from "./store";
 import { write_cast_float_expression } from "./cast_float";
@@ -38,6 +33,10 @@ import { write_trap_expression } from "./trap";
 import { write_data_ref_expression } from "./data_ref";
 import { write_unsafe_cast_expression } from "./unsafe_cast";
 import { write_return_expression } from "./return";
+import { write_get_variable_expression } from "./get";
+import { write_variable_restore_expression } from "./var_restore";
+import { write_set_variable_expression } from "./set";
+import { write_tee_variable_expression } from "./tee";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 type WriterFunction = (ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) => void
@@ -73,12 +72,11 @@ const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 	["br_if", write_br_if_expression],
 	["return", write_return_expression],
 	
-	["set_local", write_set_local_expression],
-	["get_local", write_get_local_expression],
-	["tee_local", write_tee_local_expression],
+	["var_restore", write_variable_restore_expression],
+	["tee", write_tee_variable_expression],
 
-	["get_global", write_get_global_expression],
-	["set_global", write_set_global_expression],
+	["set", write_set_variable_expression],
+	["get", write_get_variable_expression],
 
 	["load", write_load_expression],
 	["store", write_store_expression],

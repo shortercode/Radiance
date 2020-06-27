@@ -1,6 +1,7 @@
 import { Variable } from "./compiler/Variable";
 import { LangType, VOID_TYPE, BOOL_TYPE, NEVER_TYPE } from "./compiler/LangType";
 import ParserNode from "./pratt/Node";
+import { compiler_assert } from "./compiler/error";
 
 export interface WASTNode {
 	type: WASTNodeType
@@ -40,11 +41,10 @@ export class Ref {
 export type WASTExpressionNode = WASTBlockNode | 
 WASTNodeList |
 WASTConstNode |
-WASTGetLocalNode |
-WASTTeeLocalNode |
-WASTSetLocalNode |
-WASTGetGlobalNode |
-WASTSetGlobalNode |
+WASTGetVarNode |
+WASTSetVarNode |
+WASTVarRestoreNode |
+WASTTeeVarNode |
 WASTLoadNode |
 WASTStoreNode |
 WASTCallNode |
@@ -95,11 +95,10 @@ export type WASTExpressionType = WASTBinaryExpressionType |
 
 "block" |
 "const" |
-"get_local" |
-"tee_local" |
-"set_local" |
-"get_global" |
-"set_global" |
+"get" |
+"set" |
+"var_restore" |
+"tee" |
 "load" |
 "store" |
 "if" |
@@ -495,25 +494,8 @@ export class WASTModuloNode implements WASTNode {
 	}
 }
 
-export class WASTGetLocalNode implements WASTNode {
-	type: "get_local" = "get_local"
-	source: Ref
-	
-	value_type: LangType
-	
-	id: number
-	name: string
-	
-	constructor (ref: Ref, id: number, name: string, type: LangType) {
-		this.source = ref;
-		this.id = id;
-		this.name = name;
-		this.value_type = type;
-	}
-}
-
-export class WASTTeeLocalNode implements WASTNode {
-	type: "tee_local" = "tee_local"
+export class WASTTeeVarNode implements WASTNode {
+	type: "tee" = "tee"
 	source: Ref
 	
 	value_type: LangType
@@ -521,18 +503,62 @@ export class WASTTeeLocalNode implements WASTNode {
 	id: number
 	name: string
 	value: WASTExpressionNode
+	is_global: boolean
 	
-	constructor (ref: Ref, id: number, name: string, value: WASTExpressionNode, type: LangType) {
+	constructor (variable: Variable, value: WASTExpressionNode, ref: Ref = value.source) {
 		this.source = ref;
-		this.id = id;	
-		this.name = name;
+		this.id = variable.id;	
+		this.name = variable.name;
+		this.is_global = variable.is_global;
 		this.value = value;
-		this.value_type = type;
+		this.value_type = value.value_type;
 	}
 }
 
-export class WASTSetLocalNode implements WASTNode {
-	type: "set_local" = "set_local"
+export class WASTVarRestoreNode implements WASTNode {
+	type: "var_restore" = "var_restore"
+	source: Ref
+
+	value_type: LangType = VOID_TYPE
+
+	id: number
+	name: string
+	is_global: boolean
+
+	expr: WASTExpressionNode
+
+	constructor (variable: Variable, expr: WASTExpressionNode, ref: Ref = expr.source) {
+		compiler_assert(expr.value_type.is_void(), expr.source, "Expected inner type of restore node to be void, cannot pass a value out of a restore node.");
+
+		this.source = ref;
+		this.id = variable.id;	
+		this.name = variable.name;
+		this.is_global = variable.is_global;
+		this.expr = expr;
+	}
+}	
+
+export class WASTGetVarNode implements WASTNode {
+	type: "get" = "get"
+	source: Ref
+	
+	value_type: LangType = VOID_TYPE
+	
+	id: number
+	name: string
+	is_global: boolean
+	
+	constructor (variable: Variable, ref: Ref = variable.source) {
+		this.source = ref;
+		this.id = variable.id;	
+		this.name = variable.name;
+		this.value_type = variable.type;
+		this.is_global = variable.is_global;
+	}
+}
+
+export class WASTSetVarNode implements WASTNode {
+	type: "set" = "set"
 	source: Ref
 	
 	value_type: LangType = VOID_TYPE
@@ -540,46 +566,14 @@ export class WASTSetLocalNode implements WASTNode {
 	id: number
 	name: string
 	value: WASTExpressionNode
+	is_global: boolean
 	
-	constructor (ref: Ref, id: number, name: string, value: WASTExpressionNode) {
+	constructor (variable: Variable, value: WASTExpressionNode, ref: Ref = value.source) {
 		this.source = ref;
-		this.id = id;	
-		this.name = name;
-		this.value = value;
-	}
-}
-
-export class WASTGetGlobalNode implements WASTNode {
-	type: "get_global" = "get_global"
-	source: Ref
-	
-	value_type: LangType
-	
-	id: number
-	name: string
-	
-	constructor (ref: Ref, id: number, name: string, type: LangType) {
-		this.source = ref;
-		this.id = id;
-		this.name = name;
-		this.value_type = type;
-	}
-}
-
-export class WASTSetGlobalNode implements WASTNode {
-	type: "set_global" = "set_global"
-	source: Ref
-	
-	value_type: LangType = VOID_TYPE
-	
-	id: number
-	name: string
-	value: WASTExpressionNode
-	
-	constructor (ref: Ref, id: number, name: string, value: WASTExpressionNode) {
-		this.source = ref;
-		this.id = id;	
-		this.name = name;
+		this.id = variable.id;	
+		this.name = variable.name;
+		this.is_global = variable.is_global;
+		
 		this.value = value;
 	}
 }

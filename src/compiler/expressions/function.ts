@@ -4,7 +4,6 @@ import { Context } from "../Context";
 import { FunctionDeclaration } from "../FunctionDeclaration";
 import { compiler_assert, is_defined, type_assert, syntax_assert } from "../error";
 import { WASTFunctionNode, WASTStatementNode, Ref, WASTTrapNode } from "../../WASTNode";
-import { Environment } from "../Environment";
 import { parse_type } from "../LangType";
 import { Variable } from "../Variable";
 
@@ -63,7 +62,7 @@ export function visit_function (compiler: Compiler, node: AST): Array<WASTStatem
 export function initialise_function_environment(ref: Ref, ctx: Context, decl: FunctionDeclaration) {
 	const fn_wast = new WASTFunctionNode(ref, decl.id, decl.name, decl.type);
 	
-	ctx.environment = new Environment(decl.parameters, decl);
+	ctx.create_function_environment(ref, decl);
 	
 	for (const variable of decl.parameters) {
 		fn_wast.parameters.push(variable);
@@ -119,11 +118,11 @@ export function complete_function_environment (compiler: Compiler, fn_wast: WAST
 	}
 	
 	const ctx = compiler.ctx;
-	const locals = ctx.environment!.variables;
+	const locals = ctx.get_environment(fn_wast.source).variables;
 
 	for (const local of locals) {
 		fn_wast.locals.push(local);
 	}
 
-	ctx.environment = null;
+	ctx.exit_function_environment();
 }

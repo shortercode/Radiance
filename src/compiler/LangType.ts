@@ -116,6 +116,10 @@ class PrimativeLangType {
 		return false;
 	}
 
+	is_enum (): this is EnumLangType | EnumCaseLangType {
+		return false;
+	}
+
 	is_object_type (): boolean {
 		return false;
 	}
@@ -185,13 +189,17 @@ class ObjectLangType {
 		return this instanceof ArrayLangType;
 	}
 
+	is_enum (): this is EnumLangType | EnumCaseLangType {
+		return this instanceof EnumLangType || this instanceof EnumCaseLangType;
+	}
+
 	is_object_type (): boolean {
 		return true;
 	}
 	
 	is_exportable (): boolean {
 		return ALLOW_POINTER_EXPORTS;
-	}
+	}	
 }
 
 export class TupleLangType extends ObjectLangType{
@@ -277,11 +285,10 @@ export class StructLangType extends ObjectLangType {
 
 export class EnumLangType extends ObjectLangType {
 	readonly size: number = 4
-	readonly cases: Map<string, EnumCaseLangType>
-	
-	constructor (name: string, cases: Map<string, EnumCaseLangType>) {
-		super(name);
-		this.cases = cases;
+	readonly cases: Map<string, EnumCaseLangType> = new Map
+
+	add_variant (name: string, variant: EnumCaseLangType) {
+		this.cases.set(name, variant);
 	}
 	
 	equals (other: LangType): boolean {
@@ -303,9 +310,11 @@ export class EnumCaseLangType extends ObjectLangType {
 	readonly size: number = 4
 	readonly type: StructLangType
 	readonly case_index: number
+	readonly parent: EnumLangType
 	
-	constructor (name: string, type: StructLangType, case_index: number) {
+	constructor (name: string, parent: EnumLangType, type: StructLangType, case_index: number) {
 		super(name);
+		this.parent = parent;
 		this.type = type;
 		this.case_index = case_index;
 	}

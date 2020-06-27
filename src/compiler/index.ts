@@ -2,8 +2,8 @@ import { I32_TYPE } from "./LangType";
 import { Variable } from "./Variable";
 import { Compiler, AST } from "./core";
 import { initialise_function_environment, complete_function_environment } from "./expressions/function";
-import { WASTModuleNode, WASTExportNode, WASTMemoryNode, WASTGlobalNode, WASTGetGlobalNode, WASTGetLocalNode, WASTAddNode, WASTSetLocalNode, WASTSetGlobalNode, Ref } from "../WASTNode";
-import { default_initialiser } from "./default_initialiser";
+import { WASTModuleNode, WASTExportNode, WASTMemoryNode, WASTGlobalNode, WASTAddNode, Ref, WASTSetVarNode, WASTGetVarNode } from "../WASTNode";
+import { zero_initialiser } from "./default_initialiser";
 
 const MEMORY_EXPORT_NAME = "memory";
 const SHOULD_EXPORT_MEMORY = true;
@@ -62,7 +62,7 @@ function* preamble (ref: Ref, compiler: Compiler) {
 
 function* generate_globals (compiler: Compiler) {
 	for (const global of compiler.ctx.global_variables) {
-		const value_node = default_initialiser(global.source, global.type);
+		const value_node = zero_initialiser(global.source, global.type);
 		yield new WASTGlobalNode(global.source, global.id, global.type, value_node);
 	}
 }
@@ -79,20 +79,20 @@ function generate_malloc_function (ref: Ref, compiler: Compiler) {
 			ptr
 		}
 	*/
-	const offset_var = ctx.declare_library_global_variable(ref	, "heap_top", I32_TYPE);
+	const offset_var = ctx.declare_library_global_variable(ref, "heap_top", I32_TYPE);
 	const size_variable = new Variable(ref, I32_TYPE, "size", 0, false);
 	const fn_decl = ctx.declare_function(ref, "malloc", I32_TYPE, [ size_variable ]);
 
 	const fn_wast = initialise_function_environment(ref, ctx, fn_decl);
 
-	const ptr_var = ctx.environment!.declare(ref, "ptr", I32_TYPE);
-	const get_offset_node = new WASTGetGlobalNode(ref, offset_var.id, offset_var.name, offset_var.type);
-	const get_size_node = new WASTGetLocalNode(ref, size_variable.id, size_variable.name, size_variable.type);
+	const ptr_var = ctx.get_environment(ref).declare(ref, "ptr", I32_TYPE);
+	const get_offset_node = new WASTGetVarNode(offset_var);
+	const get_size_node = new WASTGetVarNode(size_variable);
 	const calc_new_offset_node = new WASTAddNode(ref, I32_TYPE, get_offset_node, get_size_node);
 	
-	const set_pointer_node = new WASTSetLocalNode(ref, ptr_var.id, ptr_var.name, get_offset_node);
-	const set_offset_node = new WASTSetGlobalNode(ref, offset_var.id, offset_var.name, calc_new_offset_node);
-	const get_pointer_node = new WASTGetLocalNode(ref, ptr_var.id, ptr_var.name, ptr_var.type);
+	const set_pointer_node = new WASTSetVarNode(ptr_var, get_offset_node);
+	const set_offset_node = new WASTSetVarNode(offset_var, calc_new_offset_node);
+	const get_pointer_node = new WASTGetVarNode(ptr_var);
 
 	fn_wast.body.nodes.push(
 		set_pointer_node,

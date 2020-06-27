@@ -1,6 +1,6 @@
 import { TypePattern } from "../../parser/index";
 import { AST, Compiler, TypeHint } from "../core";
-import { WASTExpressionNode, WASTSetLocalNode, Ref, WASTSetGlobalNode, WASTGlobalExpression, WASTStatementNode } from "../../WASTNode";
+import { WASTExpressionNode, Ref, WASTGlobalExpression, WASTStatementNode, WASTSetVarNode } from "../../WASTNode";
 import { parse_type } from "../LangType";
 import { guess_expression_type } from "../inference";
 import { InferContext } from "../InferContext";
@@ -15,16 +15,16 @@ function read_node_data (node: AST) {
 }
 
 export function visit_variable (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
-	const { ref, id, name, value } = variable_common_process(compiler, node);
-	return new WASTSetLocalNode(ref, id, name, value);
+	const { ref, variable, value } = variable_common_process(compiler, node);
+	return new WASTSetVarNode(variable, value, ref);
 }
 
 export function visit_global_variable  (compiler: Compiler, node: AST): Array<WASTStatementNode> {
-	const { ref, id, name, value } = variable_common_process(compiler, node);
+	const { ref, variable, value } = variable_common_process(compiler, node);
 
 	// assumes that the global variable statement is added elsewhere
 	return [
-		new WASTGlobalExpression(ref, new WASTSetGlobalNode(ref, id, name, value)),
+		new WASTGlobalExpression(ref, new WASTSetVarNode(variable, value, ref)),
 	];
 }
 
@@ -45,15 +45,14 @@ function variable_common_process (compiler: Compiler, node: AST) {
 
 	type_assert(is_defined(type), node, `Unable to infer type of ${data.name} please include an explicit type`);
 
-	const { id, name } = ctx.declare_variable(ref, data.name, type);
+	const variable = ctx.declare_variable(ref, data.name, type);
 	const value = compiler.visit_expression(data.initial, type);
 
 	type_assert(type.equals(value.value_type), node, `Initialiser type ${value.value_type.name} doesn't match variable type ${type.name}`);
 
 	return {
 		ref,
-		id,
-		name,
+		variable,
 		value
 	};
 }

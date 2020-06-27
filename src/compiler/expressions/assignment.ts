@@ -1,5 +1,5 @@
 import { Compiler, AST, TypeHint } from "../core";
-import { WASTExpressionNode, Ref, WASTStoreNode, WASTSetLocalNode } from "../../WASTNode";
+import { WASTExpressionNode, Ref, WASTStoreNode, WASTSetVarNode } from "../../WASTNode";
 import { syntax_assert, is_defined, type_assert, syntax_error, type_error, compiler_error, compiler_assert } from "../error";
 import { TupleLangType, StructLangType, ArrayLangType, LangType, I32_TYPE } from "../LangType";
 import { bounds_check, ensure_int32 } from "./subscript";
@@ -153,7 +153,7 @@ function visit_grouping_assignment (compiler: Compiler, ref: Ref, left: AST<AST>
 
 function visit_variable_assignment_expression (compiler: Compiler, ref: Ref, left: AST<string>, right: AST): WASTExpressionNode {
 	const variable_name = left.data;
-	const variable = compiler.ctx.get_variable(variable_name)!;
+	const variable = compiler.ctx.get_variable(ref, variable_name)!;
 	
 	syntax_assert(is_defined(variable), ref, `Unable to assign to undeclared variable ${variable_name}`);
 	
@@ -161,7 +161,7 @@ function visit_variable_assignment_expression (compiler: Compiler, ref: Ref, lef
 	
 	assign_type_check(ref, variable.type, new_value.value_type);
 	
-	return new WASTSetLocalNode(ref, variable.id, variable.name, new_value);
+	return new WASTSetVarNode(variable, new_value, ref);
 }
 
 function assign_type_check (ref: Ref, l_type: LangType, r_type: LangType) {

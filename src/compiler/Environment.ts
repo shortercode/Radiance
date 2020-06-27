@@ -13,13 +13,13 @@ export class Environment {
 	private array_access_varables: ArrayAccessVariables|null = null
 	readonly fn_type: FunctionDeclaration
 	
-	constructor (parameters: Array<Variable>, fn_type: FunctionDeclaration) {
-		this.variables = parameters.slice(0);
+	constructor (decl: FunctionDeclaration) {
+		this.variables = decl.parameters.slice(0);
 		this.id_counter = this.variables.length;
-		for (const param of parameters) {
+		for (const param of decl.parameters) {
 			this.current_frame.set(param.name, param);
 		}
-		this.fn_type = fn_type;
+		this.fn_type = decl;
 	}
 	
 	get current_frame () {

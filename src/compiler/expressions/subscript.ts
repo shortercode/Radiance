@@ -1,4 +1,4 @@
-import { WASTExpressionNode, WASTLoadNode, WASTNodeList, WASTTeeLocalNode, WASTGreaterThanEqualsNode, WASTConstNode, WASTGetLocalNode, WASTLessThanNode, WASTBitwiseAndNode, WASTNotNode, WASTConditionalNode, WASTTrapNode, WASTSetLocalNode, WASTAddNode, WASTMultiplyNode, Ref } from "../../WASTNode";
+import { WASTExpressionNode, WASTLoadNode, WASTNodeList, WASTGreaterThanEqualsNode, WASTConstNode, WASTLessThanNode, WASTBitwiseAndNode, WASTNotNode, WASTConditionalNode, WASTTrapNode, WASTAddNode, WASTMultiplyNode, Ref, WASTSetVarNode, WASTGetVarNode, WASTTeeVarNode } from "../../WASTNode";
 import { Compiler, AST, TypeHint } from "../core";
 import { type_error, type_assert } from "../error";
 import { I32_TYPE, VOID_TYPE, BOOL_TYPE, ArrayLangType } from "../LangType";
@@ -48,27 +48,21 @@ function visit_string_subscript_expression (compiler: Compiler, ref: Ref, target
 }
 
 export function bounds_check (compiler: Compiler, ref: Ref, target: WASTExpressionNode, accessor: WASTExpressionNode): WASTExpressionNode {
-	const variables = compiler.ctx.environment!.get_array_variables(ref);
-	const { id: target_id, name: target_name } = variables.target;
-	const { id: index_id, name: index_name } = variables.index;
-	const { id: length_id, name: length_name } = variables.length;
+	// TODO this does not work in global context
+	const variables = compiler.ctx.get_environment(ref).get_array_variables(ref);
 
 	const trap_condition_branch = new WASTNodeList(ref);
 	trap_condition_branch.nodes.push(new WASTTrapNode(ref));
 
-	const get_length_expression = new WASTSetLocalNode(
-		ref,
-		length_id,
-		length_name,
+	const get_length_expression = new WASTSetVarNode(
+		variables.length,
 		new WASTLoadNode(
 			ref,
 			I32_TYPE,
-			new WASTTeeLocalNode(
-				ref,
-				target_id,
-				target_name,
+			new WASTTeeVarNode(
+				variables.target,
 				target,
-				I32_TYPE
+				ref
 			),
 			0
 		)
@@ -84,12 +78,10 @@ export function bounds_check (compiler: Compiler, ref: Ref, target: WASTExpressi
 				BOOL_TYPE,
 				new WASTGreaterThanEqualsNode(
 					ref, 
-					new WASTTeeLocalNode(
-						ref,
-						index_id,
-						index_name,
+					new WASTTeeVarNode(
+						variables.index,
 						accessor,
-						I32_TYPE
+						ref
 					),
 					new WASTConstNode(
 						ref,
@@ -99,8 +91,8 @@ export function bounds_check (compiler: Compiler, ref: Ref, target: WASTExpressi
 				),
 				new WASTLessThanNode(
 					ref,
-					new WASTGetLocalNode(ref, index_id, index_name, I32_TYPE),
-					new WASTGetLocalNode(ref, length_id, length_name, I32_TYPE),
+					new WASTGetVarNode(variables.index),
+					new WASTGetVarNode(variables.length),
 				)
 			)
 		),
@@ -116,13 +108,13 @@ export function bounds_check (compiler: Compiler, ref: Ref, target: WASTExpressi
 		new WASTAddNode(
 			ref,
 			I32_TYPE,
-			new WASTGetLocalNode(ref, target_id, target_name, I32_TYPE),
+			new WASTGetVarNode(variables.target),
 			new WASTConstNode(ref, I32_TYPE, I32_TYPE.size.toString())
 		),
 		new WASTMultiplyNode(
 			ref,
 			I32_TYPE,
-			new WASTGetLocalNode(ref, index_id, index_name, I32_TYPE),
+			new WASTGetVarNode(variables.index),
 			new WASTConstNode(ref, I32_TYPE, array_type.type.size.toString())
 		)
 	);

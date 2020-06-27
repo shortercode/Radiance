@@ -5,22 +5,19 @@ export class EnumDeclaration {
 	readonly name: string
 	readonly type: EnumLangType
 	readonly size: number
-	readonly cases: Map<string, EnumCaseDeclaration>
+	readonly cases: Map<string, EnumCaseDeclaration> = new Map
 	readonly source: Ref
 	
-	constructor (ref: Ref, name: string, cases: Map<string, EnumCaseDeclaration>, size: number) {
+	constructor (ref: Ref, name: string, size: number) {
 		this.source = ref;
 		this.name = name;
-		this.cases = cases;
 		this.size = size;
+		this.type = new EnumLangType(name);
+	}
 
-		const types: Map<string, EnumCaseLangType> = new Map;
-
-		for (const [name, cse] of cases.entries()) {
-			types.set(name, cse.type);
-		}
-
-		this.type = new EnumLangType(name, types);
+	add_variant (name: string, variant: EnumCaseDeclaration) {
+		this.cases.set(name, variant);
+		this.type.add_variant(name, variant.type);
 	}
 }
 
@@ -30,11 +27,13 @@ export class EnumCaseDeclaration {
 	readonly size: number
 	readonly source: Ref
 	readonly index: number
+	readonly parent: EnumDeclaration
 	
-	constructor (ref: Ref, name: string, struct_type: StructLangType, size: number, case_index: number) {
+	constructor (ref: Ref, name: string, parent: EnumDeclaration, struct_type: StructLangType, size: number, case_index: number) {
 		this.source = ref;
 		this.name = name;
-		this.type = new EnumCaseLangType(name, struct_type, case_index);
+		this.parent = parent;
+		this.type = new EnumCaseLangType(name, parent.type, struct_type, case_index);
 		this.size = size;
 		this.index = case_index;
 	}

@@ -1,5 +1,5 @@
 import { Compiler, AST, TypeHint } from "../core";
-import { WASTExpressionNode, WASTBlockNode, WASTNodeList, WASTSetLocalNode, WASTLoopNode, WASTConditionalBranchNode, WASTBranchNode, WASTGetLocalNode, Ref } from "../../WASTNode";
+import { WASTExpressionNode, WASTBlockNode, WASTNodeList, WASTLoopNode, WASTConditionalBranchNode, WASTBranchNode, Ref, WASTSetVarNode, WASTGetVarNode } from "../../WASTNode";
 import { BOOL_TYPE } from "../LangType";
 import { invert_boolean_expression } from "./boolean";
 import { default_initialiser } from "../default_initialiser";
@@ -42,9 +42,9 @@ export function visit_while_expression (compiler: Compiler, node: AST, type_hint
 	// NOTE if we do return a value we need to add a temporary var to hold it
 	let temp_variable = null;
 	if (emits_value) {
-		temp_variable = ctx.environment!.declare_hidden(ref, "while_temp_variable", while_body.value_type);
+		temp_variable = ctx.get_environment(ref).declare_hidden(ref, "while_temp_variable", while_body.value_type);
 		const init_value_node = default_initialiser(ref, return_value_type);
-		const init_node = new WASTSetLocalNode(ref, temp_variable.id, temp_variable.name, init_value_node);
+		const init_node = new WASTSetVarNode(temp_variable, init_value_node, ref);
 		node_list.nodes.push(init_node);
 	}
 	
@@ -66,7 +66,7 @@ export function visit_while_expression (compiler: Compiler, node: AST, type_hint
 		// NOTE if we're emitting a value wrap the block in a set local
 		// to stash it in our temp var
 		if (emits_value) {
-			const set_temp_node = new WASTSetLocalNode(ref, temp_variable!.id, temp_variable!.name, while_body);
+			const set_temp_node = new WASTSetVarNode(temp_variable!, while_body, ref);
 			loop_block.body.push(set_temp_node);
 		}
 		else {
@@ -82,7 +82,7 @@ export function visit_while_expression (compiler: Compiler, node: AST, type_hint
 	// NOTE finally if we're emitting a value then read back our output
 	// from the temp variable
 	if (emits_value) {
-		const get_temp_node = new WASTGetLocalNode(ref, temp_variable!.id, temp_variable!.name, return_value_type);
+		const get_temp_node = new WASTGetVarNode(temp_variable!, ref);
 		node_list.nodes.push(get_temp_node);
 		node_list.value_type = get_temp_node.value_type;
 	}

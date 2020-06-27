@@ -33,6 +33,10 @@ export function visit_module(compiler: Compiler, node: AST): Array<WASTStatement
 	}
 
 	const results: Array<WASTStatementNode> = [];
+
+	// TODO the below should be further split into 2 stages, one for global exprs
+	// and another for functions ( so that functions can refer to global variables
+	// declared on lines after them ).
 	
 	for (const stmt of statements) {
 		const wast_stmts = compiler.visit_global_statement(stmt);

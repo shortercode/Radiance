@@ -1,14 +1,17 @@
-import Node from "../pratt/Node"; 
-import { BOOL_TYPE, LangType, parse_type, create_tuple_type, VOID_TYPE, TupleLangType, StructLangType, I32_TYPE, F64_TYPE } from "./LangType";
+import { BOOL_TYPE, LangType, parse_type, create_tuple_type, VOID_TYPE, TupleLangType, StructLangType, I32_TYPE, F64_TYPE, create_array_type, EnumCaseLangType } from "./LangType";
 import { InferContext } from "./InferContext";
 import { TypePattern } from "../parser/index";
+import { AST } from "./core";
+import { StructDeclaration } from "./StructDeclaration";
+import { EnumDeclaration, EnumCaseDeclaration } from "./EnumDeclaration";
 
 type TypeHint = LangType | null;
+type Declaration = StructDeclaration | EnumDeclaration | EnumCaseDeclaration;
 
-export function guess_expression_type (node: Node, ctx: InferContext): TypeHint {
+export function guess_expression_type (node: AST, ctx: InferContext): TypeHint {
 	switch (node.type) {
 		case "expression":
-		return guess_expression_type(node.data as Node, ctx);
+		return guess_expression_type(node.data as AST, ctx);
 		case "variable":
 		return visit_variable_type(node, ctx);
 
@@ -17,7 +20,7 @@ export function guess_expression_type (node: Node, ctx: InferContext): TypeHint 
 		case "block":
 		return guess_block_type(node, ctx);
 		case "group":
-		return guess_expression_type(node.data as Node, ctx);
+		return guess_expression_type(node.data as AST, ctx);
 		case "number":
 		return guess_number_type(node, ctx);
 		case "tuple": 
@@ -36,8 +39,14 @@ export function guess_expression_type (node: Node, ctx: InferContext): TypeHint 
 		return guess_identifier_type(node, ctx);
 		case "member":
 		return guess_member_type(node, ctx);
+		case "subscript":
+		return guess_subscript_type(node, ctx);
 		case "=":
-		return guess_assignment_type(node, ctx);
+		return VOID_TYPE; // assignment doesn't return value
+		case "unsafe":
+		return guess_unsafe_type(node, ctx);
+		case "array":
+		return guess_array_type(node, ctx);
 		
 		case "==":
 		case "!=":
@@ -74,12 +83,12 @@ export function guess_expression_type (node: Node, ctx: InferContext): TypeHint 
 	}		
 }
 
-function visit_variable_type (node: Node, ctx: InferContext): null {
+function visit_variable_type (node: AST, ctx: InferContext): null {
 	
 	const data = node.data as {
 		name: string
 		type: TypePattern
-		initial: Node
+		initial: AST
 	};
 
 	// TODO this needs adapting if the type has not been specified
@@ -95,29 +104,56 @@ function visit_variable_type (node: Node, ctx: InferContext): null {
 	return null;
 }
 
-function guess_constructor_type (node: Node, ctx: InferContext): TypeHint {
+function guess_constructor_type (node: AST, ctx: InferContext): TypeHint {
 	const data = node.data as {
-		target: Node,
-		fields: Map<string, Node>
+		target: AST,
+		fields: Map<string, AST>
 	};
 
-	if (data.target.type !== "identifier") {
-		return null;
-	}
+	const decl = resolve_declaration(data.target, ctx);
 	
-	const struct_name = data.target.data as string;
-	const struct_decl = ctx.ctx.get_struct(struct_name);
-
-	if (struct_decl) {
-		return struct_decl.type;
+	if (decl) {
+		return decl.type;
 	}
 	else {
 		return null;
 	}
 }
 
-function guess_block_type (node: Node, ctx: InferContext): TypeHint {
-	const statements = node.data as Array<Node>;
+function resolve_declaration (node: AST, ctx: InferContext): Declaration | null {
+	switch (node.type) {
+		case "identifier": {
+			const name = node.data as string;
+			const declaration = ctx.ctx.get_struct(name) || ctx.ctx.get_enum(name)!;
+			
+			if (declaration) {
+				return declaration
+			}
+			return null;
+		}
+		case "member": {
+			const { target, member } = node.data as {
+				target: AST,
+				member: string
+			};
+
+			const obj = resolve_declaration(target, ctx);
+			
+			if (obj instanceof EnumDeclaration) {
+				const enum_case_declaration = obj.cases.get(member);
+				if (enum_case_declaration) {
+					return enum_case_declaration;
+				}
+			}
+			return null;
+		}
+		default:
+		return null;
+	}
+}
+
+function guess_block_type (node: AST, ctx: InferContext): TypeHint {
+	const statements = node.data as Array<AST>;
 
 	ctx.environment.push_frame();
 
@@ -131,7 +167,101 @@ function guess_block_type (node: Node, ctx: InferContext): TypeHint {
 	return result;
 }
 
-function guess_number_type (node: Node, _ctx: InferContext): TypeHint {
+function guess_unsafe_type (node: AST, ctx: InferContext): TypeHint {
+	const block = node.data as AST;
+	return guess_block_type(block, ctx);
+}
+
+function guess_array_type (node: AST, ctx: InferContext): TypeHint {
+	const statements = node.data as Array<AST>;
+	
+	let inner_type: TypeHint = null;
+
+	if (statements.length > 0) {
+		const first = statements.slice(0, 1)[0];
+		const rest = statements.slice(1);
+
+		const first_type = guess_expression_type(first, ctx);
+
+		/*
+			If the type hint is a loose type that the inner type matches, then make
+			the type of the array be that loose type. Otherwise use the strict type
+			of the first value.
+
+			This allows for an array of enum variants, provided a hint for the enum
+			is used.
+
+			An additional system could be to modify the inner type if the second
+			value was inconsistent with the strict type, but they had a common loose
+			type ( such as enum vs variants again ). This allows literal arrays of a
+			common loose type to be created without type hints.
+		*/
+
+		inner_type = first_type;
+
+		if (inner_type !== null) {
+			for (let i = 0; i < rest.length; i++) {
+				const stmt = rest[i];
+				const result_type = guess_expression_type(stmt, ctx);
+				if (result_type === null) {
+					return null;
+				}
+				if (inner_type.equals(result_type) === false) {
+					const common_type = find_common_type(inner_type, result_type);
+					if (common_type === null) {
+						return null;
+					}
+					inner_type = common_type;
+				}
+			}
+		}
+	}
+	else {
+		return null;
+	}
+
+	if (!inner_type || inner_type.is_void()) {
+		return null;
+	}
+	else {
+		return create_array_type(inner_type, statements.length);
+	}
+}
+
+function find_common_type (a: LangType, b: LangType): TypeHint {
+
+	if (a.is_enum() && b.is_enum()) {
+		if (a instanceof EnumCaseLangType) {
+			a = a.parent;
+		}
+		if (b instanceof EnumCaseLangType) {
+			b = b.parent;
+		}
+
+		if (a.equals(b)) {
+			return a;
+		}
+	}
+	else if (a.is_array() && b.is_array()) {
+		let count = a.count;
+		let common_type: TypeHint = a.type;
+
+		if (a.count !== b.count) {
+			count = -1;
+		}
+		if (a.type.equals(b.type) === false) {
+			common_type = find_common_type(a.type, b.type);
+		}
+
+		if (common_type) {
+			return create_array_type(common_type, count);
+		}
+	}
+
+	return null;
+}
+
+function guess_number_type (node: AST, _ctx: InferContext): TypeHint {
 	if (should_create_int(node.data as string)) {
 		return I32_TYPE;
 	}
@@ -144,9 +274,9 @@ function should_create_int (value: string): boolean {
 	return !value.includes(".");
 }
 
-function guess_tuple_type (node: Node, ctx: InferContext): TypeHint {
+function guess_tuple_type (node: AST, ctx: InferContext): TypeHint {
 	const data = node.data as {
-		values: Array<Node>
+		values: Array<AST>
 	};
 
 	const value_types: Array<LangType> = [];
@@ -162,10 +292,10 @@ function guess_tuple_type (node: Node, ctx: InferContext): TypeHint {
 	return create_tuple_type(value_types);
 }
 
-function guess_call_type (node: Node, ctx: InferContext): TypeHint {
+function guess_call_type (node: AST, ctx: InferContext): TypeHint {
 	const value = node.data as {
-		callee: Node,
-		arguments: Array<Node>
+		callee: AST,
+		arguments: Array<AST>
 	};
 	
 	// this is technically a syntax error, but leave it for the compiler
@@ -178,11 +308,11 @@ function guess_call_type (node: Node, ctx: InferContext): TypeHint {
 	return ctx.get_function_type(function_name)!;
 }
 
-function guess_conditional_type (node: Node, ctx: InferContext): TypeHint {
+function guess_conditional_type (node: AST, ctx: InferContext): TypeHint {
 	const value = node.data as {
-		condition: Node
-		thenBranch: Node
-		elseBranch: Node | null
+		condition: AST
+		thenBranch: AST
+		elseBranch: AST | null
 	};
 
 	const then_type = guess_expression_type(value.thenBranch, ctx)
@@ -205,18 +335,18 @@ function guess_conditional_type (node: Node, ctx: InferContext): TypeHint {
 	}
 }
 
-function guess_while_type (node: Node, ctx: InferContext): TypeHint {
+function guess_while_type (node: AST, ctx: InferContext): TypeHint {
 	const value = node.data as {
-		block: Node
+		block: AST
 	};
 
 	return guess_expression_type(value.block, ctx);
 }
 
-function guess_binary_numerical_type (node: Node, ctx: InferContext): TypeHint {
+function guess_binary_numerical_type (node: AST, ctx: InferContext): TypeHint {
 	const data = node.data as {
-		left: Node
-		right: Node
+		left: AST
+		right: AST
 	};
 
 	const left = guess_expression_type(data.left, ctx);
@@ -243,20 +373,20 @@ function guess_binary_numerical_type (node: Node, ctx: InferContext): TypeHint {
 	}
 }
 
-function guess_type_cast_type (node: Node, ctx: InferContext): TypeHint {
-	const data = node.data as { expr: Node, type: TypePattern };
+function guess_type_cast_type (node: AST, ctx: InferContext): TypeHint {
+	const data = node.data as { expr: AST, type: TypePattern };
 	// WARN this does not return null for invalid conversions!
 	return parse_type(data.type, ctx.ctx);
 }
 
-function guess_identifier_type (node: Node, ctx: InferContext): TypeHint {
+function guess_identifier_type (node: AST, ctx: InferContext): TypeHint {
 	const name = node.data as string;
 	return ctx.get_variable_type(name);
 }
 
-function guess_member_type (node: Node, ctx: InferContext): TypeHint {
+function guess_member_type (node: AST, ctx: InferContext): TypeHint {
 	const value = node.data as {
-		target: Node,
+		target: AST,
 		member: string
 	};
 
@@ -271,6 +401,28 @@ function guess_member_type (node: Node, ctx: InferContext): TypeHint {
 
 	if (target.is_struct()) {
 		return guess_struct_member_type(target, value.member);
+	}
+
+	return null;
+}
+
+function guess_subscript_type (node: AST, ctx: InferContext): TypeHint {
+	const value = node.data as {
+		target: AST,
+		accessor: AST
+	};
+
+	const type = guess_expression_type(value.target, ctx);
+
+	if (type) {
+		if (type.is_array()) {
+			return type.type;
+		}
+	
+		if (type.is_string()) {
+			return null;
+			// NOT IMPLEMENTED
+		}
 	}
 
 	return null;
@@ -292,21 +444,4 @@ function guess_struct_member_type (type: StructLangType, member: string): TypeHi
 	const field = type.types.get(member);
 	
 	return field ? field.type : null;
-}
-
-function guess_assignment_type (node: Node, ctx: InferContext): TypeHint {
-	const value = node.data as {
-		left: Node
-		right: Node
-	};
-
-	const variable_name = value.left.data as string;
-	const type = ctx.get_variable_type(variable_name);
-
-	if (type) {
-		return type
-	}
-
-	// if the variable doesn't exist yet guess from the expression
-	return guess_expression_type(value.right, ctx);
 }

@@ -253,24 +253,34 @@ describe("enum test", () => {
 	let mod: Record<string, WebAssembly.ExportValue>;
 
 	test("compiles", async () => {
-		debugger;
 		mod = await execute_string(`
 		enum Test {
 			case A,
 			case B { a: i32, b: i32 },
 			case C { str: string }
 		}
-
+		
 		export fn a -> Test.A {
 			Test.A {}
 		}
-
+		
 		export fn b -> Test.B {
 			Test.B { a: 42, b: 193 }
 		}
-
+		
 		export fn c -> Test {
 			Test.C { str: "Hello world"}
+		}
+		
+		export fn abc -> Test[3] { 
+			// uses the return type as a hint for the array
+			[ a(), b(), c() ]
+		}
+		
+		export fn alt_abc -> Test[3] {
+			// downgrades to common type due to inconsistent types
+			let arr = [ a(), b(), c() ]
+			arr
 		}`);
 	});
 
@@ -278,9 +288,13 @@ describe("enum test", () => {
 		expect(mod).toHaveProperty("a");
 		expect(mod).toHaveProperty("b");
 		expect(mod).toHaveProperty("c");
+		expect(mod).toHaveProperty("abc");
+		expect(mod).toHaveProperty("alt_abc");
 		expect(mod.a).toBeInstanceOf(Function);
 		expect(mod.b).toBeInstanceOf(Function);
 		expect(mod.c).toBeInstanceOf(Function);
+		expect(mod.abc).toBeInstanceOf(Function);
+		expect(mod.alt_abc).toBeInstanceOf(Function);
 	});
 
 	test("return value a", () => {
@@ -309,7 +323,128 @@ describe("enum test", () => {
 		expect(read_i32(memory, ptr)).toBe(2);
 		expect(read_string(memory, read_i32(memory, ptr + 4))).toBe("Hello world");
 	});
+
+	test("return value abc", () => {
+		const abc = mod.abc as () => number;
+		const memory = mod.memory as WebAssembly.Memory;
+
+		const ptr_arr = abc();
+		const arr_count = read_i32(memory, ptr_arr);
+
+		expect(arr_count).toBe(3);
+
+		{
+			const ptr_a = read_i32(memory, ptr_arr + 4);
+
+			expect(read_i32(memory, ptr_a)).toBe(0);
+		}
+
+		{
+			const ptr_b = read_i32(memory, ptr_arr + 8);
+
+			expect(read_i32(memory, ptr_b)).toBe(1);
+			expect(read_i32(memory, ptr_b + 4)).toBe(42);
+			expect(read_i32(memory, ptr_b + 8)).toBe(193);
+		}
+
+		{
+			const ptr_c = read_i32(memory, ptr_arr + 12);
+
+			expect(read_i32(memory, ptr_c)).toBe(2);
+			const str_ptr = read_i32(memory, ptr_c + 4);
+			expect(read_string(memory, str_ptr)).toBe("Hello world");
+		}
+	});
+
+	test("return value alt_abc", () => {
+		const alt_abc = mod.alt_abc as () => number;
+		const memory = mod.memory as WebAssembly.Memory;
+
+		const ptr_arr = alt_abc();
+		const arr_count = read_i32(memory, ptr_arr);
+
+		expect(arr_count).toBe(3);
+
+		{
+			const ptr_a = read_i32(memory, ptr_arr + 4);
+
+			expect(read_i32(memory, ptr_a)).toBe(0);
+		}
+
+		{
+			const ptr_b = read_i32(memory, ptr_arr + 8);
+
+			expect(read_i32(memory, ptr_b)).toBe(1);
+			expect(read_i32(memory, ptr_b + 4)).toBe(42);
+			expect(read_i32(memory, ptr_b + 8)).toBe(193);
+		}
+
+		{
+			const ptr_c = read_i32(memory, ptr_arr + 12);
+
+			expect(read_i32(memory, ptr_c)).toBe(2);
+			const str_ptr = read_i32(memory, ptr_c + 4);
+			expect(read_string(memory, str_ptr)).toBe("Hello world");
+		}
+	});
 });
+
+describe("loose typing", () => {
+	let mod: Record<string, WebAssembly.ExportValue>;
+
+	test("compiles", async () => {
+		mod = await execute_string(`enum Example {
+			case A, case B, case C
+		}
+		
+		let a = [
+			[
+				Example.A {},
+				Example.A {}
+			],
+			[
+				Example.B {},
+				Example.A {},
+				Example.A {}
+			],
+			[
+				Example.A {}
+			]
+		]
+		
+		export fn get_a -> Example[][3] {
+			a
+		}
+		
+		export fn get_a_member (i: i32) -> Example[] {
+			a[i]
+		}`);
+	});
+
+	test("export functions", () => {
+		expect(mod).toHaveProperty("get_a");
+		expect(mod.get_a).toBeInstanceOf(Function);
+		expect(mod).toHaveProperty("get_a_member");
+		expect(mod.get_a_member).toBeInstanceOf(Function);
+	});
+
+	test("return value get_a", () => {
+		const get_a = mod.get_a as () => number;
+		const memory = mod.memory as WebAssembly.Memory;
+
+		const ptr = get_a();
+		expect(read_i32(memory, ptr)).toBe(3);
+	});
+
+	test("return value get_a_member", () => {
+		const get_a_member = mod.get_a_member as (i:number) => number;
+		const memory = mod.memory as WebAssembly.Memory;
+
+		expect(read_i32(memory, get_a_member(0))).toBe(2);
+		expect(read_i32(memory, get_a_member(1))).toBe(3);
+		expect(read_i32(memory, get_a_member(2))).toBe(1);
+	});
+})
 
 describe("return test", () => {
 	let mod: Record<string, WebAssembly.ExportValue>;

@@ -16,7 +16,7 @@ export class Context {
 	data_blocks: Array<WASTDataNode> = []
 	exports: Set<string> = new Set
 
-	environment: Environment | null = null
+	private environment: Environment | null = null
 	
 	private global_variable_index = 0
 	private function_index = 0
@@ -24,6 +24,24 @@ export class Context {
 
 	get is_unsafe (): boolean {
 		return this.unsafe_mode;
+	}
+
+	get is_inside_function (): boolean {
+		return this.environment !== null;
+	}
+
+	get_environment (ref: Ref): Environment {
+		compiler_assert(this.is_inside_function, ref, `Cannot access function environment. Not currently inside a function body.`);
+		return this.environment!;
+	}
+
+	create_function_environment (ref: Ref, decl: FunctionDeclaration) {
+		compiler_assert(this.is_inside_function === false, ref, `Cannot create function environment. Currently inside a function body.`);
+		this.environment = new Environment(decl);
+	}
+
+	exit_function_environment () {
+		this.environment = null;
 	}
 
 	enable_unsafe () {
@@ -40,15 +58,16 @@ export class Context {
 	}
 
 	declare_variable (ref: Ref, name: string, type: LangType): Variable {
-		if (this.environment === null) {
+		if (this.is_inside_function) {
+			return this.get_environment(ref).declare(ref, name, type);
+		}
+		else {
 			return this.declare_global_variable(ref, name, type);
 		}
-		
-		return this.environment.declare(ref, name, type);
 	}
 	
 	declare_function (ref: Ref, name: string, type: LangType, parameters: Array<Variable>): FunctionDeclaration {
-		syntax_assert(this.environment === null, ref, `Cannot declare function ${name} because it's in a local scope`);
+		syntax_assert(this.is_inside_function === false, ref, `Cannot declare function ${name} because it's in a local scope`);
 		syntax_assert(this.user_globals.has(name) === false, ref, `Global ${name} already exists`)
 
 		const fn = this.create_function(name, type, parameters);
@@ -72,20 +91,27 @@ export class Context {
 		let enum_size = 4;
 
 		for (const [case_name, case_fields] of case_patterns) {
+			let struct_size = 0;
+			for (const field of case_fields.values()) {
+				struct_size += field.size;
+			}
 			const struct_type = new StructLangType(case_fields, name);
 			case_structs.push([case_name, struct_type]);
-			enum_size = Math.max(enum_size, struct_type.size + 4);
+			enum_size = Math.max(enum_size, struct_size + 4);
 		}
+
+		const enumerable = new EnumDeclaration(ref, name, enum_size);
 
 		let case_index = 0;
 
 		for (const [case_name, case_struct] of case_structs) { 
-			const case_decl = new EnumCaseDeclaration(ref, case_name, case_struct, enum_size, case_index);
+			const type_label = `${name}.${case_name}`;
+			const case_decl = new EnumCaseDeclaration(ref, type_label, enumerable, case_struct, enum_size, case_index);
+			enumerable.add_variant(case_name, case_decl);
 			case_index += 1;
 			cases.set(case_name, case_decl);
 		}
 		
-		const enumerable = new EnumDeclaration(ref, name, cases, enum_size);
 		this.user_globals.set(name, enumerable);
 		return enumerable;
 	}
@@ -168,19 +194,20 @@ export class Context {
 		}
 	}
 	
-	get_variable (name: string): Variable | null {
-		if (this.environment !== null) {
-			return this.environment.get_variable(name);
-		}
-		else {
-			const global_var = this.user_globals.get(name);
-			if (global_var instanceof Variable) {
-				return global_var;
-			}
-			else {
-				return null
+	get_variable (ref: Ref, name: string): Variable | null {
+		if (this.is_inside_function) {
+			const local_var = this.get_environment(ref).get_variable(name);
+			if (local_var) {
+				return local_var;
 			}
 		}
+
+		const global_var = this.user_globals.get(name);
+		if (global_var instanceof Variable) {
+			return global_var;
+		}
+
+		return null;
 	}
 
 	create_data_block (ref: Ref, bytes: Uint8Array): WASTDataNode {

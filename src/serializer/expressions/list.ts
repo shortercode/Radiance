@@ -16,9 +16,19 @@ export function write_list_expression(ctx: FunctionContext, node: WASTExpression
 	
 	for (let i = 0; i < statements.length - 1; i++) {
 		const subnode = statements[i];
+		const start_depth = ctx.stack_depth;
 		write_expression(ctx, subnode);
-		if (subnode.value_type.is_void() === false) {
-			ctx.consume_any_value(node.source);
+		const stack_delta = ctx.stack_depth - start_depth;
+		if (subnode.value_type.is_void()) {
+			if (stack_delta !== 0) {
+				compiler_error(list_node.source, `Expected stack delta of 0, but found ${stack_delta}`)
+			}
+		}
+		else if (stack_delta !== 1) {
+			compiler_error(list_node.source, `Expected stack delta of 1, but found ${stack_delta}`)
+		}
+		else {
+			ctx.consume_value(subnode.value_type.wasm_type(), subnode.source);
 			ctx.writer.writeUint8(Opcode.drop);
 		}
 	}

@@ -91,7 +91,7 @@ export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 }
 
 function generate_initialiser_function (ref: Ref, nodes: Array<WASTGlobalExpression>) {
-	const fn = new WASTFunctionNode(ref, -1, "main", VOID_TYPE)
+	const fn = new WASTFunctionNode(ref, Symbol("main"), "main", VOID_TYPE)
 	for (const { expression } of nodes) {
 		fn.body.nodes.push(expression);
 	}

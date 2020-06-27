@@ -16,10 +16,7 @@ export class Context {
 	data_blocks: Array<WASTDataNode> = []
 	exports: Set<string> = new Set
 
-	private environment: Environment | null = null
-	
-	private global_variable_index = 0
-	private function_index = 0
+	private environment: Environment | null = null	
 	private unsafe_mode = false
 
 	get is_unsafe (): boolean {
@@ -134,12 +131,7 @@ export class Context {
 	}
 
 	private create_function (name: string, type: LangType, parameters: Array<Variable>): FunctionDeclaration {
-		const index = this.function_index;
-		const fn = new FunctionDeclaration(name, index, type, parameters);
-
-		this.function_index += 1;
-
-		return fn;
+		return new FunctionDeclaration(name, type, parameters);
 	}
 
 	declare_global_variable (ref: Ref, name: string, type: LangType): Variable {
@@ -157,9 +149,7 @@ export class Context {
 	}
 
 	private create_global_variable (ref: Ref, name: string, type: LangType): Variable {
-		const index = this.global_variable_index;
-		const global_var = new Variable(ref, type, name, index, true);
-		this.global_variable_index += 1
+		const global_var = new Variable(ref, type, name, true);
 		this.global_variables.push(global_var);
 		return global_var;
 	}

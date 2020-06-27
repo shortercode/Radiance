@@ -170,10 +170,10 @@ export class WASTExportNode implements WASTNode {
 	source: Ref
 	
 	name: string
-	target: number
+	target: Symbol
 	target_type: ExportType
 	
-	constructor (ref: Ref, type: ExportType, name: string, target: number) {
+	constructor (ref: Ref, type: ExportType, name: string, target: Symbol) {
 		this.source = ref;
 		this.name = name;
 		this.target = target;
@@ -185,12 +185,12 @@ export class WASTImportFunctionNode implements WASTNode {
 	type: "import_function" = "import_function"
 	source: Ref
 
-	id: number
+	id: Symbol
 	name: string
 	parameters: Array<LangType>
 	result: LangType
 
-	constructor (ref: Ref, id: number, name: string, result: LangType, parameters: Array<LangType>) {
+	constructor (ref: Ref, id: Symbol, name: string, result: LangType, parameters: Array<LangType>) {
 		this.source = ref;
 		this.id = id;
 		this.name = name;
@@ -231,10 +231,10 @@ export class WASTGlobalNode implements WASTNode {
 
 	value_type: LangType
 	mutable: boolean = true
-	id: number
+	id: Symbol
 	initialiser: WASTExpressionNode
 
-	constructor (ref: Ref, id: number, type: LangType, init: WASTExpressionNode) {
+	constructor (ref: Ref, id: Symbol, type: LangType, init: WASTExpressionNode) {
 		this.source = ref;
 		this.id = id;
 		this.value_type = type;
@@ -247,13 +247,13 @@ export class WASTFunctionNode implements WASTNode {
 	source: Ref
 	
 	name: string
-	id: number
+	id: Symbol
 	parameters: Array<Variable> = []
 	result: LangType
 	body: WASTNodeList
 	locals: Array<Variable> = []
 	
-	constructor (ref: Ref, id: number, name: string, result: LangType) {
+	constructor (ref: Ref, id: Symbol, name: string, result: LangType) {
 		this.body = new WASTNodeList(ref);
 		this.source = ref;
 		this.name = name;
@@ -268,10 +268,10 @@ export class WASTMemoryNode implements WASTNode {
 	
 	name: string
 	size: number
-	id: number
+	id: Symbol
 	
-	constructor (ref: Ref, id: number, name: string, size: number) {
-		this.id = id;
+	constructor (ref: Ref, name: string, size: number) {
+		this.id = Symbol(name);
 		this.source = ref;
 		this.name = name;
 		this.size = size;
@@ -500,7 +500,7 @@ export class WASTTeeVarNode implements WASTNode {
 	
 	value_type: LangType
 	
-	id: number
+	id: Symbol
 	name: string
 	value: WASTExpressionNode
 	is_global: boolean
@@ -521,7 +521,7 @@ export class WASTVarRestoreNode implements WASTNode {
 
 	value_type: LangType = VOID_TYPE
 
-	id: number
+	id: Symbol
 	name: string
 	is_global: boolean
 
@@ -544,7 +544,7 @@ export class WASTGetVarNode implements WASTNode {
 	
 	value_type: LangType = VOID_TYPE
 	
-	id: number
+	id: Symbol
 	name: string
 	is_global: boolean
 	
@@ -563,7 +563,7 @@ export class WASTSetVarNode implements WASTNode {
 	
 	value_type: LangType = VOID_TYPE
 	
-	id: number
+	id: Symbol
 	name: string
 	value: WASTExpressionNode
 	is_global: boolean
@@ -617,10 +617,10 @@ export class WASTCallNode implements WASTNode {
 	
 	value_type: LangType
 	name: string
-	id: number
+	id: Symbol
 	arguments: Array<WASTExpressionNode>
 	
-	constructor (ref: Ref, id: number, name: string, type: LangType, args: Array<WASTExpressionNode>) {
+	constructor (ref: Ref, id: Symbol, name: string, type: LangType, args: Array<WASTExpressionNode>) {
 		this.source = ref;
 		this.id = id;
 		this.name = name;

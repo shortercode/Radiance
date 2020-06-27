@@ -50,7 +50,7 @@ function create_module (compiler: Compiler, module_ref: Ref) {
 function* preamble (ref: Ref, compiler: Compiler) {
 	yield generate_malloc_function(ref, compiler);
 
-	const memory_stmt = new WASTMemoryNode(ref, 0, "main", 1);
+	const memory_stmt = new WASTMemoryNode(ref, "main", 1);
 	yield memory_stmt;
 
 	if (SHOULD_EXPORT_MEMORY) {
@@ -80,7 +80,7 @@ function generate_malloc_function (ref: Ref, compiler: Compiler) {
 		}
 	*/
 	const offset_var = ctx.declare_library_global_variable(ref, "heap_top", I32_TYPE);
-	const size_variable = new Variable(ref, I32_TYPE, "size", 0, false);
+	const size_variable = new Variable(ref, I32_TYPE, "size", false);
 	const fn_decl = ctx.declare_function(ref, "malloc", I32_TYPE, [ size_variable ]);
 
 	const fn_wast = initialise_function_environment(ref, ctx, fn_decl);

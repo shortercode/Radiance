@@ -21,9 +21,9 @@ export function hoist_function_declaration (compiler: Compiler, node: AST) {
 	const ctx = compiler.ctx;
 	const ref = Ref.from_node(node);
 
-	const parameters = data.parameters.map((param, index) => {
+	const parameters = data.parameters.map(param => {
 		const type = parse_type(param.type, ctx);
-		return new Variable(ref, type, param.name, index, false);
+		return new Variable(ref, type, param.name, false);
 	});
 
 	const return_type = parse_type(data.type, compiler.ctx);

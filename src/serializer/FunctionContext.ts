@@ -7,10 +7,10 @@ import { ModuleContext } from "./ModuleContext";
 
 export class FunctionContext {
 	readonly writer: Writer
-	readonly variable_lookup: Map<number, number> = new Map
-	readonly function_lookup: Map<number, number>
+	readonly variable_lookup: Map<Symbol, number> = new Map
+	readonly function_lookup: Map<Symbol, number>
+	readonly global_lookup: Map<Symbol, number>
 	readonly data_lookup: Map<WASTDataNode, number>
-	readonly global_lookup: Map<number, number>
 
 	private value_stack: Array<PrimativeTypes> = []
 	

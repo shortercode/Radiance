@@ -9,9 +9,9 @@ export class ModuleContext {
 		parameters: Array<LangType>
 		index: number
 	}> = new Map
-	readonly function_index_map: Map<number, number> = new Map
-	readonly memory_index_map: Map<number, number> = new Map
-	readonly global_index_map: Map<number, number> = new Map
+	readonly function_index_map: Map<Symbol, number> = new Map
+	readonly memory_index_map: Map<Symbol, number> = new Map
+	readonly global_index_map: Map<Symbol, number> = new Map
 	readonly data_index_map: Map<WASTDataNode, number> = new Map
 	
 	constructor(writer: Writer) {

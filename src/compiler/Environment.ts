@@ -8,14 +8,12 @@ type ArrayAccessVariables = { index: Variable, target: Variable, length: Variabl
 
 export class Environment {
 	private frame_stack: Array<Frame> = [ new Map ]
-	private id_counter: number
 	variables: Array<Variable>
 	private array_access_varables: ArrayAccessVariables|null = null
 	readonly fn_type: FunctionDeclaration
 	
 	constructor (decl: FunctionDeclaration) {
 		this.variables = decl.parameters.slice(0);
-		this.id_counter = this.variables.length;
 		for (const param of decl.parameters) {
 			this.current_frame.set(param.name, param);
 		}
@@ -60,7 +58,7 @@ export class Environment {
 	}
 	
 	private create_variable (ref: Ref, name: string, type: LangType): Variable {
-		const variable = new Variable(ref, type, name, this.id_counter++, false);
+		const variable = new Variable(ref, type, name, false);
 		this.variables.push(variable);
 		return variable;
 	} 

@@ -121,6 +121,7 @@ describe("export statement", () => {
 		compareModule(ast, [
 			new AST("export_function", [1, 0], [1, 23], {
 				name: "MyFunction",
+				generics: [],
 				type: parseType("void"),
 				parameters: [],
 				body: []
@@ -189,6 +190,7 @@ describe("fn statement", () => {
 				name: "MyFunction",
 				type: parseType("void"),
 				parameters: [],
+				generics: [],
 				body: []
 			})
 		]);
@@ -201,6 +203,7 @@ describe("fn statement", () => {
 				name: "MyFunction",
 				type: { style: "class", type: "Value" },
 				parameters: [],
+				generics: [],
 				body: []
 			})
 		]);
@@ -216,6 +219,7 @@ describe("fn statement", () => {
 					{ name: "a", type: { style: "class", type: "Value" }},
 					{ name: "b", type: { style: "class", type: "Value" }}
 				],
+				generics: [],
 				body: []
 			})
 		]);
@@ -231,6 +235,7 @@ describe("fn statement", () => {
 					{ name: "a", type: { style: "class", type: "Value" }},
 					{ name: "b", type: { style: "class", type: "Value" }}
 				],
+				generics: [],
 				body: []
 			})
 		]);
@@ -250,10 +255,82 @@ fn MyFunction (a: Value, b: Value) -> Value {
 					{ name: "a", type: { style: "class", type: "Value" }},
 					{ name: "b", type: { style: "class", type: "Value" }}
 				],
+				generics: [],
 				body: [
 					new AST("expression", [3, 1], [3, 2], new AST("number", [3, 1], [3, 2], "4")),
 					new AST("expression", [4, 1], [4, 2], new AST("number", [4, 1], [4, 2], "2")),
 				]
+			})
+		]);
+	});
+
+	test("function empty generics, no parameters or return type", () => {
+		const ast = parse(`fn MyFunction<> {}`);
+		compareModule(ast, [
+			new AST("function", [1, 0], [1, 18], {
+				name: "MyFunction",
+				type: parseType("void"),
+				parameters: [],
+				generics: [],
+				body: []
+			})
+		]);
+	});
+
+	test("function with generics, no parameters or return type", () => {
+		const ast = parse(`fn MyFunction<K, V> {}`);
+		compareModule(ast, [
+			new AST("function", [1, 0], [1, 22], {
+				name: "MyFunction",
+				type: parseType("void"),
+				parameters: [],
+				generics: ["K", "V"],
+				body: []
+			})
+		]);
+	});
+
+	test("function with generics and parameters but no return type", () => {
+		const ast = parse(`fn MyFunction<K, V> (a: K, b: V) {}`);
+		compareModule(ast, [
+			new AST("function", [1, 0], [1, 35], {
+				name: "MyFunction",
+				type: parseType("void"),
+				parameters: [
+					{ name: "a", type: { style: "class", type: "K" }},
+					{ name: "b", type: { style: "class", type: "V" }}
+				],
+				generics: ["K", "V"],
+				body: []
+			})
+		]);
+	});
+
+	test("function with generics and parameters and return type", () => {
+		const ast = parse(`fn MyFunction<K, V> (a: K, b: V) -> V {}`);
+		compareModule(ast, [
+			new AST("function", [1, 0], [1, 40], {
+				name: "MyFunction",
+				type: { style: "class", type: "V" },
+				parameters: [
+					{ name: "a", type: { style: "class", type: "K" }},
+					{ name: "b", type: { style: "class", type: "V" }}
+				],
+				generics: ["K", "V"],
+				body: []
+			})
+		]);
+	});
+
+	test("function with generics and return type, but no parameters", () => {
+		const ast = parse(`fn MyFunction<V> -> V {}`);
+		compareModule(ast, [
+			new AST("function", [1, 0], [1, 24], {
+				name: "MyFunction",
+				type: { style: "class", type: "V" },
+				parameters: [],
+				generics: ["V"],
+				body: []
 			})
 		]);
 	});
@@ -569,7 +646,7 @@ describe("constructor expression", () => {
 			}))
 		]);
 	});
-
+	
 	test("member constructor with no fields", () => {
 		const ast = parse("Obj.Child {}");
 		compareModule(ast, [

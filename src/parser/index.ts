@@ -306,6 +306,30 @@ class LangParser extends Parser {
 		// NOTE previous token is the "identifier:fn" read by statement matcher
 		const start = tokens.previous()!.start;
 		const name = this.ensure(tokens, "identifier:");
+		const generics: Array<string> = [];
+
+		if (this.match(tokens, "symbol:<")) {
+			tokens.next();
+			if (this.match(tokens, "symbol:>")) {
+				tokens.next();
+			}
+			else {
+				while (tokens.incomplete()) {
+					const name = this.ensure(tokens, "identifier:");
+					
+					generics.push(name);
+					
+					if (this.match(tokens, "symbol:,")) {
+						tokens.next();
+					}
+					else {
+						break;
+					}
+				}
+				this.ensure(tokens, "symbol:>");
+			}
+		}
+
 		const parameters = this.parseParameterBlock(tokens);
 		
 		let returnType: TypePattern = VOID_TYPE_PATTERN;
@@ -332,7 +356,7 @@ class LangParser extends Parser {
 		// NOTE previous token is the "symbol:}" read above
 		const end = tokens.previous()!.end;
 		
-		return new Node("function", start, end, { name, type, parameters, body: statements });
+		return new Node("function", start, end, { name, type, parameters, generics, body: statements });
 	}
 
 	parseStruct (tokens: Iterator<Token>): Node {
@@ -620,7 +644,7 @@ class LangParser extends Parser {
 				style: "class",
 				type
 			};
-
+			
 			if (this.match(tokens, "symbol:.")) {
 				tokens.next();
 				const member_name = this.ensure(tokens, "identifier:");

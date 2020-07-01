@@ -82,6 +82,7 @@ class LangParser extends Parser {
 		this.addInfix("symbol:(", 					10, this.parseCallExpression);
 		this.addInfix("symbol:[",						10, this.parseSubscript);
 		this.addInfix("symbol:.",						10, this.parseMemberAccess);
+		this.addInfix("symbol::",						10,	this.parseGenericCall);
 
 		this.addPrefix("symbol:(",					11, this.parseGrouping);
 		this.addInfix("identifier:as",			12, this.parseTypeCast);
@@ -100,8 +101,6 @@ class LangParser extends Parser {
 	}
 	
 	parseCallExpression(tokens: Iterator<Token>, left: Node, _precedence: number): Node {
-		const start = left.start;
-		
 		const values: Array<Node> = [];
 		
 		if (!this.match(tokens, "symbol:)")) {
@@ -122,7 +121,16 @@ class LangParser extends Parser {
 		
 		// NOTE previous token is the "symbol:)" read above
 		const end = tokens.previous()!.end;
-		return new Node("call", start, end, { callee: left, arguments: values });
+
+		if (left.type === "generic_parameters") {
+			const data = left.data as { left: Node, parameters: Array<TypePattern>};
+			const start = data.left.start;		
+			return new Node("call", start, end, { callee: data.left, generics: data.parameters, arguments: values });
+		}
+		else {
+			const start = left.start;		
+			return new Node("call", start, end, { callee: left, generics: [], arguments: values });
+		}
 	}
 
 	parseConstructor(tokens: Iterator<Token>, left: Node, _precedence: number): Node {
@@ -205,6 +213,33 @@ class LangParser extends Parser {
 		else {
 			this.throwUnexpectedToken(tokens.consume()!);
 		}
+	}
+
+	parseGenericCall (tokens: Iterator<Token>, left: Node, precedence: number): Node {
+		const start = tokens.previous()!.start;
+		this.ensure(tokens, "symbol:<");
+
+		const parameters: Array<TypePattern> = [];
+
+		if (this.match(tokens, "symbol:>") === false) {
+			while (tokens.incomplete()) {
+				const next = this.parseType(tokens);
+				parameters.push(next);
+				if (this.match(tokens, "symbol:,")) {
+					tokens.next();
+				}
+				else {
+					break;
+				}
+			}
+		}
+
+		this.ensure(tokens, "symbol:>");
+		const end = tokens.previous()!.start;
+
+		const generic_expr = new Node("generic_parameters", start, end, { left, parameters });
+		this.ensure(tokens, "symbol:(");
+		return this.parseCallExpression(tokens, generic_expr, precedence);
 	}
  
 	parseGrouping(tokens: Iterator<Token>, _precedence: number): Node {

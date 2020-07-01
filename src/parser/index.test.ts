@@ -661,6 +661,99 @@ describe("constructor expression", () => {
 	})
 });
 
+describe("function call expression", () => {
+	test("basic call no parameters", () => {
+		const ast = parse("callback()");
+		compareModule(ast, [
+			new AST("expression", [1,0],[1,10], new AST("call", [1,0],[1,10], {
+				callee: new AST("identifier", [1, 0], [1, 8], "callback"),
+				generics: [],
+				arguments: []
+			}))
+		]);
+	});
+
+	test("basic call with 1 parameter", () => {
+		const ast = parse("callback(12)");
+		compareModule(ast, [
+			new AST("expression", [1,0],[1,12], new AST("call", [1,0],[1,12], {
+				callee: new AST("identifier", [1, 0], [1, 8], "callback"),
+				generics: [],
+				arguments: [
+					new AST("number", [1,9], [1,11], "12")
+				]
+			}))
+		]);
+	});
+
+	test("basic call with multiple parameters", () => {
+		const ast = parse("callback(12, 42, 8)");
+		compareModule(ast, [
+			new AST("expression", [1, 0],[1, 19], new AST("call", [1, 0],[1, 19], {
+				callee: new AST("identifier", [1, 0], [1, 8], "callback"),
+				generics: [],
+				arguments: [
+					new AST("number", [1, 9], [1, 11], "12"),
+					new AST("number", [1, 13], [1, 15], "42"),
+					new AST("number", [1, 17], [1, 18], "8")
+				]
+			}))
+		]);
+	});
+
+	test("call with group expression", () => {
+		const ast = parse("callback((18))");
+		compareModule(ast, [
+			new AST("expression", [1,0],[1,14], new AST("call", [1,0],[1,14], {
+				callee: new AST("identifier", [1,0], [1,8], "callback"),
+				generics: [],
+				arguments: [
+					new AST("group", [1,9], [1,13], new AST("number", [1,10], [1,12], "18"))
+				]
+			}))
+		]);
+	});
+
+	test("call with generic params empty", () => {
+		const ast = parse("callback:<>()");
+		compareModule(ast, [
+			new AST("expression", [1,0],[1,13], new AST("call", [1,0],[1,13], {
+				callee: new AST("identifier", [1,0], [1,8], "callback"),
+				generics: [],
+				arguments: []
+			}))
+		]);
+	});
+
+	test("call with single generic params ", () => {
+		const ast = parse("callback:<i32>()");
+		compareModule(ast, [
+			new AST("expression", [1,0],[1,16], new AST("call", [1,0],[1,16], {
+				callee: new AST("identifier", [1,0], [1,8], "callback"),
+				generics: [
+					parseType("i32")
+				],
+				arguments: []
+			}))
+		]);
+	});
+
+	test("call with multiple generic params ", () => {
+		const ast = parse("callback:<i32, i32, u32>()");
+		compareModule(ast, [
+			new AST("expression", [1,0],[1,26], new AST("call", [1,0],[1,26], {
+				callee: new AST("identifier", [1,0], [1,8], "callback"),
+				generics: [
+					parseType("i32"),
+					parseType("i32"),
+					parseType("u32")
+				],
+				arguments: []
+			}))
+		]);
+	});
+})
+
 
 
 

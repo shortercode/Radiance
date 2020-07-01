@@ -50,8 +50,6 @@ const numeric_types = new Set([
 	...float_types
 ]);
 
-// export type LangType = PrimativeLangType | TupleLangType | StructLangType | ArrayLangType | EnumLangType | EnumCaseLangType;
-
 export interface LangType {
 	readonly name: string
 	readonly size: number

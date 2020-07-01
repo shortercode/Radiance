@@ -50,9 +50,33 @@ const numeric_types = new Set([
 	...float_types
 ]);
 
-export type LangType = PrimativeLangType | TupleLangType | StructLangType | ArrayLangType | EnumLangType | EnumCaseLangType;
+// export type LangType = PrimativeLangType | TupleLangType | StructLangType | ArrayLangType | EnumLangType | EnumCaseLangType;
 
-class PrimativeLangType {
+export interface LangType {
+	readonly name: string
+	readonly size: number
+	
+	equals (other: LangType): boolean
+
+	is_numeric (): boolean
+	is_integer (): boolean
+	is_string (): boolean
+	is_float (): boolean
+	is_boolean (): boolean
+	is_void (): boolean
+	is_never (): boolean
+	is_tuple (): this is TupleLangType
+	is_struct (): this is StructLangType
+	is_array (): this is ArrayLangType
+
+	is_enum (): this is EnumLangType | EnumCaseLangType
+	is_object_type (): boolean
+	is_exportable (): boolean
+
+	wasm_type (): PrimativeTypes
+}
+
+class PrimativeLangType implements LangType {
 	private readonly type: PrimativeTypes
 	readonly name: string
 	readonly size: number
@@ -133,7 +157,7 @@ class PrimativeLangType {
 	}
 }
 
-class ObjectLangType {
+class ObjectLangType implements LangType {
 	readonly name: string
 	readonly size: number = 4
 

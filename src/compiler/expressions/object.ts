@@ -1,13 +1,16 @@
 import { WASTExpressionNode, WASTNodeList, WASTStoreNode, WASTConstNode, WASTCallNode, Ref, WASTSetVarNode, WASTGetVarNode, WASTVarRestoreNode } from "../../WASTNode";
 import { Compiler } from "../core";
 import { I32_TYPE, LangType } from "../LangType";
-import { is_defined, compiler_assert, compiler_error } from "../error";
-import { Context } from "../Context";
-import { FunctionDeclaration } from "../FunctionDeclaration";
+import { is_defined, compiler_assert } from "../error";
 
 export function create_object(compiler: Compiler, ref: Ref, type: LangType, values: Array<WASTExpressionNode>, min_size: number = 0): WASTExpressionNode {
-	const pointer = declare_pointer(compiler.ctx, ref);
+	// const pointer = declare_pointer(compiler.ctx, ref);
+	const [pointer, release_pointer] = compiler.ctx.get_temp_variable(I32_TYPE);
 	const get_pointer_expr = new WASTGetVarNode(pointer, ref);
+
+	// NOTE we release this early, because it's expected that pointer will be reused
+	// in a recursive manner. VarRestore ensures that this won't cause problems
+	release_pointer();
 
 	const result = new WASTNodeList(ref);
 	result.value_type = type;
@@ -39,21 +42,4 @@ export function create_object(compiler: Compiler, ref: Ref, type: LangType, valu
 	result.nodes.push(get_pointer_expr);
 
 	return result;
-}
-
-function declare_pointer (ctx: Context, ref: Ref) {
-	const VAR_NAME = "constructor_pointer";
-	if (ctx.is_inside_function) {
-		return ctx.get_environment(ref).declare_hidden(ref, VAR_NAME, I32_TYPE);
-	}
-	else {
-		let ptr = ctx.lib_globals.get(VAR_NAME);
-		if (!ptr) {
-			ptr = ctx.declare_library_global_variable(ref, VAR_NAME, I32_TYPE);
-		}
-		else if (ptr instanceof FunctionDeclaration) {
-			compiler_error(ref, `Global object constructor pointer has become a FunctionDeclaration.`);
-		}
-		return ptr;
-	}
 }

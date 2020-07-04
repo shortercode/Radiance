@@ -2,10 +2,11 @@ import { Compiler, AST } from "../core";
 import { TypePattern } from "../../parser/index";
 import { Context } from "../Context";
 import { FunctionDeclaration } from "../FunctionDeclaration";
-import { compiler_assert, is_defined, type_assert, syntax_assert } from "../error";
+import { compiler_assert, is_defined, type_assert, syntax_assert, compiler_error } from "../error";
 import { WASTFunctionNode, WASTStatementNode, Ref, WASTTrapNode } from "../../WASTNode";
 import { parse_type } from "../LangType";
 import { Variable } from "../Variable";
+import { FunctionEnvironment } from "../Environment";
 
 function read_node_data (node: AST) {
 	return node.data as {
@@ -23,7 +24,7 @@ export function hoist_function_declaration (compiler: Compiler, node: AST) {
 
 	const parameters = data.parameters.map(param => {
 		const type = parse_type(param.type, ctx);
-		return new Variable(ref, type, param.name, false);
+		return new Variable(ref, type, param.name);
 	});
 
 	const return_type = parse_type(data.type, compiler.ctx);
@@ -62,7 +63,7 @@ export function visit_function (compiler: Compiler, node: AST): Array<WASTStatem
 export function initialise_function_environment(ref: Ref, ctx: Context, decl: FunctionDeclaration) {
 	const fn_wast = new WASTFunctionNode(ref, decl.id, decl.name, decl.type);
 	
-	ctx.create_function_environment(ref, decl);
+	ctx.fn_env = new FunctionEnvironment(decl);
 	
 	for (const variable of decl.parameters) {
 		fn_wast.parameters.push(variable);
@@ -72,8 +73,13 @@ export function initialise_function_environment(ref: Ref, ctx: Context, decl: Fu
 }
 
 export function complete_function_environment (compiler: Compiler, fn_wast: WASTFunctionNode, fn_decl: FunctionDeclaration) {
+	const ctx = compiler.ctx;
 	const fn_body = fn_wast.body;
 	const body_node_count = fn_body.nodes.length;
+
+	if (!ctx.fn_env) {
+		compiler_error(fn_wast.source, `Unable to complete function environment, the environment has already been cleared`);
+	}
 
 	if (body_node_count > 0) {
 		const last_node = fn_body.nodes[body_node_count - 1];
@@ -117,12 +123,11 @@ export function complete_function_environment (compiler: Compiler, fn_wast: WAST
 		type_assert(fn_decl.type.equals(fn_wast.body.value_type), fn_wast.source, `Unable to return type "${fn_wast.body.value_type.name}" from ${fn_decl.name} as it is not assignable to "${fn_decl.type.name}"`);
 	}
 	
-	const ctx = compiler.ctx;
-	const locals = ctx.get_environment(fn_wast.source).variables;
+	const locals = ctx.fn_env.variables;
 
 	for (const local of locals) {
 		fn_wast.locals.push(local);
 	}
 
-	ctx.exit_function_environment();
+	ctx.fn_env = null;
 }

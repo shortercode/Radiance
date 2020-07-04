@@ -153,7 +153,7 @@ function visit_grouping_assignment (compiler: Compiler, ref: Ref, left: AST<AST>
 
 function visit_variable_assignment_expression (compiler: Compiler, ref: Ref, left: AST<string>, right: AST): WASTExpressionNode {
 	const variable_name = left.data;
-	const variable = compiler.ctx.get_variable(ref, variable_name)!;
+	const variable = compiler.ctx.get_variable(variable_name)!;
 	
 	syntax_assert(is_defined(variable), ref, `Unable to assign to undeclared variable ${variable_name}`);
 	

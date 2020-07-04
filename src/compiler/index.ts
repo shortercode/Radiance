@@ -1,8 +1,8 @@
-import { I32_TYPE } from "./LangType";
+import { I32_TYPE, VOID_TYPE } from "./LangType";
 import { Variable } from "./Variable";
 import { Compiler, AST } from "./core";
 import { initialise_function_environment, complete_function_environment } from "./expressions/function";
-import { WASTModuleNode, WASTExportNode, WASTMemoryNode, WASTGlobalNode, WASTAddNode, Ref, WASTSetVarNode, WASTGetVarNode } from "../WASTNode";
+import { WASTModuleNode, WASTExportNode, WASTMemoryNode, WASTGlobalNode, WASTAddNode, Ref, WASTSetVarNode, WASTGetVarNode, WASTFunctionNode, WASTStatementNode } from "../WASTNode";
 import { zero_initialiser } from "./default_initialiser";
 
 const MEMORY_EXPORT_NAME = "memory";
@@ -31,15 +31,17 @@ export default function (node: AST): WASTModuleNode {
 		module.statements.push(stmt);
 	}
 
-	for (const stmt of compiler.ctx.data_blocks) {
+	for (const stmt of compiler.ctx.data) {
 		module.statements.push(stmt);
 	}
 
+	module.initialiser = create_initialiser_function(module.statements, compiler.ctx.env.variables);
+	
 	return module;
 }
 
 function create_module (compiler: Compiler, module_ref: Ref) {
-	const static_data_top = compiler.ctx.declare_library_global_variable(
+	const static_data_top = compiler.ctx.declare_sys_variable(
 		module_ref,
 		"static_data_top",
 		I32_TYPE
@@ -61,7 +63,7 @@ function* preamble (ref: Ref, compiler: Compiler) {
 }
 
 function* generate_globals (compiler: Compiler) {
-	for (const global of compiler.ctx.global_variables) {
+	for (const global of compiler.ctx.globals) {
 		const value_node = zero_initialiser(global.source, global.type);
 		yield new WASTGlobalNode(global.source, global.id, global.type, value_node);
 	}
@@ -79,13 +81,13 @@ function generate_malloc_function (ref: Ref, compiler: Compiler) {
 			ptr
 		}
 	*/
-	const offset_var = ctx.declare_library_global_variable(ref, "heap_top", I32_TYPE);
-	const size_variable = new Variable(ref, I32_TYPE, "size", false);
+	const offset_var = ctx.declare_sys_variable(ref, "heap_top", I32_TYPE);
+	const size_variable = new Variable(ref, I32_TYPE, "size");
 	const fn_decl = ctx.declare_function(ref, "malloc", I32_TYPE, [ size_variable ]);
 
 	const fn_wast = initialise_function_environment(ref, ctx, fn_decl);
 
-	const ptr_var = ctx.get_environment(ref).declare(ref, "ptr", I32_TYPE);
+	const ptr_var = ctx.declare_variable(ref, "ptr", I32_TYPE);
 	const get_offset_node = new WASTGetVarNode(offset_var);
 	const get_size_node = new WASTGetVarNode(size_variable);
 	const calc_new_offset_node = new WASTAddNode(ref, I32_TYPE, get_offset_node, get_size_node);
@@ -103,4 +105,33 @@ function generate_malloc_function (ref: Ref, compiler: Compiler) {
 	complete_function_environment(compiler, fn_wast, fn_decl);
 	
 	return fn_wast;
+}
+
+function create_initialiser_function (statements: Array<WASTStatementNode>, variables: Array<Variable>): Symbol | null {
+	const global_expressions = [];
+
+	for (const node of statements) {
+		switch (node.type) {
+			case "global_expression":
+			global_expressions.push(node);
+			break;
+		}
+	}
+
+	if (global_expressions.length > 0) {
+		const fn = new WASTFunctionNode(Ref.unknown(), Symbol("main"), "main", VOID_TYPE)
+		for (const { expression } of global_expressions) {
+			fn.body.nodes.push(expression);
+		}
+
+		for (const variable of variables) {
+			if (variable.is_global === false) {
+				fn.locals.push(variable);
+			}
+		}
+
+		statements.push(fn);
+		return fn.id;
+	}
+	return null;
 }

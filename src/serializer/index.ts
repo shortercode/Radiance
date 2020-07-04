@@ -1,11 +1,11 @@
 import { Writer } from "./Writer";
 import { Variable } from "../compiler/Variable";
-import { LangType, VOID_TYPE } from "../compiler/LangType";
+import { LangType } from "../compiler/LangType";
 import { Opcode } from "./OpCode";
 import { FunctionContext } from "./FunctionContext";
 import { write_value_type } from "./write_value_type";
 import { write_expression } from "./expressions/expression";
-import { WASTModuleNode, WASTStatementNode, WASTMemoryNode, WASTExportNode, WASTFunctionNode, Ref, WASTTableNode, WASTGlobalNode, WASTImportFunctionNode, WASTDataNode, WASTConstNode, WASTGlobalExpression } from "../WASTNode";
+import { WASTModuleNode, WASTStatementNode, WASTMemoryNode, WASTExportNode, WASTFunctionNode, Ref, WASTTableNode, WASTGlobalNode, WASTImportFunctionNode, WASTDataNode, WASTConstNode } from "../WASTNode";
 import { ModuleContext } from "./ModuleContext";
 import { compiler_assert, is_defined } from "../compiler/error";
 
@@ -25,8 +25,7 @@ export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 		table_nodes,
 		global_nodes,
 		import_nodes,
-		data_nodes,
-		expression_nodes
+		data_nodes
 	} = seperate_statement_nodes(ast.statements);
 
 	const requires_exports = export_nodes.length > 0;
@@ -36,19 +35,10 @@ export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 	const requires_function = function_nodes.length > 0;
 	const requires_globals = global_nodes.length > 0;
 	const requires_data = data_nodes.length > 0;
-	const requires_initialiser = expression_nodes.length > 0;
 
 	const requires_types = requires_function || requires_imports;
 	
 	const import_offset = generate_import_types(module_ctx, import_nodes);
-
-	let initialiser_function: WASTFunctionNode;
-
-	if (requires_initialiser) {
-		const ref = ast.source;
-		initialiser_function = generate_initialiser_function(ref, expression_nodes);
-		function_nodes.push(initialiser_function);
-	}
 
 	generate_function_types(module_ctx, import_offset, function_nodes);
 	generate_static_memory(module_ctx, ast, data_nodes, global_nodes);
@@ -74,8 +64,8 @@ export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 	if (requires_exports) {
 		write_section_7(module_ctx, export_nodes);
 	}
-	if (requires_initialiser) {
-		write_section_8(module_ctx, initialiser_function!);
+	if (ast.initialiser !== null) {
+		write_section_8(module_ctx, ast.initialiser);
 	}
 	if (requires_tables) {
 		write_section_9(module_ctx, table_nodes);
@@ -88,14 +78,6 @@ export default function serialize_wast(ast: WASTModuleNode): Uint8Array {
 	}
 	
 	return writer.complete();
-}
-
-function generate_initialiser_function (ref: Ref, nodes: Array<WASTGlobalExpression>) {
-	const fn = new WASTFunctionNode(ref, Symbol("main"), "main", VOID_TYPE)
-	for (const { expression } of nodes) {
-		fn.body.nodes.push(expression);
-	}
-	return fn;
 }
 
 function generate_function_types (ctx: ModuleContext, import_offset: number, statements: Array<WASTFunctionNode>) {
@@ -171,7 +153,6 @@ function seperate_statement_nodes (statements: Array<WASTStatementNode>) {
 	const global_nodes: Array<WASTGlobalNode> = [];
 	const import_nodes: Array<WASTImportFunctionNode> = [];
 	const data_nodes: Array<WASTDataNode> = [];
-	const expression_nodes: Array<WASTGlobalExpression> = [];
 	
 	for (const node of statements) {
 		switch (node.type) {
@@ -197,7 +178,7 @@ function seperate_statement_nodes (statements: Array<WASTStatementNode>) {
 			data_nodes.push(node);
 			break;
 			case "global_expression":
-			expression_nodes.push(node);
+			// ignore these, they are processed by the compiler
 			break;
 		}
 	}
@@ -209,8 +190,7 @@ function seperate_statement_nodes (statements: Array<WASTStatementNode>) {
 		table_nodes,
 		global_nodes,
 		import_nodes,
-		data_nodes,
-		expression_nodes
+		data_nodes
 	};
 }
 
@@ -405,12 +385,11 @@ function write_section_7 (module_ctx: ModuleContext, export_nodes: Array<WASTExp
 	finish_section_header(writer, section_offset);
 }
 
-function write_section_8 (module_ctx: ModuleContext, initialiser_function: WASTFunctionNode) {
+function write_section_8 (module_ctx: ModuleContext, initialiser_function_id: Symbol) {
 	// Section 8 - Start
 	const writer = module_ctx.writer;
 	const section_offset = write_section_header(writer, 8);
-
-	const function_id = module_ctx.function_index_map.get(initialiser_function.id)!;
+	const function_id = module_ctx.function_index_map.get(initialiser_function_id)!;
 
 	writer.writeUVint(function_id);
 

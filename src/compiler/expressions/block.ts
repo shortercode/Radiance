@@ -9,7 +9,7 @@ export function visit_block_expression (compiler: Compiler, node: AST, type_hint
 	const node_list = new WASTNodeList(ref);
 	const statements = node.data as Array<AST>;
 	
-	ctx.get_environment(ref).push_frame();
+	ctx.push_frame();
 	
 	const last = statements.slice(-1)[0];
 	const rest = statements.slice(0, -1);
@@ -29,7 +29,7 @@ export function visit_block_expression (compiler: Compiler, node: AST, type_hint
 		node_list.value_type = VOID_TYPE;
 	}
 	
-	ctx.get_environment(ref).pop_frame();
+	ctx.pop_frame();
 	
 	return node_list;
 }

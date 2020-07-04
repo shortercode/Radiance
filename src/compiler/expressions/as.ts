@@ -44,12 +44,12 @@ function cast_expression (compiler: Compiler, ref: Ref, value: WASTExpressionNod
 	if (output_type.is_boolean()) {
 		return wrap_boolean_cast(ref, value);
 	}
-	if (compiler.ctx.is_unsafe && input_type.is_integer()) {
+	if (compiler.ctx.unsafe_mode && input_type.is_integer()) {
 		if (output_type.is_object_type() || output_type.is_string()) {
 			return new WASTUnsafeCast(ref, output_type, value);
 		}
 	}
-	if (compiler.ctx.is_unsafe && output_type.is_integer()) {
+	if (compiler.ctx.unsafe_mode && output_type.is_integer()) {
 		if (input_type.is_object_type() || input_type.is_string()) {
 			return new WASTUnsafeCast(ref, output_type, value);
 		}

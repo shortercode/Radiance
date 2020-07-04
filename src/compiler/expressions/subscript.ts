@@ -49,18 +49,30 @@ function visit_string_subscript_expression (compiler: Compiler, ref: Ref, target
 
 export function bounds_check (compiler: Compiler, ref: Ref, target: WASTExpressionNode, accessor: WASTExpressionNode): WASTExpressionNode {
 	// TODO this does not work in global context
-	const variables = compiler.ctx.get_environment(ref).get_array_variables(ref);
+	const ctx = compiler.ctx;
+	const [length_var, release_length_var] = ctx.get_temp_variable(I32_TYPE);
+	const [target_var, release_target_var] = ctx.get_temp_variable(I32_TYPE);
+	const [index_var,  release_index_var] = ctx.get_temp_variable(I32_TYPE);
+	
+	function release_vars () {
+		release_length_var();
+		release_target_var();
+		release_index_var();
+	}
+
+	
+	// const variables = compiler.ctx.get_environment(ref).get_array_variables(ref);
 
 	const trap_condition_branch = new WASTNodeList(ref);
 	trap_condition_branch.nodes.push(new WASTTrapNode(ref));
 
 	const get_length_expression = new WASTSetVarNode(
-		variables.length,
+		length_var,
 		new WASTLoadNode(
 			ref,
 			I32_TYPE,
 			new WASTTeeVarNode(
-				variables.target,
+				target_var,
 				target,
 				ref
 			),
@@ -79,7 +91,7 @@ export function bounds_check (compiler: Compiler, ref: Ref, target: WASTExpressi
 				new WASTGreaterThanEqualsNode(
 					ref, 
 					new WASTTeeVarNode(
-						variables.index,
+						index_var,
 						accessor,
 						ref
 					),
@@ -91,8 +103,8 @@ export function bounds_check (compiler: Compiler, ref: Ref, target: WASTExpressi
 				),
 				new WASTLessThanNode(
 					ref,
-					new WASTGetVarNode(variables.index),
-					new WASTGetVarNode(variables.length),
+					new WASTGetVarNode(index_var),
+					new WASTGetVarNode(length_var),
 				)
 			)
 		),
@@ -108,13 +120,13 @@ export function bounds_check (compiler: Compiler, ref: Ref, target: WASTExpressi
 		new WASTAddNode(
 			ref,
 			I32_TYPE,
-			new WASTGetVarNode(variables.target),
+			new WASTGetVarNode(target_var),
 			new WASTConstNode(ref, I32_TYPE, I32_TYPE.size.toString())
 		),
 		new WASTMultiplyNode(
 			ref,
 			I32_TYPE,
-			new WASTGetVarNode(variables.index),
+			new WASTGetVarNode(index_var),
 			new WASTConstNode(ref, I32_TYPE, array_type.type.size.toString())
 		)
 	);
@@ -126,6 +138,8 @@ export function bounds_check (compiler: Compiler, ref: Ref, target: WASTExpressi
 		retrieve_location_expression
 	);
 	result_expression.value_type = I32_TYPE;
+
+	release_vars();
 	
 	return result_expression;
 }

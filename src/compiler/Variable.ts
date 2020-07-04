@@ -6,13 +6,12 @@ export class Variable {
 	readonly id: Symbol
 	readonly name: string
 	readonly source: Ref
-	readonly is_global: boolean
+	is_global: boolean = false
 
-	constructor (ref: Ref, type: LangType, name: string, is_global: boolean) {
+	constructor (ref: Ref, type: LangType, name: string) {
 		this.type = type;
 		this.id = Symbol(name);
 		this.name = name;
 		this.source = ref;
-		this.is_global = is_global;
 	}
 }

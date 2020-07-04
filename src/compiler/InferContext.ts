@@ -1,6 +1,5 @@
 import { Context } from "./Context";
 import { LangType } from "./LangType";
-import { Ref } from "../WASTNode";
 
 type Frame = Map<string, LangType>
 type TypeHint = LangType | null
@@ -41,7 +40,7 @@ export class InferContext {
 	}
 
 	get_variable_type (name: string): TypeHint {
-		let variable = this.ctx.get_variable(Ref.unknown(), name);
+		let variable = this.ctx.get_variable(name);
 		if (variable) {
 			return variable.type;
 		}

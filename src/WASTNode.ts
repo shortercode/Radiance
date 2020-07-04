@@ -144,6 +144,7 @@ export class WASTModuleNode implements WASTNode {
 	source: Ref
 	
 	statements: Array<WASTStatementNode> = []
+	initialiser: Symbol | null = null
 	readonly static_data_top: Variable
 	
 	constructor (ref: Ref, static_data_top: Variable) {

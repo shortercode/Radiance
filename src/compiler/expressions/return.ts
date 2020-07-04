@@ -7,8 +7,8 @@ export function visit_return_statement (compiler: Compiler, node: AST, _type_hin
 	const expr_node = node.data as AST | null;
 	const ref = Ref.from_node(node);
 
-	syntax_assert(compiler.ctx.is_inside_function, ref, `Illegal return statement`);
-	const fn_type = compiler.ctx.get_environment(ref).fn_type;
+	syntax_assert(compiler.ctx.fn_env !== null, ref, `Illegal return statement`);
+	const fn_type = compiler.ctx.fn_env!.fn;
 	const return_type = fn_type.type;
 
 	if (expr_node) {

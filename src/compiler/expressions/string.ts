@@ -23,7 +23,7 @@ export function visit_string_expression (compiler: Compiler, node: AST, _type_hi
 	const data = node.data as string;
 	const str = encode_string(data);
 	const byte_array = encode_byte_array(str);
-	const data_block = compiler.ctx.create_data_block(ref, byte_array);
+	const data_block = compiler.ctx.define_data(ref, byte_array);
 
 	/* TODO we need a psuedo type for a codepoint (u32) so that users can pass
 	around codepoints instead of bytes for certain uses. This doesn't resolve

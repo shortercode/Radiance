@@ -5,6 +5,7 @@ import { syntax_assert, is_defined, compiler_assert } from "../error";
 import { I32_TYPE, VOID_TYPE } from "../LangType";
 import { Context } from "../Context";
 import { Variable } from "../Variable";
+import { FunctionDeclaration } from "../FunctionDeclaration";
 
 export function visit_export (compiler: Compiler, node: AST): Array<WASTStatementNode> {
 	const data = node.data as {
@@ -65,13 +66,12 @@ function wrap_exported_function(compiler: Compiler, ref: Ref, name: string) {
 	const fn = ctx.get_function(name)!;
 	
 	syntax_assert(is_defined(fn), ref, `Cannot export undeclared function ${name}`);
-
-	const wrapper_fn_decl = ctx.declare_hidden_function(name, fn.type, fn.parameters);
-	const fn_wast = initialise_function_environment(ref, ctx, wrapper_fn_decl);
-
+	// NOTE reuses the declaration from the main function
+	const wrapped_fn_decl = new FunctionDeclaration(fn.name, fn.type, fn.parameters);
+	const fn_wast = initialise_function_environment(ref, ctx, wrapped_fn_decl);
 	const args: Array<WASTExpressionNode> = [];
 
-	for (const param of wrapper_fn_decl.parameters) {
+	for (const param of fn.parameters) {
 		args.push(new WASTGetVarNode(param, ref));
 	}
 
@@ -81,7 +81,8 @@ function wrap_exported_function(compiler: Compiler, ref: Ref, name: string) {
 	const returns_value = call_node.value_type.is_void() === false;
 
 	if (returns_value) {
-		const temp_variable = ctx.get_environment(ref).declare_hidden(ref, "ret_value", call_node.value_type);
+		
+		const [temp_variable, release_temp_variable] = ctx.get_temp_variable(call_node.value_type);
 		const store_ret_value_node = new WASTSetVarNode(temp_variable, call_node, ref);
 		const get_ret_value_node = new WASTGetVarNode(temp_variable, ref);
 		fn_wast.body.nodes.push(
@@ -90,6 +91,7 @@ function wrap_exported_function(compiler: Compiler, ref: Ref, name: string) {
 			suffix,
 			get_ret_value_node
 		);
+		release_temp_variable();
 	}
 	else {
 		fn_wast.body.nodes.push(
@@ -99,7 +101,7 @@ function wrap_exported_function(compiler: Compiler, ref: Ref, name: string) {
 		);
 	}
 
-	complete_function_environment(compiler, fn_wast, wrapper_fn_decl);
+	complete_function_environment(compiler, fn_wast, wrapped_fn_decl);
 	
 	return fn_wast;
 }
@@ -123,8 +125,8 @@ function get_prefix_and_suffix (compiler: Compiler, ref: Ref) {
 	const ctx = compiler.ctx;
 
 	const stack_depth = get_stack_depth(compiler.ctx, ref);
-	const static_data_top = ctx.lib_globals.get("static_data_top") as Variable;
-	const heap_top = ctx.lib_globals.get("heap_top") as Variable;
+	const static_data_top = ctx.get_sys_variable("static_data_top")!;
+	const heap_top = ctx.get_sys_variable("heap_top")!;
 
 	compiler_assert(is_defined(static_data_top) && is_defined(heap_top), ref, `"static_data_top" and/or "heap_top" are missing`);
 
@@ -178,11 +180,11 @@ function get_prefix_and_suffix (compiler: Compiler, ref: Ref) {
 }
 
 function get_stack_depth (ctx: Context, ref: Ref): Variable {
-	const stack_depth = ctx.lib_globals.get("stack_depth") as Variable;
+	const stack_depth = ctx.get_sys_variable("stack_depth");
 	if (stack_depth) {
 		return stack_depth;
 	}
 	else {
-		return ctx.declare_library_global_variable(ref, "stack_depth", I32_TYPE);
+		return ctx.declare_sys_variable(ref, "stack_depth", I32_TYPE);
 	}
 }

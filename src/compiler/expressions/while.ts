@@ -3,6 +3,7 @@ import { WASTExpressionNode, WASTBlockNode, WASTNodeList, WASTLoopNode, WASTCond
 import { BOOL_TYPE } from "../LangType";
 import { invert_boolean_expression } from "./boolean";
 import { default_initialiser } from "../default_initialiser";
+import { Variable } from "../Variable";
 
 function read_node_data (node: AST) {
 	return node.data as {
@@ -40,11 +41,12 @@ export function visit_while_expression (compiler: Compiler, node: AST, type_hint
 	const node_list = new WASTNodeList(ref);
 	
 	// NOTE if we do return a value we need to add a temporary var to hold it
-	let temp_variable = null;
+	let temp_variable: [Variable, () => void] | null = null;
 	if (emits_value) {
-		temp_variable = ctx.get_environment(ref).declare_hidden(ref, "while_temp_variable", while_body.value_type);
+		temp_variable = ctx.get_temp_variable(while_body.value_type);
+		// temp_variable = ctx.get_environment(ref).declare_hidden(ref, "while_temp_variable", while_body.value_type);
 		const init_value_node = default_initialiser(ref, return_value_type);
-		const init_node = new WASTSetVarNode(temp_variable, init_value_node, ref);
+		const init_node = new WASTSetVarNode(temp_variable[0], init_value_node, ref);
 		node_list.nodes.push(init_node);
 	}
 	
@@ -66,7 +68,7 @@ export function visit_while_expression (compiler: Compiler, node: AST, type_hint
 		// NOTE if we're emitting a value wrap the block in a set local
 		// to stash it in our temp var
 		if (emits_value) {
-			const set_temp_node = new WASTSetVarNode(temp_variable!, while_body, ref);
+			const set_temp_node = new WASTSetVarNode(temp_variable![0], while_body, ref);
 			loop_block.body.push(set_temp_node);
 		}
 		else {
@@ -82,9 +84,10 @@ export function visit_while_expression (compiler: Compiler, node: AST, type_hint
 	// NOTE finally if we're emitting a value then read back our output
 	// from the temp variable
 	if (emits_value) {
-		const get_temp_node = new WASTGetVarNode(temp_variable!, ref);
+		const get_temp_node = new WASTGetVarNode(temp_variable![0], ref);
 		node_list.nodes.push(get_temp_node);
 		node_list.value_type = get_temp_node.value_type;
+		temp_variable![1]();
 	}
 	
 	return node_list;

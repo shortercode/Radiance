@@ -13,8 +13,8 @@ export class Context {
 	readonly env: ModuleEnvironment = new ModuleEnvironment()
 	fn_env: FunctionEnvironment | null = null
 
-	readonly globals: Array<Variable> = []
-	readonly data: Array<WASTDataNode> = []
+	readonly globals: Variable[] = []
+	readonly data: WASTDataNode[] = []
 	readonly exports: Set<string> = new Set
 	readonly sys_globals: Map<string, Declaration> = new Map
 
@@ -28,7 +28,7 @@ export class Context {
 		}
 		return variable;
 	}
-	declare_function (ref: Ref, name: string, return_type: LangType, parameters: Array<Variable>): FunctionDeclaration {
+	declare_function (ref: Ref, name: string, return_type: LangType, parameters: Variable[]): FunctionDeclaration {
 		const decl = new FunctionDeclaration(name, return_type, parameters);
 		this.declare(ref, name, decl);
 		return decl;

@@ -59,7 +59,8 @@ export class Compiler {
 			["struct", () => []],
 			["enum", () => []],
 			["variable", visit_global_variable],
-			["expression", visit_global_expression]
+			["expression", visit_global_expression],
+			["type", () => []]
 		]);
 
 		this.local_statement_visitors = new Map([

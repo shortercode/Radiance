@@ -3,6 +3,7 @@ import { AST, Compiler } from "../core";
 import { hoist_struct_declaration } from "./struct";
 import { hoist_function_declaration } from "./function";
 import { hoist_enum_declaration } from "./enum";
+import { hoist_type } from "./type";
 
 function read_node_data (node: AST) {
 	return node.data as Array<AST>;
@@ -18,6 +19,9 @@ export function visit_module(compiler: Compiler, node: AST): Array<WASTStatement
 			break;
 			case "enum":
 			hoist_enum_declaration(compiler, stmt);
+			break;
+			case "type":
+			hoist_type(compiler, stmt);
 			break;
 		}
 	}

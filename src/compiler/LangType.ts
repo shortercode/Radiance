@@ -55,6 +55,7 @@ export interface LangType {
 	readonly size: number
 	
 	equals (other: LangType): boolean
+	exact_equals (other: LangType): boolean
 
 	is_numeric (): boolean
 	is_integer (): boolean
@@ -96,6 +97,10 @@ class PrimativeLangType implements LangType {
 			return this.type === other.type;
 		}
 		return false;
+	}
+
+	exact_equals (other: LangType): boolean {
+		return this.equals(other);
 	}
 	
 	is_numeric (): boolean {
@@ -165,6 +170,10 @@ class ObjectLangType implements LangType {
 
 	equals (_other: LangType): boolean {
 		throw new Error("Should not use direct instances of ObjectLangType");
+	}
+
+	exact_equals (other: LangType): boolean {
+		return this.equals(other);
 	}
 
 	is_numeric (): boolean {
@@ -266,6 +275,25 @@ export class TupleLangType extends ObjectLangType{
 		}
 		return false;
 	}
+
+	exact_equals (other: LangType): boolean {
+		if (other instanceof TupleLangType) {
+			const a = this.types;
+			const b = other.types;
+			
+			if (a.length !== b.length) {
+				return false;
+			}
+			
+			for (let i = 0; i < a.length; i++) {
+				if (a[i].type.exact_equals(b[i].type) === false) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return false;
+	}
 }
 
 export class StructLangType extends ObjectLangType {
@@ -326,6 +354,13 @@ export class EnumLangType extends ObjectLangType {
 		}
 		return false;
 	}
+
+	exact_equals (other: LangType): boolean {
+		if (other instanceof EnumLangType) {
+			return this === other;
+		}
+		return false;
+	}
 }
 
 export class EnumCaseLangType extends ObjectLangType {
@@ -367,6 +402,13 @@ export class ArrayLangType extends ObjectLangType {
 	equals (other: LangType): boolean {
 		if (other instanceof ArrayLangType) {
 			return this.type.equals(other.type) && (this.is_sized() ? this.count === other.count : true);
+		}
+		return false;
+	}
+
+	exact_equals (other: LangType): boolean {
+		if (other instanceof ArrayLangType) {
+			return this.type.exact_equals(other.type);
 		}
 		return false;
 	}

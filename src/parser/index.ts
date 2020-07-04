@@ -27,6 +27,7 @@ class LangParser extends Parser {
 		this.addStatement("identifier:enum", this.parseEnum);
 		this.addStatement("identifier:let", this.parseVariable);
 		this.addStatement("identifier:return", this.parseReturn);
+		this.addStatement("identifier:type", this.parseTypeAlias);
 		
 		/*
 		Precedence order low to high
@@ -558,6 +559,19 @@ class LangParser extends Parser {
 		
 		const end = this.endStatement(tokens);
 		return new Node("return", start, end, value);
+	}
+
+	parseTypeAlias (tokens: Iterator<Token>): Node {
+		const start = tokens.previous()!.start;
+		const name = this.ensure(tokens, "identifier:");
+		this.ensure(tokens, "symbol:=");
+		const type = this.parseType(tokens);
+		const end = this.endStatement(tokens);
+
+		return new Node("type", start, end, {
+			name,
+			type
+		});
 	}
 	
 	parseBlockExpression(tokens: Iterator<Token>): Node {

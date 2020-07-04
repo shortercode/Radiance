@@ -451,23 +451,25 @@ describe("return test", () => {
 
 	test("compiles", async () => {
 		mod = await execute_string(`
+
+		type num = u32
 		
-		export fn implicit (val: u32) -> u32 {
+		export fn implicit (val: num) -> num {
 			val
 		}
 		
-		export fn explicit (val: u32) -> u32 {
+		export fn explicit (val: num) -> num {
 			return val
 		}
 		
-		export fn conditional (val: u32) -> u32 {
+		export fn conditional (val: num) -> num {
 			if val > 42 {
 				return val
 			}
 			42
 		}
 		
-		export fn explicit_branch (val: u32) -> u32 {
+		export fn explicit_branch (val: num) -> num {
 			if val > 42 {
 				return val
 			}
@@ -476,7 +478,7 @@ describe("return test", () => {
 			}
 		}
 		
-		export fn implicit_branch (val: u32) -> u32 {
+		export fn implicit_branch (val: num) -> num {
 			if val > 42 {
 				val
 			}

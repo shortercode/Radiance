@@ -468,14 +468,10 @@ export function parse_type (pattern: TypePattern, ctx: Context): LangType {
 	const name = type_pattern_name(pattern);
 	switch (pattern.style) {
 		case "class": {
-			const struct_decl = ctx.get_struct(pattern.type);
-			if (struct_decl) {
-				return struct_decl.type;
-			}
+			const decl = ctx.get_declaration(pattern.type);
 
-			const enum_decl = ctx.get_enum(pattern.type);
-			if (enum_decl) {
-				return enum_decl.type;
+			if (decl) {
+				return decl.type;
 			}
 
 			const type_enum = validate_primative_type(pattern.type);

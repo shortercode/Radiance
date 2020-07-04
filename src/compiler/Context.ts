@@ -128,7 +128,7 @@ export class Context {
 		}
 	}
 
-	private get_declaration (name: string): Declaration | null {
+	get_declaration (name: string): Declaration | null {
 		let decl: Declaration|null = null;
 		if (this.fn_env) {
 			decl = this.fn_env.get(name);

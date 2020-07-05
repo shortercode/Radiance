@@ -324,18 +324,38 @@ class LangParser extends Parser {
 	parseIfExpression(tokens: Iterator<Token>, _precedence: number): Node {
 		const start = tokens.previous()!.start;
 		
-		const condition = this.parseExpression(tokens, 1);
-		const thenBranch = this.parseBlock(tokens);
-		let elseBranch = null;
-		
-		if (this.match(tokens, "identifier:else")) {
+		if (this.match(tokens, "identifier:let"")) {
 			tokens.next();
-			elseBranch = this.parseBlock(tokens);
+			const name = this.ensure(tokens, "identifier:");
+			this.ensure(tokens, "symbol:=");
+			const type = this.parseType(tokens);
+
+			const thenBranch = this.parseBlock(tokens);
+			let elseBranch = null;
+		
+			if (this.match(tokens, "identifier:else")) {
+				tokens.next();
+				elseBranch = this.parseBlock(tokens);
+			}
+		
+			const end = tokens.previous()!.end;
+		
+			return new Node("if let", start, end, { name, type, thenBranch, elseBranch });
 		}
+		else {
+			const condition = this.parseExpression(tokens, 1);
+			const thenBranch = this.parseBlock(tokens);
+			let elseBranch = null;
 		
-		const end = tokens.previous()!.end;
+			if (this.match(tokens, "identifier:else")) {
+				tokens.next();
+				elseBranch = this.parseBlock(tokens);
+			}
 		
-		return new Node("if", start, end, { condition, thenBranch, elseBranch });
+			const end = tokens.previous()!.end;
+		
+			return new Node("if", start, end, { condition, thenBranch, elseBranch });
+		}
 	}
 	
 	parseFunction (tokens: Iterator<Token>): Node {

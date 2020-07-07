@@ -7,17 +7,19 @@ import { WASTFunctionNode, WASTStatementNode, Ref, WASTTrapNode } from "../../WA
 import { parse_type } from "../LangType";
 import { Variable } from "../Variable";
 import { FunctionEnvironment } from "../Environment";
+import { FunctionTemplateInstance } from "../FunctionTemplateInstance";
 
 function read_node_data (node: AST) {
 	return node.data as {
 		name: string
 		type: TypePattern
+		generics: string[]
 		body: Array<AST>
 		parameters: Array<{ name: string, type: TypePattern }>
 	}
 }
 
-export function hoist_function_declaration (compiler: Compiler, node: AST) {
+export function hoist_imported_function_declaration (compiler: Compiler, node: AST) {
 	const data = read_node_data(node);
 	const ctx = compiler.ctx;
 	const ref = Ref.from_node(node);
@@ -31,9 +33,32 @@ export function hoist_function_declaration (compiler: Compiler, node: AST) {
 	ctx.declare_function(ref, data.name, return_type, parameters);
 }
 
+export function hoist_function_declaration (compiler: Compiler, node: AST) {
+	const data = read_node_data(node);
+	const ctx = compiler.ctx;
+	const ref = Ref.from_node(node);
+
+	if (data.generics.length > 0) {
+		ctx.declare_function_template(ref, data.name, data.type, data.parameters, data.generics, data.body);
+	}
+	else {
+		const parameters = data.parameters.map(param => {
+			const type = parse_type(param.type, ctx);
+			return new Variable(ref, type, param.name);
+		});
+	
+		const return_type = parse_type(data.type, compiler.ctx);
+		ctx.declare_function(ref, data.name, return_type, parameters);
+	}
+}
+
 export function visit_function (compiler: Compiler, node: AST): Array<WASTStatementNode> {
 	const data = read_node_data(node);
 	const ref = Ref.from_node(node);
+
+	if (data.generics.length > 0) {
+		return [];
+	}
 	
 	const fn_decl = compiler.ctx.get_function(data.name)!; 
 	
@@ -58,6 +83,28 @@ export function visit_function (compiler: Compiler, node: AST): Array<WASTStatem
 	complete_function_environment(compiler, fn_wast, fn_decl);
 
 	return [fn_wast];
+}
+
+export function visit_function_instance (compiler: Compiler, ref: Ref, inst: FunctionTemplateInstance): WASTStatementNode {
+	const fn_wast = initialise_function_environment(ref, compiler.ctx, inst);
+	
+	const last = inst.body.slice(-1)[0];
+	const rest = inst.body.slice(0, -1);
+
+	for (const node of rest) {
+		const expr = compiler.visit_local_statement(node, null);
+		fn_wast.body.nodes.push(expr);
+		syntax_assert(expr.value_type.is_never() === false, expr.source, "Early exit in this statement leaves unreachable code after it");
+	}
+
+	if (last) {
+		const expr = compiler.visit_local_statement(last, inst.type);
+		fn_wast.body.nodes.push(expr);
+	}
+
+	complete_function_environment(compiler, fn_wast, inst);
+
+	return fn_wast;
 }
 
 export function initialise_function_environment(ref: Ref, ctx: Context, decl: FunctionDeclaration) {

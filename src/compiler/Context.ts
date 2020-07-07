@@ -8,12 +8,16 @@ import { syntax_assert, compiler_assert } from "./error";
 import { TypeAlias } from "./TypeAlias";
 import { Declaration } from "./Declaration";
 import { ModuleEnvironment, FunctionEnvironment } from "./Environment";
+import { TypePattern } from "../parser/index";
+import { AST } from "./core";
+import { FunctionTemplateDeclaration } from "./FunctionTemplateDeclaration";
 
 export class Context {
 	readonly env: ModuleEnvironment = new ModuleEnvironment()
 	fn_env: FunctionEnvironment | null = null
 
 	readonly globals: Variable[] = []
+	readonly function_templates: FunctionTemplateDeclaration[] = []
 	readonly data: WASTDataNode[] = []
 	readonly exports: Set<string> = new Set
 	readonly sys_globals: Map<string, Declaration> = new Map
@@ -31,6 +35,13 @@ export class Context {
 	declare_function (ref: Ref, name: string, return_type: LangType, parameters: Variable[]): FunctionDeclaration {
 		const decl = new FunctionDeclaration(name, return_type, parameters);
 		this.declare(ref, name, decl);
+		return decl;
+	}
+	declare_function_template (ref: Ref, name: string, return_type: TypePattern, parameters: { name: string, type: TypePattern }[], generics: string[], body: AST[]) {
+		const scope = this.env.snapshot();
+		const decl = new FunctionTemplateDeclaration(name, return_type, scope, parameters, generics, body);
+		this.declare(ref, name, decl);
+		this.function_templates.push(decl);
 		return decl;
 	}
 	declare_struct (ref: Ref, name: string, fields: Map<string, LangType>): StructDeclaration {

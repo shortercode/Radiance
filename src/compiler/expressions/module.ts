@@ -1,7 +1,7 @@
-import { WASTStatementNode } from "../../WASTNode";
+import { WASTStatementNode, Ref } from "../../WASTNode";
 import { AST, Compiler } from "../core";
 import { hoist_struct_declaration } from "./struct";
-import { hoist_function_declaration } from "./function";
+import { hoist_function_declaration, visit_function_instance, hoist_imported_function_declaration } from "./function";
 import { hoist_enum_declaration } from "./enum";
 import { hoist_type } from "./type";
 
@@ -29,6 +29,8 @@ export function visit_module(compiler: Compiler, node: AST): Array<WASTStatement
 	for (const stmt of statements) {
 		switch (stmt.type) {
 			case "import_function":
+			hoist_imported_function_declaration(compiler, stmt);
+			break;
 			case "export_function":
 			case "function":
 			hoist_function_declaration(compiler, stmt);
@@ -45,6 +47,13 @@ export function visit_module(compiler: Compiler, node: AST): Array<WASTStatement
 	for (const stmt of statements) {
 		const wast_stmts = compiler.visit_global_statement(stmt);
 		results.push(...wast_stmts);
+	}
+
+	for (const fn_decl of compiler.ctx.function_templates) {
+		for (const inst of fn_decl.instances) {
+			const stmt = visit_function_instance(compiler, Ref.unknown(), inst);
+			results.push(stmt);
+		}
 	}
 
 	return results;

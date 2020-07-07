@@ -4,16 +4,26 @@ import { type_assert } from "./error";
 import { Variable } from "./Variable";
 import { FunctionDeclaration } from "./FunctionDeclaration";
 import { LangType } from "./LangType";
-
-type Frame = Map<string, Declaration>
+import { Frame } from "./Frame";
+import { FunctionTemplateInstance } from "./FunctionTemplateInstance";
 
 export class Environment {
-	readonly stack: Array<Frame> = [ new Map ]
+	stack: Array<Frame> = [ new Map ]
 	readonly variables: Array<Variable> = []
 	readonly free_temp_variables: Set<Variable> = new Set()
 
 	get frame () {
 		return this.stack[0];
+	}
+
+	snapshot (): Frame[] {
+		return this.stack.slice(0);
+	}
+
+	swap_snapshot (stack: Frame[]) {
+		const current_stack = this.stack;
+		this.stack = stack;
+		return current_stack;
 	}
 
 	declare (ref: Ref, name: string, decl: Declaration): Declaration {
@@ -72,9 +82,9 @@ export class ModuleEnvironment extends Environment {
 }
 
 export class FunctionEnvironment extends Environment {
-	readonly fn: FunctionDeclaration
+	readonly fn: FunctionDeclaration | FunctionTemplateInstance
 
-	constructor (decl: FunctionDeclaration) {
+	constructor (decl: FunctionDeclaration | FunctionTemplateInstance) {
 		super();
 		this.fn = decl;
 		for (const param of decl.parameters) {

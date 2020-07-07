@@ -324,7 +324,7 @@ class LangParser extends Parser {
 	parseIfExpression(tokens: Iterator<Token>, _precedence: number): Node {
 		const start = tokens.previous()!.start;
 		
-		if (this.match(tokens, "identifier:let"")) {
+		if (this.match(tokens, "identifier:let")) {
 			tokens.next();
 			const name = this.ensure(tokens, "identifier:");
 			this.ensure(tokens, "symbol:=");

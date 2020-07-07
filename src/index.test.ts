@@ -529,6 +529,36 @@ describe("return test", () => {
 	});
 });
 
+describe("generic func", () => {
+	let mod: Record<string, WebAssembly.ExportValue>;
+
+	test("compiles", async () => {
+		mod = await execute_string(`
+
+		fn add<T> (a: T, b: T) -> T {
+			a + b
+		}
+
+		export fn main {
+			add:<u32>(12, 90)
+			add:<f32>(80, 1)
+			add:<f64>(10.1, 6.9)
+		}
+		`);
+	});
+
+	test("exports functions", () => {
+		expect(mod).toHaveProperty("main");
+
+		expect(mod.main).toBeInstanceOf(Function);
+	});
+
+	test("return value", () => {
+		const main = mod.main as () => void;
+		main();
+	});
+});
+
 function read_i32 (memory: WebAssembly.Memory, ptr: number) {
 	const buffer = memory.buffer;
 	const view = new DataView(buffer);

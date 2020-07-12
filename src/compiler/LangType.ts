@@ -3,6 +3,9 @@ import { Context } from "./Context";
 import { StructDeclaration } from "./StructDeclaration";
 import { EnumDeclaration, EnumCaseDeclaration } from "./EnumDeclaration";
 import { TypeAlias } from "./TypeAlias";
+import { compiler_error } from "./error";
+import { Ref } from "../WASTNode";
+import { StructTemplateDeclaration } from "./StructTemplateDeclaration";
 
 // NOTE this allows us to return pointers to the host environment
 // which is cool but the host environment will likely not be able
@@ -450,6 +453,9 @@ function type_pattern_name (pattern: TypePattern): string {
 	else if (pattern.style === "tuple") {
 		return `(${pattern.types.map(type => type_pattern_name(type)).join(",")})`;
 	}
+	else if (pattern.style === "generic") {
+		return `${type_pattern_name(pattern.type)}:<${pattern.arguments.map(pat => type_pattern_name(pat)).join(',')}>`;
+	}
 	else {
 		const size_label = pattern.count < 0 ? "" : pattern.count.toString();
 		return `${type_pattern_name(pattern.type)}[${size_label}]`;
@@ -492,6 +498,26 @@ export function parse_type (pattern: TypePattern, ctx: Context): LangType {
 			const type_prim = validate_primative_type(pattern.type);
 			return new PrimativeLangType(type_prim, name);
 		}
+		case "generic": {
+			if (pattern.type.style === "member") {
+				compiler_error(Ref.unknown(), `Not yet implemented`);
+			} 
+			else if (pattern.type.style === "class") {
+				const decl = ctx.get_declaration(pattern.type.type);
+				const args = pattern.arguments.map(arg => parse_type(arg, ctx));
+
+				if (decl instanceof StructTemplateDeclaration) {
+					const inst = decl.instance(Ref.unknown(), ctx, args);
+					return inst.type;
+				}
+
+				compiler_error(Ref.unknown(), `Invalid type pattern`);
+			}
+			else {
+				compiler_error(Ref.unknown(), `Invalid type pattern`);
+			}
+			break;
+		}
 		case "tuple": {
 			const types: Array<LangType> = pattern.types.map(type => parse_type(type, ctx));
 			return new TupleLangType(types, name);
@@ -506,12 +532,12 @@ export function parse_type (pattern: TypePattern, ctx: Context): LangType {
 			if (type_namespace instanceof EnumLangType) {
 				const subtype = type_namespace.cases.get(pattern.name);
 				if (!subtype) {
-					throw new Error(`"${pattern.name}" is not a variant of "${type_namespace.name}"`)
+					compiler_error(Ref.unknown(), `"${pattern.name}" is not a variant of "${type_namespace.name}"`);
 				}
 				return subtype;
 			}
 			else {
-				throw new Error(`"${type_namespace.name}" is not an enum`);
+				compiler_error(Ref.unknown(), `"${type_namespace.name}" is not an enum`);
 			}	
 		}
 	}

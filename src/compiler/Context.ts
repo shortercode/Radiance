@@ -11,6 +11,7 @@ import { ModuleEnvironment, FunctionEnvironment } from "./Environment";
 import { TypePattern } from "../parser/index";
 import { AST } from "./core";
 import { FunctionTemplateDeclaration } from "./FunctionTemplateDeclaration";
+import { StructTemplateDeclaration } from "./StructTemplateDeclaration";
 
 export class Context {
 	readonly env: ModuleEnvironment = new ModuleEnvironment()
@@ -46,6 +47,12 @@ export class Context {
 	}
 	declare_struct (ref: Ref, name: string, fields: Map<string, LangType>): StructDeclaration {
 		const decl = new StructDeclaration(ref, name, fields);
+		this.declare(ref, name, decl);
+		return decl;
+	}
+	declare_struct_template (ref: Ref, name: string, fields: Map<string, TypePattern>, generics: string[]): StructTemplateDeclaration {
+		const scope = this.env.snapshot();
+		const decl = new StructTemplateDeclaration(name, scope, fields, generics);
 		this.declare(ref, name, decl);
 		return decl;
 	}

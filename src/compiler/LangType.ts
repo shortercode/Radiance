@@ -1,5 +1,8 @@
 import { TypePattern } from "../parser/index";
 import { Context } from "./Context";
+import { StructDeclaration } from "./StructDeclaration";
+import { EnumDeclaration, EnumCaseDeclaration } from "./EnumDeclaration";
+import { TypeAlias } from "./TypeAlias";
 
 // NOTE this allows us to return pointers to the host environment
 // which is cool but the host environment will likely not be able
@@ -470,12 +473,24 @@ export function parse_type (pattern: TypePattern, ctx: Context): LangType {
 		case "class": {
 			const decl = ctx.get_declaration(pattern.type);
 
-			if (decl) {
+			if (decl instanceof StructDeclaration) {
 				return decl.type;
 			}
 
-			const type_enum = validate_primative_type(pattern.type);
-			return new PrimativeLangType(type_enum, name);
+			if (decl instanceof EnumDeclaration) {
+				return decl.type;
+			}
+
+			if (decl instanceof EnumCaseDeclaration) {
+				return decl.type;
+			}
+
+			if (decl instanceof TypeAlias) {
+				return decl.type;
+			}
+
+			const type_prim = validate_primative_type(pattern.type);
+			return new PrimativeLangType(type_prim, name);
 		}
 		case "tuple": {
 			const types: Array<LangType> = pattern.types.map(type => parse_type(type, ctx));

@@ -559,6 +559,48 @@ describe("generic func", () => {
 	});
 });
 
+describe("generic struct", () => {
+	let mod: Record<string, WebAssembly.ExportValue>;
+
+	test("compiles", async () => {
+		mod = await execute_string(`
+
+		struct Vec3<T> {
+			x: T, y: T, z: T
+		}
+
+		fn add<T> (a: Vec3:<T>, b: Vec3:<T>) -> Vec3:<T> {
+			Vec3:<T> {
+				x: a.x + b.x,
+				y: a.y + b.y,
+				z: a.z + b.z
+			}
+		}
+
+		export fn main {
+			let a_f32: Vec3:<f32> = Vec3:<f32> { x: 12, y: 42, z: 0.1 }
+			let b_f32: Vec3:<f32> = Vec3:<f32> { x: 9, y: 4, z: 3.14 }
+
+			let a_f64: Vec3:<f64> = Vec3:<f64> { x: 12, y: 42, z: 0.1 }
+			let b_f64: Vec3:<f64> = Vec3:<f64> { x: 9, y: 4, z: 3.14 }
+			add:<f32>(a_f32, b_f32)
+			add:<f64>(a_f64, b_f64)
+		}
+		`);
+	});
+
+	test("exports functions", () => {
+		expect(mod).toHaveProperty("main");
+
+		expect(mod.main).toBeInstanceOf(Function);
+	});
+
+	test("return value", () => {
+		const main = mod.main as () => void;
+		main();
+	});
+});
+
 function read_i32 (memory: WebAssembly.Memory, ptr: number) {
 	const buffer = memory.buffer;
 	const view = new DataView(buffer);

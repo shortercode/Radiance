@@ -30,10 +30,6 @@ export class FunctionTemplateDeclaration {
 		this.body = body;
 	}
 
-	is_template (): boolean {
-		return this.generics.length > 0;
-	}
-
 	instance (ref: Ref, ctx: Context, args: LangType[]): FunctionTemplateInstance {
 
 		syntax_assert(args.length === this.generics.length, ref, `Function ${this.name} expects ${this.generics.length} types but ${args.length} were given`);

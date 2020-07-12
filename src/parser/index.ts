@@ -167,10 +167,18 @@ class LangParser extends Parser {
 
 		this.ensure(tokens, "symbol:}");
 		const end = tokens.previous()!.end;
-		return new Node("constructor", start, end, { target: left, fields });
+
+		if (left.type === "generic_parameters") {
+			const data = left.data as { left: Node, parameters: Array<TypePattern>};
+			const start = data.left.start;		
+			return new Node("constructor", start, end, { target: left, fields, generics: data.parameters });
+		}
+		else {
+			const start = left.start;		
+			return new Node("constructor", start, end, { target: left, fields, generics: [] });
+		}
 	}
 
-	// NOTE not used at the moment
 	parseSubscript(tokens: Iterator<Token>, left: Node): Node {
 		const expr = this.parseExpression(tokens, 0);
 		this.ensure(tokens, "symbol:]");
@@ -419,10 +427,34 @@ class LangParser extends Parser {
 		const start = tokens.previous()!.start;
 		const name = this.ensure(tokens, "identifier:");
 
+		const generics: Array<string> = [];
+
+		if (this.match(tokens, "symbol:<")) {
+			tokens.next();
+			if (this.match(tokens, "symbol:>")) {
+				tokens.next();
+			}
+			else {
+				while (tokens.incomplete()) {
+					const name = this.ensure(tokens, "identifier:");
+					
+					generics.push(name);
+					
+					if (this.match(tokens, "symbol:,")) {
+						tokens.next();
+					}
+					else {
+						break;
+					}
+				}
+				this.ensure(tokens, "symbol:>");
+			}
+		}
+
 		const fields = this.parseStructBody(tokens);
 
 		const end = tokens.previous()!.end;
-		return new Node("struct", start, end, { name, fields });
+		return new Node("struct", start, end, { name, fields, generics });
 	}
 
 	parseEnum (tokens: Iterator<Token>): Node {

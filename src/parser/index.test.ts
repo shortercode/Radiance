@@ -342,7 +342,8 @@ describe("struct statement", () => {
 		compareModule(ast, [
 			new AST("struct", [1, 0], [1, 18], {
 				name: "MyStruct",
-				fields: new Map
+				fields: new Map,
+				generics: []
 			})
 		]);
 	})
@@ -357,7 +358,8 @@ struct MyStruct {
 				name: "MyStruct",
 				fields: new Map([
 					["name", { style: "class", type: "void" }]
-				])
+				]),
+				generics: []
 			})
 		]);
 	});
@@ -374,7 +376,26 @@ struct MyStruct {
 				fields: new Map([
 					["name", { style: "class", type: "void" }],
 					["other", { style: "class", type: "i32" }]
-				])
+				]),
+				generics: []
+			})
+		]);
+	});
+
+	test("struct with generics", () => {
+		const ast = parse(`
+struct MyStruct<K, V> {
+	name: K,
+	other: V
+}`);
+		compareModule(ast, [
+			new AST("struct", [2, 0], [5, 1], {
+				name: "MyStruct",
+				fields: new Map([
+					["name", { style: "class", type: "K" }],
+					["other", { style: "class", type: "V" }]
+				]),
+				generics: [ "K", "V"]
 			})
 		]);
 	});
@@ -617,7 +638,8 @@ describe("constructor expression", () => {
 		compareModule(ast, [
 			new AST("expression", [1,0],[1,6], new AST("constructor", [1,0],[1,6], {
 				target: new AST("identifier", [1, 0], [1, 3], "Obj"),
-				fields: new Map()
+				fields: new Map(),
+				generics: []
 			}))
 		]);
 	});
@@ -629,7 +651,8 @@ describe("constructor expression", () => {
 				target: new AST("identifier", [1, 0], [1, 3], "Obj"),
 				fields: new Map([
 					["a", new AST("number", [1, 9], [1, 11], "42")]
-				])
+				]),
+				generics: []
 			}))
 		]);
 	});
@@ -642,7 +665,8 @@ describe("constructor expression", () => {
 				fields: new Map([
 					["a", new AST("number", [1, 9], [1, 11], "42")],
 					["b", new AST("string", [1, 16], [1, 20], "hi")]
-				])
+				]),
+				generics: []
 			}))
 		]);
 	});
@@ -655,7 +679,8 @@ describe("constructor expression", () => {
 					target: new AST("identifier", [1,0], [1, 3], "Obj"),
 					member: "Child"
 				}),
-				fields: new Map()
+				fields: new Map(),
+				generics: []
 			}))
 		]);
 	})

@@ -135,7 +135,6 @@ class LangParser extends Parser {
 	}
 
 	parseConstructor(tokens: Iterator<Token>, left: Node, _precedence: number): Node {
-		const start = left.start;
 		const fields: Map<string, Node> = new Map;
 
 		if (!this.match(tokens, "symbol:}")) {

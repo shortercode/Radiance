@@ -5,6 +5,7 @@ import Token from "../pratt/Token";
 
 export type TypePattern = { style: "tuple", types: Array<TypePattern> }
 	| { style: "class", type: string }
+	| { style: "generic", type: TypePattern, arguments: TypePattern[] }
 	| { style: "array", type: TypePattern, count: number }
 	| { style: "member", type: TypePattern, name: string };
 
@@ -246,8 +247,14 @@ class LangParser extends Parser {
 		const end = tokens.previous()!.start;
 
 		const generic_expr = new Node("generic_parameters", start, end, { left, parameters });
-		this.ensure(tokens, "symbol:(");
-		return this.parseCallExpression(tokens, generic_expr, precedence);
+		if (this.match(tokens, "symbol:(")) {
+			tokens.next();
+			return this.parseCallExpression(tokens, generic_expr, precedence);
+		}
+		else {
+			this.ensure(tokens, "symbol:{");
+			return this.parseConstructor(tokens, generic_expr, precedence);
+		}
 	}
  
 	parseGrouping(tokens: Iterator<Token>, _precedence: number): Node {
@@ -752,6 +759,31 @@ class LangParser extends Parser {
 					style: "member",
 					type: result,
 					name: member_name
+				};
+			}
+
+			if (this.match(tokens, "symbol::")) {
+				tokens.next();
+				this.ensure(tokens, "symbol:<");
+	
+				const args: TypePattern[] = [];
+
+				while (tokens.incomplete() && !this.match(tokens, "symbol:>")) {
+					args.push(this.parseType(tokens));
+					if (this.match(tokens, "symbol:,")) {
+						tokens.next();
+					}
+					else {
+						break;
+					}
+				}
+	
+				this.ensure(tokens, "symbol:>");
+	
+				result = {
+					style: "generic",
+					type: result,
+					arguments: args
 				};
 			}
 		}

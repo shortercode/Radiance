@@ -110,6 +110,7 @@ function guess_constructor_type (node: AST, ctx: InferContext): TypeHint {
 		fields: Map<string, AST>
 	};
 
+	// TODO fix for generics
 	const decl = resolve_declaration(data.target, ctx);
 	
 	if (decl) {
@@ -304,6 +305,7 @@ function guess_call_type (node: AST, ctx: InferContext): TypeHint {
 		return null;
 	}
 	
+	// TODO this doesn't work for function templates
 	const function_name = value.callee.data as string;
 	return ctx.get_function_type(function_name)!;
 }

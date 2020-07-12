@@ -1,7 +1,7 @@
-import { LangType } from "./LangType";
+import { LangType, StructLangType } from "./LangType";
 
 export interface StructTemplateInstance {
-	readonly type: LangType
+	readonly type: StructLangType
 	readonly generics: LangType[]
 	readonly size: number
 	readonly fields: Map<string, LangType>

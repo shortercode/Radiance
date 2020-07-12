@@ -61,12 +61,14 @@ export class FunctionTemplateDeclaration {
 				const type = parse_type(par.type, ctx);
 				return new Variable(Ref.unknown(), type, par.name)
 			});
-			const inst = {
+			const inst: FunctionTemplateInstance = {
 				type: return_type,
 				id: Symbol(this.name),
 				name: this.name,
 				parameters,
 				generics: args,
+				generic_names: this.generics,
+				scope: this.scope,
 				body: this.body
 			};
 

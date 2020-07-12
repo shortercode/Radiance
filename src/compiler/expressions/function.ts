@@ -86,6 +86,18 @@ export function visit_function (compiler: Compiler, node: AST): Array<WASTStatem
 }
 
 export function visit_function_instance (compiler: Compiler, ref: Ref, inst: FunctionTemplateInstance): WASTStatementNode {
+	const ctx = compiler.ctx;
+
+	ctx.fn_env = null;
+	const snapshot = compiler.ctx.env.swap_snapshot(inst.scope);
+
+	ctx.push_frame();
+	for (let i = 0; i < inst.generics.length; i++) {
+		const name = inst.generic_names[i];
+		const type = inst.generics[i];
+		compiler.ctx.declare_type_alias(Ref.unknown(), name, type);
+	}
+
 	const fn_wast = initialise_function_environment(ref, compiler.ctx, inst);
 	
 	const last = inst.body.slice(-1)[0];
@@ -103,6 +115,9 @@ export function visit_function_instance (compiler: Compiler, ref: Ref, inst: Fun
 	}
 
 	complete_function_environment(compiler, fn_wast, inst);
+
+	ctx.pop_frame();
+	compiler.ctx.env.swap_snapshot(snapshot);
 
 	return fn_wast;
 }

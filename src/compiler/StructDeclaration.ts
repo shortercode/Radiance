@@ -2,11 +2,11 @@ import { LangType, StructLangType } from "./LangType";
 import { Ref } from "../WASTNode";
 
 export class StructDeclaration {
-	name: string
-	type: StructLangType
-	size: number
-	fields: Map<string, LangType>
-	source: Ref
+	readonly name: string
+	readonly type: StructLangType
+	readonly size: number
+	readonly fields: Map<string, LangType>
+	readonly source: Ref
 	
 	constructor (ref: Ref, name: string, fields: Map<string, LangType>) {
 		this.source = ref;

@@ -4,12 +4,16 @@ import { WASTExpressionNode, Ref, WASTConstNode } from "../../WASTNode";
 import { create_object } from "./object";
 import { StructDeclaration } from "../StructDeclaration";
 import { EnumDeclaration, EnumCaseDeclaration } from "../EnumDeclaration";
-import { I32_TYPE, StructLangType } from "../LangType";
+import { I32_TYPE, StructLangType, LangType, parse_type } from "../LangType";
+import { StructTemplateDeclaration } from "../StructTemplateDeclaration";
+import { TypePattern } from "../../parser/index";
+import { Declaration } from "../Declaration";
 
 function read_constructor_node_data (node: AST) {
 	return node.data as {
 		target: AST,
-		fields: Map<string, AST>
+		fields: Map<string, AST>,
+		generics: TypePattern[]
 	};
 }
 
@@ -30,16 +34,27 @@ export function visit_constructor_expression (compiler: Compiler, node: AST, _ty
 	const values = [];
 
 	const declaration = resolve_declaration(compiler, ref, data.target);
+	let type: LangType;
 	let struct_type: StructLangType;
+	let size: number;
 
 	if (declaration instanceof EnumCaseDeclaration) {
+		type = declaration.type;
 		struct_type = declaration.type.type;
+		size = type.size;
 		const case_index = declaration.type.case_index;
 
 		values.push(new WASTConstNode(ref, I32_TYPE, case_index.toString()));
 	}
 	else if (declaration instanceof StructDeclaration) {
-		struct_type = declaration.type;
+		type = struct_type = declaration.type;
+		size = type.size;
+	}
+	else if (declaration instanceof StructTemplateDeclaration) {
+		const generic_parameters = data.generics.map(pattern => parse_type(pattern, compiler.ctx));
+		const inst = declaration.instance(ref, compiler.ctx, generic_parameters);
+		type = struct_type = inst.type;
+		size = type.size;
 	}
 	else {
 		type_error(ref, `Expected a struct or enum variant`);
@@ -55,10 +70,8 @@ export function visit_constructor_expression (compiler: Compiler, node: AST, _ty
 
 	syntax_assert(struct_type.types.size === data.fields.size, ref, `Expected ${struct_type.types.size} fields but has ${data.fields.size}`);
 
-	return create_object(compiler, ref, declaration.type, values, declaration.size);
+	return create_object(compiler, ref, type, values, size);
 }
-
-type Declaration = StructDeclaration | EnumDeclaration | EnumCaseDeclaration;
 
 function resolve_declaration (compiler: Compiler, ref: Ref, node: AST): Declaration {
 	switch (node.type) {

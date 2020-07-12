@@ -77,8 +77,13 @@ function resolve_declaration (compiler: Compiler, ref: Ref, node: AST): Declarat
 	switch (node.type) {
 		case "identifier": {
 			const name = read_identifier_node_data(node);
-			const declaration = compiler.ctx.get_struct(name) || compiler.ctx.get_enum(name)!;
-			syntax_assert(is_defined(declaration), ref, `Cannot use undeclared constructor ${name}`);
+			const declaration = compiler.ctx.get_declaration(name)!;
+			const is_enum = declaration instanceof EnumDeclaration;
+			const is_struct = declaration instanceof StructDeclaration;
+			const is_struct_template = declaration instanceof StructTemplateDeclaration;
+
+			syntax_assert(is_enum || is_struct || is_struct_template, ref, `Cannot use undeclared constructor ${name}`);
+
 			return declaration;
 		}
 		case "member": {
@@ -91,6 +96,10 @@ function resolve_declaration (compiler: Compiler, ref: Ref, node: AST): Declarat
 			syntax_assert(is_defined(enum_case_declaration), ref, `Cannot use undeclared constructor ${member}`)
 
 			return enum_case_declaration!;
+		}
+		case "generic_parameters": {
+			const data = node.data as { left: AST, parameters: Array<TypePattern>};
+			return resolve_declaration(compiler, ref, data.left);
 		}
 		default: {
 			syntax_error(ref, `Invalid constructor type ${node.type}`);

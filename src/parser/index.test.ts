@@ -106,6 +106,97 @@ describe("type parsing", () => {
 			name: "variant"
 		});
 	})
+	test("parse generic single type", () => {
+		expect(parseType('Vec3:<f32>')).toStrictEqual({
+			style: "generic",
+			type: {
+				style: "class",
+				type: "Vec3"
+			},
+			arguments: [
+				{
+					style: "class",
+					type: "f32"
+				}
+			]
+		})
+	});
+	test("parse generic multiple type", () => {
+		expect(parseType('Vec3:<f32, i32, void>')).toStrictEqual({
+			style: "generic",
+			type: {
+				style: "class",
+				type: "Vec3"
+			},
+			arguments: [
+				{
+					style: "class",
+					type: "f32"
+				},
+				{
+					style: "class",
+					type: "i32"
+				},
+				{
+					style: "class",
+					type: "void"
+				}
+			]
+		})
+	})
+	test("parse generic no type", () => {
+		expect(parseType('Vec3:<>')).toStrictEqual({
+			style: "generic",
+			type: {
+				style: "class",
+				type: "Vec3"
+			},
+			arguments: []
+		})
+	});
+	test("parse variant generic", () => {
+		expect(parseType('enum.type:<T>')).toStrictEqual({
+			style: "generic",
+			type: {
+				style: "member",
+				type: {
+					style: "class",
+					type: "enum"
+				},
+				name: "type"
+			},
+			arguments: [{
+				style: "class",
+				type: "T"
+			}]
+		})
+	});
+	test("parse generic nested type", () => {
+		expect(parseType('Vec:<Map:<K, V> >')).toStrictEqual({
+			style: "generic",
+			type: {
+				style: "class",
+				type: "Vec"
+			},
+			arguments: [{
+				style: "generic",
+				type: {
+					style: "class",
+					type: "Map"
+				},
+				arguments: [
+					{
+						style: "class",
+						type: "K"
+					},
+					{
+						style: "class",
+						type: "V"
+					}
+				]
+			}]
+		})
+	});
 });
 
 describe("export statement", () => {
@@ -160,8 +251,8 @@ describe("import statement", () => {
 				name: "MyFunction",
 				type: parseType("void"),
 				parameters: [
-					{ name: "a", type: { style: "class", type: "Value" }},
-					{ name: "b", type: { style: "class", type: "Value" }}
+					{ name: "a", type: { style: "class", type: "Value" } },
+					{ name: "b", type: { style: "class", type: "Value" } }
 				]
 			})
 		]);
@@ -174,8 +265,8 @@ describe("import statement", () => {
 				name: "MyFunction",
 				type: { style: "class", type: "Value" },
 				parameters: [
-					{ name: "a", type: { style: "class", type: "Value" }},
-					{ name: "b", type: { style: "class", type: "Value" }}
+					{ name: "a", type: { style: "class", type: "Value" } },
+					{ name: "b", type: { style: "class", type: "Value" } }
 				]
 			})
 		]);
@@ -216,8 +307,8 @@ describe("fn statement", () => {
 				name: "MyFunction",
 				type: parseType("void"),
 				parameters: [
-					{ name: "a", type: { style: "class", type: "Value" }},
-					{ name: "b", type: { style: "class", type: "Value" }}
+					{ name: "a", type: { style: "class", type: "Value" } },
+					{ name: "b", type: { style: "class", type: "Value" } }
 				],
 				generics: [],
 				body: []
@@ -232,8 +323,8 @@ describe("fn statement", () => {
 				name: "MyFunction",
 				type: { style: "class", type: "Value" },
 				parameters: [
-					{ name: "a", type: { style: "class", type: "Value" }},
-					{ name: "b", type: { style: "class", type: "Value" }}
+					{ name: "a", type: { style: "class", type: "Value" } },
+					{ name: "b", type: { style: "class", type: "Value" } }
 				],
 				generics: [],
 				body: []
@@ -252,8 +343,8 @@ fn MyFunction (a: Value, b: Value) -> Value {
 				name: "MyFunction",
 				type: { style: "class", type: "Value" },
 				parameters: [
-					{ name: "a", type: { style: "class", type: "Value" }},
-					{ name: "b", type: { style: "class", type: "Value" }}
+					{ name: "a", type: { style: "class", type: "Value" } },
+					{ name: "b", type: { style: "class", type: "Value" } }
 				],
 				generics: [],
 				body: [
@@ -297,8 +388,8 @@ fn MyFunction (a: Value, b: Value) -> Value {
 				name: "MyFunction",
 				type: parseType("void"),
 				parameters: [
-					{ name: "a", type: { style: "class", type: "K" }},
-					{ name: "b", type: { style: "class", type: "V" }}
+					{ name: "a", type: { style: "class", type: "K" } },
+					{ name: "b", type: { style: "class", type: "V" } }
 				],
 				generics: ["K", "V"],
 				body: []
@@ -313,8 +404,8 @@ fn MyFunction (a: Value, b: Value) -> Value {
 				name: "MyFunction",
 				type: { style: "class", type: "V" },
 				parameters: [
-					{ name: "a", type: { style: "class", type: "K" }},
-					{ name: "b", type: { style: "class", type: "V" }}
+					{ name: "a", type: { style: "class", type: "K" } },
+					{ name: "b", type: { style: "class", type: "V" } }
 				],
 				generics: ["K", "V"],
 				body: []
@@ -395,7 +486,7 @@ struct MyStruct<K, V> {
 					["name", { style: "class", type: "K" }],
 					["other", { style: "class", type: "V" }]
 				]),
-				generics: [ "K", "V"]
+				generics: ["K", "V"]
 			})
 		]);
 	});
@@ -405,7 +496,7 @@ describe("let statement", () => {
 	test("untyped uninitialised", () => {
 		const ast = parse(`let myvar`);
 		compareModule(ast, [
-			new AST("variable", [1,0], [1, 9], { 
+			new AST("variable", [1, 0], [1, 9], {
 				name: "myvar",
 				type: null,
 				initial: null
@@ -416,7 +507,7 @@ describe("let statement", () => {
 	test("typed uninitialised", () => {
 		const ast = parse(`let myvar: i32`);
 		compareModule(ast, [
-			new AST("variable", [1,0], [1, 14], { 
+			new AST("variable", [1, 0], [1, 14], {
 				name: "myvar",
 				type: { style: "class", type: "i32" },
 				initial: null
@@ -427,7 +518,7 @@ describe("let statement", () => {
 	test("untyped initialised", () => {
 		const ast = parse(`let myvar = 42`);
 		compareModule(ast, [
-			new AST("variable", [1,0], [1, 14], { 
+			new AST("variable", [1, 0], [1, 14], {
 				name: "myvar",
 				type: null,
 				initial: new AST("number", [1, 12], [1, 14], "42")
@@ -438,7 +529,7 @@ describe("let statement", () => {
 	test("typed initialised", () => {
 		const ast = parse(`let myvar: i32 = 42`);
 		compareModule(ast, [
-			new AST("variable", [1,0], [1, 19], { 
+			new AST("variable", [1, 0], [1, 19], {
 				name: "myvar",
 				type: { style: "class", type: "i32" },
 				initial: new AST("number", [1, 17], [1, 19], "42")
@@ -504,15 +595,19 @@ enum Barcode {
 			new AST("enum", [2, 0], [5, 1], {
 				name: "Barcode",
 				cases: new Map([
-					["upc", { start: [3, 1], end: [3, 44], name: "upc", fields: new Map([
-						["a", { style: "class", type: "i32" }],
-						["b", { style: "class", type: "i32" }],
-						["c", { style: "class", type: "i32" }],
-						["d", { style: "class", type: "i32" }]
-					]) }],
-					["qrcode", { start: [4, 1], end: [4, 30], name: "qrcode", fields: new Map([
-						["value", { style: "class", type: "string" }]
-					]) }]
+					["upc", {
+						start: [3, 1], end: [3, 44], name: "upc", fields: new Map([
+							["a", { style: "class", type: "i32" }],
+							["b", { style: "class", type: "i32" }],
+							["c", { style: "class", type: "i32" }],
+							["d", { style: "class", type: "i32" }]
+						])
+					}],
+					["qrcode", {
+						start: [4, 1], end: [4, 30], name: "qrcode", fields: new Map([
+							["value", { style: "class", type: "string" }]
+						])
+					}]
 				])
 			})
 		])
@@ -520,7 +615,7 @@ enum Barcode {
 });
 
 describe("include statement", () => {
-	
+
 	// import all public declarations into the current namespace
 	`include "module_name"`;
 	// import the public declarations a, b and c into the current namespace
@@ -530,7 +625,7 @@ describe("include statement", () => {
 });
 
 describe("public statement", () => {
-	
+
 	`pub fn Name {}`;
 	`pub protocol Name {}`;
 	`pub class Name {}`;
@@ -551,43 +646,43 @@ describe("primative literals", () => {
 	test("boolean true", () => {
 		const ast = parse(`true`);
 		compareModule(ast, [
-			new AST("expression", [1,0], [1, 4], new AST("boolean", [1,0], [1, 4], "true"))
+			new AST("expression", [1, 0], [1, 4], new AST("boolean", [1, 0], [1, 4], "true"))
 		]);
 	});
 	test("boolean false", () => {
 		const ast = parse(`false`);
 		compareModule(ast, [
-			new AST("expression", [1,0], [1, 5], new AST("boolean", [1,0], [1, 5], "false"))
+			new AST("expression", [1, 0], [1, 5], new AST("boolean", [1, 0], [1, 5], "false"))
 		]);
 	});
 	test("identifier", () => {
 		const ast = parse(`id`);
 		compareModule(ast, [
-			new AST("expression", [1,0], [1, 2], new AST("identifier", [1,0], [1, 2], "id"))
+			new AST("expression", [1, 0], [1, 2], new AST("identifier", [1, 0], [1, 2], "id"))
 		]);
 	});
 	test("string", () => {
 		const ast = parse(`"hello"`);
 		compareModule(ast, [
-			new AST("expression", [1,0], [1, 7], new AST("string", [1,0], [1, 7], "hello"))
+			new AST("expression", [1, 0], [1, 7], new AST("string", [1, 0], [1, 7], "hello"))
 		]);
 	});
 	test("escaped string", () => {
 		const ast = parse(String.raw`"\"hello\""`);
 		compareModule(ast, [
-			new AST("expression", [1,0], [1, 11], new AST("string", [1,0], [1, 11], "\"hello\""))
+			new AST("expression", [1, 0], [1, 11], new AST("string", [1, 0], [1, 11], "\"hello\""))
 		]);
 	});
 	test("integer", () => {
 		const ast = parse("42");
 		compareModule(ast, [
-			new AST("expression", [1,0], [1,2], new AST("number", [1,0], [1,2], "42"))
+			new AST("expression", [1, 0], [1, 2], new AST("number", [1, 0], [1, 2], "42"))
 		]);
 	});
 	test("integer part only", () => {
 		const ast = parse("42.");
 		compareModule(ast, [
-			new AST("expression", [1,0], [1,3], new AST("number", [1,0], [1,3], "42"))
+			new AST("expression", [1, 0], [1, 3], new AST("number", [1, 0], [1, 3], "42"))
 		]);
 	});
 });
@@ -596,7 +691,7 @@ describe("member expression", () => {
 	test("basic id member", () => {
 		const ast = parse("a.name");
 		compareModule(ast, [
-			new AST("expression", [1,0],[1,6], new AST("member", [1,0],[1,6], {
+			new AST("expression", [1, 0], [1, 6], new AST("member", [1, 0], [1, 6], {
 				target: new AST("identifier", [1, 0], [1, 1], "a"),
 				member: "name"
 			}))
@@ -606,7 +701,7 @@ describe("member expression", () => {
 	test("basic numerical member", () => {
 		const ast = parse("a.0");
 		compareModule(ast, [
-			new AST("expression", [1,0],[1,3], new AST("member", [1,0],[1,3], {
+			new AST("expression", [1, 0], [1, 3], new AST("member", [1, 0], [1, 3], {
 				target: new AST("identifier", [1, 0], [1, 1], "a"),
 				member: "0"
 			}))
@@ -616,9 +711,9 @@ describe("member expression", () => {
 	test("nested numerical member", () => {
 		const ast = parse("a.0.0.0");
 		compareModule(ast, [
-			new AST("expression", [1,0],[1,7], new AST("member", [1,0],[1,7], {
-				target: new AST("member", [1,0],[1,5], {
-					target: new AST("member", [1,0],[1,3], {
+			new AST("expression", [1, 0], [1, 7], new AST("member", [1, 0], [1, 7], {
+				target: new AST("member", [1, 0], [1, 5], {
+					target: new AST("member", [1, 0], [1, 3], {
 						target: new AST("identifier", [1, 0], [1, 1], "a"),
 						member: "0"
 					}),
@@ -636,7 +731,7 @@ describe("constructor expression", () => {
 	test("basic constructor no fields", () => {
 		const ast = parse("Obj {}");
 		compareModule(ast, [
-			new AST("expression", [1,0],[1,6], new AST("constructor", [1,0],[1,6], {
+			new AST("expression", [1, 0], [1, 6], new AST("constructor", [1, 0], [1, 6], {
 				target: new AST("identifier", [1, 0], [1, 3], "Obj"),
 				fields: new Map(),
 				generics: []
@@ -647,7 +742,7 @@ describe("constructor expression", () => {
 	test("basic constructor with field", () => {
 		const ast = parse("Obj { a: 42 }");
 		compareModule(ast, [
-			new AST("expression", [1,0],[1,13], new AST("constructor", [1,0],[1,13], {
+			new AST("expression", [1, 0], [1, 13], new AST("constructor", [1, 0], [1, 13], {
 				target: new AST("identifier", [1, 0], [1, 3], "Obj"),
 				fields: new Map([
 					["a", new AST("number", [1, 9], [1, 11], "42")]
@@ -660,7 +755,7 @@ describe("constructor expression", () => {
 	test("basic constructor with multiple fields", () => {
 		const ast = parse("Obj { a: 42, b: \"hi\" }");
 		compareModule(ast, [
-			new AST("expression", [1,0],[1,22], new AST("constructor", [1,0],[1,22], {
+			new AST("expression", [1, 0], [1, 22], new AST("constructor", [1, 0], [1, 22], {
 				target: new AST("identifier", [1, 0], [1, 3], "Obj"),
 				fields: new Map([
 					["a", new AST("number", [1, 9], [1, 11], "42")],
@@ -670,13 +765,13 @@ describe("constructor expression", () => {
 			}))
 		]);
 	});
-	
+
 	test("member constructor with no fields", () => {
 		const ast = parse("Obj.Child {}");
 		compareModule(ast, [
-			new AST("expression", [1,0],[1,12], new AST("constructor", [1,0],[1,12], {
+			new AST("expression", [1, 0], [1, 12], new AST("constructor", [1, 0], [1, 12], {
 				target: new AST("member", [1, 0], [1, 9], {
-					target: new AST("identifier", [1,0], [1, 3], "Obj"),
+					target: new AST("identifier", [1, 0], [1, 3], "Obj"),
 					member: "Child"
 				}),
 				fields: new Map(),
@@ -690,7 +785,7 @@ describe("function call expression", () => {
 	test("basic call no parameters", () => {
 		const ast = parse("callback()");
 		compareModule(ast, [
-			new AST("expression", [1,0],[1,10], new AST("call", [1,0],[1,10], {
+			new AST("expression", [1, 0], [1, 10], new AST("call", [1, 0], [1, 10], {
 				callee: new AST("identifier", [1, 0], [1, 8], "callback"),
 				generics: [],
 				arguments: []
@@ -701,11 +796,11 @@ describe("function call expression", () => {
 	test("basic call with 1 parameter", () => {
 		const ast = parse("callback(12)");
 		compareModule(ast, [
-			new AST("expression", [1,0],[1,12], new AST("call", [1,0],[1,12], {
+			new AST("expression", [1, 0], [1, 12], new AST("call", [1, 0], [1, 12], {
 				callee: new AST("identifier", [1, 0], [1, 8], "callback"),
 				generics: [],
 				arguments: [
-					new AST("number", [1,9], [1,11], "12")
+					new AST("number", [1, 9], [1, 11], "12")
 				]
 			}))
 		]);
@@ -714,7 +809,7 @@ describe("function call expression", () => {
 	test("basic call with multiple parameters", () => {
 		const ast = parse("callback(12, 42, 8)");
 		compareModule(ast, [
-			new AST("expression", [1, 0],[1, 19], new AST("call", [1, 0],[1, 19], {
+			new AST("expression", [1, 0], [1, 19], new AST("call", [1, 0], [1, 19], {
 				callee: new AST("identifier", [1, 0], [1, 8], "callback"),
 				generics: [],
 				arguments: [
@@ -729,11 +824,11 @@ describe("function call expression", () => {
 	test("call with group expression", () => {
 		const ast = parse("callback((18))");
 		compareModule(ast, [
-			new AST("expression", [1,0],[1,14], new AST("call", [1,0],[1,14], {
-				callee: new AST("identifier", [1,0], [1,8], "callback"),
+			new AST("expression", [1, 0], [1, 14], new AST("call", [1, 0], [1, 14], {
+				callee: new AST("identifier", [1, 0], [1, 8], "callback"),
 				generics: [],
 				arguments: [
-					new AST("group", [1,9], [1,13], new AST("number", [1,10], [1,12], "18"))
+					new AST("group", [1, 9], [1, 13], new AST("number", [1, 10], [1, 12], "18"))
 				]
 			}))
 		]);
@@ -742,8 +837,8 @@ describe("function call expression", () => {
 	test("call with generic params empty", () => {
 		const ast = parse("callback:<>()");
 		compareModule(ast, [
-			new AST("expression", [1,0],[1,13], new AST("call", [1,0],[1,13], {
-				callee: new AST("identifier", [1,0], [1,8], "callback"),
+			new AST("expression", [1, 0], [1, 13], new AST("call", [1, 0], [1, 13], {
+				callee: new AST("identifier", [1, 0], [1, 8], "callback"),
 				generics: [],
 				arguments: []
 			}))
@@ -753,8 +848,8 @@ describe("function call expression", () => {
 	test("call with single generic params ", () => {
 		const ast = parse("callback:<i32>()");
 		compareModule(ast, [
-			new AST("expression", [1,0],[1,16], new AST("call", [1,0],[1,16], {
-				callee: new AST("identifier", [1,0], [1,8], "callback"),
+			new AST("expression", [1, 0], [1, 16], new AST("call", [1, 0], [1, 16], {
+				callee: new AST("identifier", [1, 0], [1, 8], "callback"),
 				generics: [
 					parseType("i32")
 				],
@@ -766,8 +861,8 @@ describe("function call expression", () => {
 	test("call with multiple generic params ", () => {
 		const ast = parse("callback:<i32, i32, u32>()");
 		compareModule(ast, [
-			new AST("expression", [1,0],[1,26], new AST("call", [1,0],[1,26], {
-				callee: new AST("identifier", [1,0], [1,8], "callback"),
+			new AST("expression", [1, 0], [1, 26], new AST("call", [1, 0], [1, 26], {
+				callee: new AST("identifier", [1, 0], [1, 8], "callback"),
 				generics: [
 					parseType("i32"),
 					parseType("i32"),
@@ -791,11 +886,11 @@ function parseType(str: string) {
 	return parser.parseType(createCharIterator(str));
 }
 
-function createCharIterator (str: string) {
+function createCharIterator(str: string) {
 	return new ControlledIterator(parser.scanner.scan(str, ""));
 }
 
-function compareModule (source: AST, expected_stmts: AST[]) {
+function compareModule(source: AST, expected_stmts: AST[]) {
 	expect(source).toStrictEqual(asModule(expected_stmts));
 }
 

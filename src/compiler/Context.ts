@@ -12,6 +12,7 @@ import { TypePattern } from "../parser/index";
 import { AST } from "./core";
 import { FunctionTemplateDeclaration } from "./FunctionTemplateDeclaration";
 import { StructTemplateDeclaration } from "./StructTemplateDeclaration";
+import { EnumTemplateDeclaration, EnumCaseTemplateDeclaration } from "./EnumTemplateDeclaration";
 
 export class Context {
 	readonly env: ModuleEnvironment = new ModuleEnvironment()
@@ -62,13 +63,13 @@ export class Context {
 		let enum_size = 4;
 
 		for (const [case_name, case_fields] of case_patterns) {
-			let struct_size = 0;
+			let struct_size = 4;
 			for (const field of case_fields.values()) {
 				struct_size += field.size;
 			}
 			const struct_type = new StructLangType(case_fields, name);
 			case_structs.push([case_name, struct_type]);
-			enum_size = Math.max(enum_size, struct_size + 4);
+			enum_size = Math.max(enum_size, struct_size);
 		}
 
 		const enumerable = new EnumDeclaration(ref, name, enum_size);
@@ -84,6 +85,16 @@ export class Context {
 		}
 		this.declare(ref, name, enumerable);
 		return enumerable;
+	}
+	declare_enum_template (ref: Ref, name: string, cases: Map<string, Map<string, TypePattern>>, generics: string[]): EnumTemplateDeclaration {
+		const scope = this.env.snapshot();
+		const enum_template = new EnumTemplateDeclaration(ref, name, scope, generics);
+		for (const [name, fields] of cases) {
+			const variant_template = new EnumCaseTemplateDeclaration(ref, name, enum_template, fields);
+			enum_template.add_variant(name, variant_template);
+		}
+		this.declare(ref, name, enum_template);
+		return enum_template;
 	}
 	declare_type_alias (ref: Ref, name: string, type: LangType): TypeAlias {
 		const alias = new TypeAlias(ref, name, type);

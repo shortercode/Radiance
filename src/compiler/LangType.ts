@@ -6,6 +6,7 @@ import { TypeAlias } from "./TypeAlias";
 import { compiler_error } from "./error";
 import { Ref } from "../WASTNode";
 import { StructTemplateDeclaration } from "./StructTemplateDeclaration";
+import { EnumTemplateDeclaration, EnumCaseTemplateDeclaration } from "./EnumTemplateDeclaration";
 
 // NOTE this allows us to return pointers to the host environment
 // which is cool but the host environment will likely not be able
@@ -499,16 +500,47 @@ export function parse_type (pattern: TypePattern, ctx: Context): LangType {
 			return new PrimativeLangType(type_prim, name);
 		}
 		case "generic": {
+			const args = pattern.arguments.map(arg => parse_type(arg, ctx));
+
 			if (pattern.type.style === "member") {
+				const namespace_pattern = pattern.type.type;
+				if (namespace_pattern.style === "class") {
+					const type_namespace = ctx.get_declaration(namespace_pattern.type);
+					if (type_namespace instanceof EnumTemplateDeclaration) {
+						const subtype = type_namespace.cases.get(pattern.type.name);
+						if (!subtype) {
+							compiler_error(Ref.unknown(), `"${pattern.type.name}" is not a variant of "${type_namespace.name}"`);
+						}
+						const inst = subtype.instance(Ref.unknown(), ctx, args);
+						if (!inst) {
+							compiler_error(Ref.unknown(), `"${pattern.type.name}" is not a variant of "${type_namespace.name}"`);
+						}
+						return inst.type;
+					}
+				}
 				compiler_error(Ref.unknown(), `Not yet implemented`);
 			} 
 			else if (pattern.type.style === "class") {
 				const decl = ctx.get_declaration(pattern.type.type);
-				const args = pattern.arguments.map(arg => parse_type(arg, ctx));
 
 				if (decl instanceof StructTemplateDeclaration) {
 					const inst = decl.instance(Ref.unknown(), ctx, args);
 					return inst.type;
+				}
+
+				if (decl instanceof EnumTemplateDeclaration) {
+					const inst = decl.instance(Ref.unknown(), ctx, args);
+					return inst.type;
+				}
+
+				if (decl instanceof EnumCaseTemplateDeclaration) {
+					const inst = decl.instance(Ref.unknown(), ctx, args);
+					if (inst) {
+						return inst.type;
+					}
+					else {
+						compiler_error(Ref.unknown(), `No variant ${decl.name} of ${decl.parent.name}`); 
+					}
 				}
 
 				compiler_error(Ref.unknown(), `Invalid type pattern`);

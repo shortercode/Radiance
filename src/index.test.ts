@@ -601,6 +601,39 @@ describe("generic struct", () => {
 	});
 });
 
+describe("enum with generics", () => {
+	let mod: Record<string, WebAssembly.ExportValue>;
+
+	test("compiles", async () => {
+		mod = await execute_string(`enum Optional<T> {
+			case Some { value: T },
+			case None
+		}
+				
+		fn some<T> (value: T) -> Optional.Some:<T> { 
+			Optional.Some:<T> { value: value }
+		}
+	
+		fn none<T> () -> Optional.None:<T> {
+			Optional.None:<T> {}
+		}
+	
+		export fn main {
+			let a: Optional:<str> = some:<str>("hello world")
+			let b: Optional:<str> = none:<str>()
+			let c: Optional:<i32> = some:<i32>(12)
+			let d: Optional:<i32> = none:<i32>()
+		}
+		`);
+	});
+
+	test("exports functions", () => {
+		expect(mod).toHaveProperty("main");
+
+		expect(mod.main).toBeInstanceOf(Function);
+	});
+});
+
 function read_i32 (memory: WebAssembly.Memory, ptr: number) {
 	const buffer = memory.buffer;
 	const view = new DataView(buffer);

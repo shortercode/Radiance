@@ -544,6 +544,7 @@ describe("enum statement", () => {
 		compareModule(ast, [
 			new AST("enum", [1, 0], [1, 12], {
 				name: "Name",
+				generics: [],
 				cases: new Map
 			})
 		]);
@@ -557,8 +558,9 @@ enum Name {
 		compareModule(ast, [
 			new AST("enum", [2, 0], [4, 1], {
 				name: "Name",
+				generics: [],
 				cases: new Map([
-					["a", { start: [3, 1], end: [3, 7], name: "a", fields: null }]
+					["a", new Map()]
 				])
 			})
 		]);
@@ -575,11 +577,12 @@ enum Compass {
 		compareModule(ast, [
 			new AST("enum", [2, 0], [7, 1], {
 				name: "Compass",
+				generics: [],
 				cases: new Map([
-					["north", { start: [3, 1], end: [3, 11], name: "north", fields: null }],
-					["south", { start: [4, 1], end: [4, 11], name: "south", fields: null }],
-					["east", { start: [5, 1], end: [5, 10], name: "east", fields: null }],
-					["west", { start: [6, 1], end: [6, 10], name: "west", fields: null }]
+					["north", new Map()],
+					["south", new Map()],
+					["east", new Map()],
+					["west", new Map()]
 				])
 			})
 		]);
@@ -594,20 +597,37 @@ enum Barcode {
 		compareModule(ast, [
 			new AST("enum", [2, 0], [5, 1], {
 				name: "Barcode",
+				generics: [],
 				cases: new Map([
-					["upc", {
-						start: [3, 1], end: [3, 44], name: "upc", fields: new Map([
-							["a", { style: "class", type: "i32" }],
-							["b", { style: "class", type: "i32" }],
-							["c", { style: "class", type: "i32" }],
-							["d", { style: "class", type: "i32" }]
-						])
-					}],
-					["qrcode", {
-						start: [4, 1], end: [4, 30], name: "qrcode", fields: new Map([
-							["value", { style: "class", type: "string" }]
-						])
-					}]
+					["upc", new Map([
+						["a", { style: "class", type: "i32" }],
+						["b", { style: "class", type: "i32" }],
+						["c", { style: "class", type: "i32" }],
+						["d", { style: "class", type: "i32" }]
+					])],
+					["qrcode", new Map([
+						["value", { style: "class", type: "string" }]
+					])]
+				])
+			})
+		])
+	});
+
+	test("enum with generics", () => {
+		const ast = parse(`
+enum Optional<T> {
+	case Some { value: T },
+	case None
+}`);
+		compareModule(ast, [
+			new AST("enum", [2, 0], [5, 1], {
+				name: "Optional",
+				generics: [ "T" ],
+				cases: new Map([
+					["Some", new Map([
+						["value", { style: "class", type: "T" }]
+					])],
+					["None", new Map()]
 				])
 			})
 		])

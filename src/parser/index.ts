@@ -467,32 +467,49 @@ class LangParser extends Parser {
 		const start = tokens.previous()!.start;
 		const name = this.ensure(tokens, "identifier:");
 
-		type Case = {
-			start: [number, number],
-			end: [number, number],
-			name: string,
-			fields: Map<string, TypePattern>|null
-		};
+		type Case = Map<string, TypePattern>
 
 		const cases: Map<string, Case> = new Map;
+		const generics: string[] = [];
+
+		if (this.match(tokens, "symbol:<")) {
+			tokens.next();
+			if (this.match(tokens, "symbol:>")) {
+				tokens.next();
+			}
+			else {
+				while (tokens.incomplete()) {
+					const name = this.ensure(tokens, "identifier:");
+					
+					generics.push(name);
+					
+					if (this.match(tokens, "symbol:,")) {
+						tokens.next();
+					}
+					else {
+						break;
+					}
+				}
+				this.ensure(tokens, "symbol:>");
+			}
+		}
 
 		this.ensure(tokens, "symbol:{");
 
 		if (!this.match(tokens, "symbol:}")) {
 			while (tokens.incomplete()) { 
 				this.ensure(tokens, "identifier:case");
-				const start = tokens.previous()!.start;
 				const case_name = this.ensure(tokens, "identifier:");
-				let fields: Map<string, TypePattern>|null = null;
+				let fields: Map<string, TypePattern>;
 				
 				if (this.match(tokens, "symbol:{")) {
 					fields = this.parseStructBody(tokens);
 				}
-				const end = tokens.previous()!.end;
+				else {
+					fields = new Map();
+				}
 
-				cases.set(case_name, {
-					start, end, name: case_name, fields 
-				});
+				cases.set(case_name, fields);
 
 				if (this.match(tokens, "symbol:,")) {
 					tokens.next();
@@ -505,7 +522,7 @@ class LangParser extends Parser {
 
 		this.ensure(tokens, "symbol:}");
 		const end = tokens.previous()!.end;
-		return new Node("enum", start, end, { name, cases });
+		return new Node("enum", start, end, { name, cases, generics });
 	}
 
 	parseStructBody (tokens: Iterator<Token>) {

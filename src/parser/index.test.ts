@@ -894,6 +894,107 @@ describe("function call expression", () => {
 	});
 })
 
+describe("switch expression", () => {
+	test("empty switch statement", () => {
+		const ast = parse("switch param {}");
+		compareModule(ast, [
+			new AST("expression", [1, 0], [1, 15], new AST("switch", [1, 0], [1, 15], {
+				parameter: new AST("identifier", [1, 7], [1, 12], "param"),
+				cases: []
+			}))
+		]);
+	})
+
+	test("switch statement with 1 simple case", () => {
+		const ast = parse(`
+switch param {
+	case alpha {}
+}`);
+		compareModule(ast, [
+			new AST("expression", [2, 0], [4, 1], new AST("switch", [2, 0], [4, 1], {
+				parameter: new AST("identifier", [2, 7], [2, 12], "param"),
+				cases: [
+					{
+						condition: new AST("identifier", [3, 6], [3, 11], "alpha"),
+						style: "match",
+						block: []
+					}
+				]
+			}))
+		]);
+	});
+
+	test("switch statement with 3 simple case", () => {
+		const ast = parse(`
+switch param {
+	case alpha {}
+	case beta {}
+	case charlie {}
+}`);
+		compareModule(ast, [
+			new AST("expression", [2, 0], [6, 1], new AST("switch", [2, 0], [6, 1], {
+				parameter: new AST("identifier", [2, 7], [2, 12], "param"),
+				cases: [
+					{
+						condition: new AST("identifier", [3, 6], [3, 11], "alpha"),
+						style: "match",
+						block: []
+					},
+					{
+						condition: new AST("identifier", [4, 6], [4, 10], "beta"),
+						style: "match",
+						block: []
+					},
+					{
+						condition: new AST("identifier", [5, 6], [5, 13], "charlie"),
+						style: "match",
+						block: []
+					}
+				]
+			}))
+		]);
+	});
+
+	test("switch statement cast param to value", () => {
+		const ast = parse(`
+switch param {
+	case alpha as val {}
+}`);
+		compareModule(ast, [
+			new AST("expression", [2, 0], [4, 1], new AST("switch", [2, 0], [4, 1], {
+				parameter: new AST("identifier", [2, 7], [2, 12], "param"),
+				cases: [
+					{
+						condition: new AST("identifier", [3, 6], [3, 11], "alpha"),
+						style: "cast",
+						identifier: "val",
+						block: []
+					}
+				]
+			}))
+		]);
+	});
+
+	test("switch statement destructure param", () => {
+		const ast = parse(`
+switch param {
+	case alpha as { x, y } {}
+}`);
+		compareModule(ast, [
+			new AST("expression", [2, 0], [4, 1], new AST("switch", [2, 0], [4, 1], {
+				parameter: new AST("identifier", [2, 7], [2, 12], "param"),
+				cases: [
+					{
+						condition: new AST("identifier", [3, 6], [3, 11], "alpha"),
+						style: "destructure",
+						fields: [ 'x', 'y' ],
+						block: []
+					}
+				]
+			}))
+		]);
+	});
+})
 
 
 

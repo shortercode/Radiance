@@ -80,6 +80,7 @@ class LangParser extends Parser {
 		this.addPrefix("symbol:[", 					9, this.parseArrayExpression);
 		this.addPrefix("identifier:while", 	9, this.parseWhileExpression);
 		this.addPrefix("identifier:unsafe", 9, this.parseUnsafeExpression);
+		this.addPrefix("identifier:switch", 9, this.parseSwitchExpression);
 
 		this.addInfix("symbol:(", 					10, this.parseCallExpression);
 		this.addInfix("symbol:[",						10, this.parseSubscript);
@@ -325,6 +326,63 @@ class LangParser extends Parser {
 	parseUnsafeExpression(tokens: Iterator<Token>, _precedence: number): Node {
 		const block = this.parseBlock(tokens);
 		return new Node("unsafe", block.start, block.end, block);
+	}
+
+	parseSwitchExpression(tokens: Iterator<Token>, _precedence: number): Node {
+		const start = tokens.previous()!.start;
+		const parameter = this.parseExpression(tokens, 2);
+		const cases = [];
+		this.ensure(tokens, "symbol:{");
+
+		if (!this.match(tokens, "symbol:}")) {
+			while (tokens.incomplete()) {
+				this.ensure(tokens, "identifier:case");
+				const condition = this.parseExpression(tokens, 12); // should limit this to number, string, bool, identifier
+				
+				if (this.match(tokens, "identifier:as")) {
+					tokens.next();
+					if (this.match(tokens, "symbol:{")) {
+						tokens.next();
+						const fields: string[] = [];
+						if (!this.match(tokens, "symbol:}")) {
+							while (tokens.incomplete()) {
+								const identifier = this.ensure(tokens, "identifier:");
+								fields.push(identifier);
+								if (this.match(tokens, "symbol:,")) {
+									tokens.next();
+								}
+								else {
+									break;
+								}
+							}
+						}
+						this.ensure(tokens, "symbol:}");
+						const block = this.parseBlock(tokens);
+						cases.push({ condition, style: "destructure", fields, block: block.data });
+					}
+					else {
+						const identifier = this.ensure(tokens, "identifier:");
+						const block = this.parseBlock(tokens);
+						cases.push({ condition, style: "cast", identifier, block: block.data });
+					}
+				}
+				else {
+					const block = this.parseBlock(tokens);
+					cases.push({ condition, style: "match", block: block.data });
+				}
+				
+				if (this.match(tokens, "symbol:}")) {
+					break;
+				}
+			}
+		}
+
+		this.ensure(tokens, "symbol:}");
+		const end = tokens.previous()!.end;
+		return new Node("switch", start, end, {
+			parameter,
+			cases
+		});
 	}
 
 	parseNotExpression(tokens: Iterator<Token>, precedence: number): Node {

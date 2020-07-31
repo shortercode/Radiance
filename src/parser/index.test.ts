@@ -915,7 +915,30 @@ switch param {
 				parameter: new AST("identifier", [2, 7], [2, 12], "param"),
 				cases: [
 					{
-						condition: new AST("identifier", [3, 6], [3, 11], "alpha"),
+						conditions: [new AST("identifier", [3, 6], [3, 11], "alpha")],
+						style: "match",
+						block: []
+					}
+				]
+			}))
+		]);
+	});
+
+	test("switch statement with single case but multiple variants", () => {
+		const ast = parse(`
+switch param {
+	case alpha, beta, charlie {}
+}`);
+		compareModule(ast, [
+			new AST("expression", [2, 0], [4, 1], new AST("switch", [2, 0], [4, 1], {
+				parameter: new AST("identifier", [2, 7], [2, 12], "param"),
+				cases: [
+					{
+						conditions: [
+							new AST("identifier", [3, 6], [3, 11], "alpha"),
+							new AST("identifier", [3, 13], [3, 17], "beta"),
+							new AST("identifier", [3, 19], [3, 26], "charlie")
+						],
 						style: "match",
 						block: []
 					}
@@ -936,17 +959,17 @@ switch param {
 				parameter: new AST("identifier", [2, 7], [2, 12], "param"),
 				cases: [
 					{
-						condition: new AST("identifier", [3, 6], [3, 11], "alpha"),
+						conditions: [new AST("identifier", [3, 6], [3, 11], "alpha")],
 						style: "match",
 						block: []
 					},
 					{
-						condition: new AST("identifier", [4, 6], [4, 10], "beta"),
+						conditions: [new AST("identifier", [4, 6], [4, 10], "beta")],
 						style: "match",
 						block: []
 					},
 					{
-						condition: new AST("identifier", [5, 6], [5, 13], "charlie"),
+						conditions: [new AST("identifier", [5, 6], [5, 13], "charlie")],
 						style: "match",
 						block: []
 					}
@@ -965,7 +988,7 @@ switch param {
 				parameter: new AST("identifier", [2, 7], [2, 12], "param"),
 				cases: [
 					{
-						condition: new AST("identifier", [3, 6], [3, 11], "alpha"),
+						conditions: [new AST("identifier", [3, 6], [3, 11], "alpha")],
 						style: "cast",
 						identifier: "val",
 						block: []
@@ -985,7 +1008,7 @@ switch param {
 				parameter: new AST("identifier", [2, 7], [2, 12], "param"),
 				cases: [
 					{
-						condition: new AST("identifier", [3, 6], [3, 11], "alpha"),
+						conditions: [new AST("identifier", [3, 6], [3, 11], "alpha")],
 						style: "destructure",
 						fields: [ 'x', 'y' ],
 						block: []

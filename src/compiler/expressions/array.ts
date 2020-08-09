@@ -2,7 +2,8 @@ import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTConstNode, Ref } from "../../WASTNode";
 import { type_assert, type_error } from "../error";
 import { create_object } from "./object";
-import { create_array_type, I32_TYPE, EnumCaseLangType, LangType } from "../LangType";
+import { create_array_type, I32_TYPE } from "../LangType";
+import { find_common_type } from "../find_common_type";
 
 function read_node_data (node: AST) {
 	return node.data as Array<AST>;
@@ -51,9 +52,13 @@ export function visit_array_expression (compiler: Compiler, node: AST, type_hint
 		for (let i = 0; i < rest.length; i++) {
 			const stmt = rest[i];
 			const result = compiler.visit_expression(stmt, inner_type);
-			if (inner_type.equals(result.value_type) === false) {
-				const ref = Ref.from_node(stmt);
-				inner_type = find_common_type(ref, i + 1, inner_type, result.value_type);
+			const ref = Ref.from_node(stmt);
+			const common_type = find_common_type(ref, inner_type, result.value_type);
+			if (common_type) {
+				inner_type = common_type;
+			}
+			else {
+				type_error(ref, `Inconsistent array literal types. First element is ${inner_type.name}, but element ${i + 1} is ${result.value_type.name}`);
 			}
 			values.push(result);
 		}
@@ -73,36 +78,4 @@ export function visit_array_expression (compiler: Compiler, node: AST, type_hint
 	values.unshift(length_value);
 	
 	return create_object(compiler, ref, array_type, values);
-}
-
-function find_common_type (ref: Ref, index: number, a: LangType, b: LangType): LangType {
-
-	if (a.is_enum() && b.is_enum()) {
-		if (a instanceof EnumCaseLangType) {
-			a = a.parent;
-		}
-		if (b instanceof EnumCaseLangType) {
-			b = b.parent;
-		}
-
-		if (a.equals(b)) {
-			return a;
-		}
-	}
-	else if (a.is_array() && b.is_array()) {
-		let count = a.count;
-		let common_type = a.type;
-
-		if (a.count !== b.count) {
-			count = -1;
-		}
-		if (a.type.equals(b.type) === false) {
-			// NOTE calling this recursively is losing type information for the error case
-			common_type = find_common_type(ref, index, a.type, b.type);
-		}
-		
-		return create_array_type(common_type, count);
-	}
-
-	type_error(ref, `Inconsistent array literal types. First element is ${a.name}, but element ${index + 1} is ${b.name}`);
 }

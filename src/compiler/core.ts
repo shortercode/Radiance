@@ -33,6 +33,7 @@ import { visit_subscript_expression } from "./expressions/subscript";
 import { visit_string_expression } from "./expressions/string";
 import { visit_unsafe_expression } from "./expressions/unsafe";
 import { visit_return_statement } from "./expressions/return";
+import { visit_switch_expression } from "./expressions/switch";
 
 export type TypeHint = LangType | null;
 export { AST };
@@ -72,6 +73,7 @@ export class Compiler {
 		this.expression_visitors = new Map([
 			["if", visit_if_expression],
 			["while", visit_while_expression],
+			["switch", visit_switch_expression],
 			["block", visit_block_expression],
 			["array", visit_array_expression],
 			["unsafe", visit_unsafe_expression],

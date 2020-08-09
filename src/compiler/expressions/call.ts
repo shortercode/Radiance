@@ -54,7 +54,7 @@ export function visit_call_expression (compiler: Compiler, node: AST, _type_hint
 		const param = fn_inst.parameters[i];
 		const expr = compiler.visit_expression(arg, param.type);
 
-		type_assert(expr.value_type.equals(param.type), ref, `Argument of type ${arg.type} is not assignable to parameter of type ${param.type.name}`);
+		type_assert(expr.value_type.equals(expr.value_type), ref, `Argument of type ${expr.value_type.name} is not assignable to parameter of type ${param.type.name}`);
 		
 		args.push(expr);
 	}

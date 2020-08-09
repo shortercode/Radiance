@@ -634,6 +634,77 @@ describe("enum with generics", () => {
 	});
 });
 
+describe("simple enum switch", () => {
+	let mod: Record<string, WebAssembly.ExportValue>;
+
+	test("compiles", async () => {
+		mod = await execute_string(`enum CompassPoint {
+			case North,
+			case South,
+			case East,
+			case West
+		}
+
+		export fn north -> u32 {
+			main(CompassPoint.North {})
+		}
+
+		export fn south -> u32 {
+			main(CompassPoint.South {})
+		}
+
+		export fn east -> u32 {
+			main(CompassPoint.East {})
+		}
+
+		export fn west -> u32 {
+			main(CompassPoint.West {})
+		}
+	
+		fn main (dir: CompassPoint) -> u32 {
+			switch dir {
+				case North {
+					return 1
+				}
+				case South {
+					return 2
+				}
+				case East {
+					return 3
+				}
+				case West {
+					return 4
+				}
+			}
+		}
+		`);
+	});
+
+	test("exports functions", () => {
+		expect(mod).toHaveProperty("north");
+		expect(mod).toHaveProperty("south");
+		expect(mod).toHaveProperty("east");
+		expect(mod).toHaveProperty("west");
+
+		expect(mod.north).toBeInstanceOf(Function);
+		expect(mod.south).toBeInstanceOf(Function);
+		expect(mod.east).toBeInstanceOf(Function);
+		expect(mod.west).toBeInstanceOf(Function);
+	});
+
+	test("exports functions", () => {
+		const north = mod.north as () => number;
+		const south = mod.south as () => number;
+		const east = mod.east as () => number;
+		const west = mod.west as () => number;
+
+		expect(north()).toBe(1);
+		expect(south()).toBe(2);
+		expect(east()).toBe(3);
+		expect(west()).toBe(4);
+	});
+});
+
 function read_i32 (memory: WebAssembly.Memory, ptr: number) {
 	const buffer = memory.buffer;
 	const view = new DataView(buffer);

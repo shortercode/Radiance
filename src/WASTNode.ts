@@ -850,7 +850,7 @@ export class WASTUnsafeCast implements WASTNode {
 export class WASTTrapNode implements WASTNode {
 	type: "trap" = "trap"
 	source: Ref
-	value_type: LangType = VOID_TYPE
+	value_type: LangType = NEVER_TYPE
 
 	constructor (ref: Ref) {
 		this.source = ref;

@@ -4,6 +4,7 @@ import { hoist_struct_declaration } from "./struct";
 import { hoist_function_declaration, visit_function_instance, hoist_imported_function_declaration } from "./function";
 import { hoist_enum_declaration } from "./enum";
 import { hoist_type } from "./type";
+import { FunctionTemplateInstance } from "../FunctionTemplateInstance";
 
 function read_node_data (node: AST) {
 	return node.data as Array<AST>;
@@ -49,10 +50,25 @@ export function visit_module(compiler: Compiler, node: AST): Array<WASTStatement
 		results.push(...wast_stmts);
 	}
 
-	for (const fn_decl of compiler.ctx.function_templates) {
-		for (const inst of fn_decl.instances) {
-			const stmt = visit_function_instance(compiler, Ref.unknown(), inst);
-			results.push(stmt);
+	// NOTE this is slightly clumsy, but we have to take into
+	// account that instances we visit might create new
+	// instances
+	const visited: Set<FunctionTemplateInstance> = new Set();
+	while (true) {
+		let new_templates = 0;
+		for (const fn_decl of compiler.ctx.function_templates) {
+			for (const inst of fn_decl.instances) {
+				if (visited.has(inst)) {
+					continue;
+				}
+				const stmt = visit_function_instance(compiler, Ref.unknown(), inst);
+				results.push(stmt);
+				visited.add(inst);
+				new_templates += 1;
+			}
+		}
+		if (new_templates === 0) {
+			break;
 		}
 	}
 

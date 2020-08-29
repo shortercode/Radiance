@@ -18,13 +18,15 @@ export function write_equals_expression(ctx: FunctionContext, node: WASTExpressi
 		ctx.writer.writeUint8(Opcode.f64_eq);
 		break;
 		case PrimativeTypes.bool:
+		case PrimativeTypes.u32:
 		case PrimativeTypes.i32:
 		ctx.writer.writeUint8(Opcode.i32_eq);
 		break;
+		case PrimativeTypes.u64:
 		case PrimativeTypes.i64:
 		ctx.writer.writeUint8(Opcode.i64_eq);
 		break;
 		default:
-		compiler_error(node.source, `Invalid primative for ${node.type} ${node.value_type.name}`);
+		compiler_error(node.source, `Invalid primative for ${node.type} ${inner_type.name}`);
 	}
 }

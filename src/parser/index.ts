@@ -332,10 +332,24 @@ class LangParser extends Parser {
 		const start = tokens.previous()!.start;
 		const parameter = this.parseExpression(tokens, 2);
 		const cases = [];
+		let default_case: Node | null = null;
 		this.ensure(tokens, "symbol:{");
 
 		if (!this.match(tokens, "symbol:}")) {
 			while (tokens.incomplete()) {
+
+				if (this.match(tokens, "identifier:default")) {
+					tokens.next();
+					if (default_case) {
+						throw new Error(`Cannot define more than 1 default case`);
+					}
+					default_case = this.parseBlock(tokens);
+					if (this.match(tokens, "symbol:}")) {
+						break;
+					}
+					continue;
+				}
+				
 				this.ensure(tokens, "identifier:case");
 				const conditions = [];
 				
@@ -392,6 +406,7 @@ class LangParser extends Parser {
 		const end = tokens.previous()!.end;
 		return new Node("switch", start, end, {
 			parameter,
+			default: default_case,
 			cases
 		});
 	}

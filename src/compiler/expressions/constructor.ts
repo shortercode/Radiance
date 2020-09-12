@@ -76,7 +76,7 @@ export function visit_constructor_expression (compiler: Compiler, node: AST, _ty
 		const value_node = data.fields.get(name)!;
 		syntax_assert(is_defined(value_node), ref, `Field ${name} is missing on constructor`);
 		const value = compiler.visit_expression(value_node, type);
-		type_assert(value.value_type.equals(type), ref, `Unable to assign field ${name} to type ${value.value_type.name}`);
+		type_assert(type.equals(value.value_type), ref, `Unable to assign field "${name}" to type ${value.value_type.name}`);
 		values.push(value);
 	}
 

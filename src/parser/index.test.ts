@@ -900,6 +900,7 @@ describe("switch expression", () => {
 		compareModule(ast, [
 			new AST("expression", [1, 0], [1, 15], new AST("switch", [1, 0], [1, 15], {
 				parameter: new AST("identifier", [1, 7], [1, 12], "param"),
+				default: null,
 				cases: []
 			}))
 		]);
@@ -913,6 +914,7 @@ switch param {
 		compareModule(ast, [
 			new AST("expression", [2, 0], [4, 1], new AST("switch", [2, 0], [4, 1], {
 				parameter: new AST("identifier", [2, 7], [2, 12], "param"),
+				default: null,
 				cases: [
 					{
 						conditions: [new AST("identifier", [3, 6], [3, 11], "alpha")],
@@ -932,6 +934,7 @@ switch param {
 		compareModule(ast, [
 			new AST("expression", [2, 0], [4, 1], new AST("switch", [2, 0], [4, 1], {
 				parameter: new AST("identifier", [2, 7], [2, 12], "param"),
+				default: null,
 				cases: [
 					{
 						conditions: [
@@ -957,6 +960,7 @@ switch param {
 		compareModule(ast, [
 			new AST("expression", [2, 0], [6, 1], new AST("switch", [2, 0], [6, 1], {
 				parameter: new AST("identifier", [2, 7], [2, 12], "param"),
+				default: null,
 				cases: [
 					{
 						conditions: [new AST("identifier", [3, 6], [3, 11], "alpha")],
@@ -986,6 +990,7 @@ switch param {
 		compareModule(ast, [
 			new AST("expression", [2, 0], [4, 1], new AST("switch", [2, 0], [4, 1], {
 				parameter: new AST("identifier", [2, 7], [2, 12], "param"),
+				default: null,
 				cases: [
 					{
 						conditions: [new AST("identifier", [3, 6], [3, 11], "alpha")],
@@ -1006,6 +1011,7 @@ switch param {
 		compareModule(ast, [
 			new AST("expression", [2, 0], [4, 1], new AST("switch", [2, 0], [4, 1], {
 				parameter: new AST("identifier", [2, 7], [2, 12], "param"),
+				default: null,
 				cases: [
 					{
 						conditions: [new AST("identifier", [3, 6], [3, 11], "alpha")],
@@ -1018,9 +1024,6 @@ switch param {
 		]);
 	});
 })
-
-
-
 
 function parse(str: string): AST {
 	return parser.parseProgram(str);

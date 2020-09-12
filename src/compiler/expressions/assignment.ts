@@ -1,7 +1,7 @@
 import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, Ref, WASTStoreNode, WASTSetVarNode } from "../../WASTNode";
 import { syntax_assert, is_defined, type_assert, syntax_error, type_error, compiler_error, compiler_assert } from "../error";
-import { TupleLangType, StructLangType, ArrayLangType, LangType, I32_TYPE } from "../LangType";
+import { TupleLangType, StructLangType, ArrayLangType, LangType, I32_TYPE, EnumCaseLangType } from "../LangType";
 import { bounds_check, ensure_int32 } from "./subscript";
 
 function read_node_data<T = unknown> (node: AST) {
@@ -59,6 +59,10 @@ function visit_member_assignment (compiler: Compiler, ref: Ref, left: AST<{ targ
 
 	if (target_type.is_string()) {
 		return visit_string_member_assignment(compiler, ref, target_expr, member_name, right);
+	}
+
+	if (target_type instanceof EnumCaseLangType) {
+		return visit_struct_member_assignment(compiler, ref, target_expr, target_type.type, member_name, right);
 	}
 
 	type_error(ref, `Target does not have any properties`);

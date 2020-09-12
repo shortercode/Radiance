@@ -37,6 +37,7 @@ import { write_get_variable_expression } from "./get";
 import { write_variable_restore_expression } from "./var_restore";
 import { write_set_variable_expression } from "./set";
 import { write_tee_variable_expression } from "./tee";
+import { write_break_expression } from "./break";
 
 type WriteExpression = (ctx: FunctionContext, node: WASTExpressionNode) => void;
 type WriterFunction = (ctx: FunctionContext, node: WASTExpressionNode, write_expression: WriteExpression) => void
@@ -70,6 +71,7 @@ const expression_types: Map<WASTExpressionType, WriterFunction> = new Map([
 	
 	["br", write_br_expression],
 	["br_if", write_br_if_expression],
+	["break", write_break_expression],
 	["return", write_return_expression],
 	
 	["var_restore", write_variable_restore_expression],

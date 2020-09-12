@@ -24,6 +24,15 @@ export class Ref {
 		return new Ref(node.start, node.end);
 	}
 
+	static from_list(nodes: ParserNode[]) {
+		if (nodes.length > 0) {
+			const first = nodes[0];
+			const last = nodes[nodes.length - 1];
+			return new Ref(first.start, last.end);
+		}
+		return this.unknown();
+	}
+
 	static relative(start: Position, length: Position = [0, 0]) {
 		const end: Position = [
 			start[0] + length[0],
@@ -51,6 +60,7 @@ WASTCallNode |
 WASTConditionalNode |
 WASTLoopNode |
 WASTBranchNode |
+WASTBreakNode |
 WASTConditionalBranchNode |
 WASTNotNode |
 WASTConvertToFloat |
@@ -104,6 +114,7 @@ export type WASTExpressionType = WASTBinaryExpressionType |
 "if" |
 "loop" |
 "br" |
+"break" |
 "br_if" |
 "not" |
 "call" |
@@ -284,22 +295,15 @@ export class WASTBlockNode implements WASTNode {
 	source: Ref
 	
 	body: WASTNodeList
+	value_type: LangType = VOID_TYPE
 
 	constructor (ref: Ref) {
 		this.source = ref;
 		this.body = new WASTNodeList(ref);
 	}
-	
-	get value_type () {
-		return this.body.value_type;
-	}
-	
-	set value_type (v: LangType) {
-		this.body.value_type = v;
-	}
-	
+		
 	get does_return_value () {
-		return this.value_type.is_void();
+		return !this.value_type.is_void();
 	}
 	
 	disable_return_value () {
@@ -636,15 +640,15 @@ export class WASTConditionalNode implements WASTNode {
 	
 	value_type: LangType
 	condition: WASTExpressionNode
-	then_branch: WASTNodeList
-	else_branch: WASTNodeList
+	then_branch: WASTExpressionNode
+	else_branch: WASTExpressionNode
 	
-	constructor(ref: Ref, type: LangType, condition: WASTExpressionNode, then_branch: WASTNodeList, else_branch: WASTNodeList) {
+	constructor(ref: Ref, type: LangType, condition: WASTExpressionNode, then_branch: WASTExpressionNode, else_branch?: WASTExpressionNode) {
 		this.source = ref;
 		this.value_type = type;
 		this.condition = condition;
 		this.then_branch = then_branch;
-		this.else_branch = else_branch;
+		this.else_branch = else_branch ?? new WASTNodeList(ref);
 	}
 }
 
@@ -653,6 +657,7 @@ export class WASTLoopNode implements WASTNode {
 	source: Ref
 	
 	value_type: LangType = VOID_TYPE
+	// TODO should this be a list?
 	body: Array<WASTExpressionNode> = []
 
 	constructor (ref: Ref) {
@@ -670,6 +675,23 @@ export class WASTBranchNode implements WASTNode {
 	constructor (ref: Ref, index: number) {
 		this.source = ref;
 		this.index = index;
+	}
+}
+
+export class WASTBreakNode implements WASTNode {
+	type: "break" = "break"
+	source: Ref
+	
+	value_type: LangType = NEVER_TYPE
+	index: number
+	value?: WASTExpressionNode
+	break_type: LangType
+	
+	constructor (ref: Ref, index: number, value?: WASTExpressionNode) {
+		this.source = ref;
+		this.index = index;
+		this.value = value;
+		this.break_type = this.value?.value_type ?? VOID_TYPE;
 	}
 }
 
@@ -723,16 +745,23 @@ export class WASTNodeList implements WASTNode {
 	value_type: LangType = VOID_TYPE;
 	nodes: Array<WASTExpressionNode> = []
 
-	constructor (ref: Ref) {
+	constructor (ref: Ref, nodes?: WASTExpressionNode[]) {
 		this.source = ref;
+		if (nodes) {
+			this.nodes.push(...nodes);
+		}
 	}
 	
 	get does_return_value () {
-		return this.value_type.is_void();
+		return !this.value_type.is_void();
 	}
 	
 	consume_return_value () {
 		this.value_type = VOID_TYPE;
+	}
+
+	push (expr: WASTExpressionNode) {
+		this.nodes.push(expr);
 	}
 }
 

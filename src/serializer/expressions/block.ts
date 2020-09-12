@@ -13,6 +13,9 @@ export function write_block_expression(ctx: FunctionContext, node: WASTExpressio
 	write_value_type(ctx.writer, block_node.value_type);
 	
 	write_expression(ctx, block_node.body);
+	if (block_node.does_return_value) {
+		ctx.push_value(block_node.value_type.wasm_type());
+	}
 	
 	ctx.writer.writeUint8(Opcode.end);
 }

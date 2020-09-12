@@ -1,7 +1,7 @@
 import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTLoadNode, WASTNotNode, Ref } from "../../WASTNode";
 import { type_assert, compiler_assert, type_error, is_defined, compiler_error } from "../error";
-import { StructLangType, TupleLangType, I32_TYPE } from "../LangType";
+import { StructLangType, TupleLangType, I32_TYPE, EnumCaseLangType } from "../LangType";
 
 function read_node_data (node: AST) {
 	return node.data as {
@@ -31,6 +31,10 @@ export function visit_member_expression (compiler: Compiler, node: AST, _type_hi
 
 	if (type.is_string()) {
 		return visit_string_member_expression(ref, target, value.member);
+	}
+
+	if (type instanceof EnumCaseLangType) {
+		return visit_struct_member_expression(ref, target, type.type, value.member);
 	}
 
 	type_error(node, `Target does not have any properties`);

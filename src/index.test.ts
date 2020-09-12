@@ -692,7 +692,7 @@ describe("simple enum switch", () => {
 		expect(mod.west).toBeInstanceOf(Function);
 	});
 
-	test("exports functions", () => {
+	test("functions return expected variant index", () => {
 		const north = mod.north as () => number;
 		const south = mod.south as () => number;
 		const east = mod.east as () => number;
@@ -702,6 +702,105 @@ describe("simple enum switch", () => {
 		expect(south()).toBe(2);
 		expect(east()).toBe(3);
 		expect(west()).toBe(4);
+	});
+});
+
+describe("complex enum with generics and switch ", () => {
+	let mod: Record<string, WebAssembly.ExportValue>;
+
+	test("compiles", async () => {
+		mod = await execute_string(`enum Operation<T> {
+			case Add { a: T, b: T },
+			case Sub { a: T, b: T },
+			case Div { a: T, b: T },
+			case Mul { a: T, b: T }
+		}
+
+		enum Optional<T> {
+			case Some { value: T },
+			case None
+		}
+
+		fn perform_op<T> (op: Operation:<T>) -> T {
+			switch op {
+				case Add as { a, b } {
+					return a + b
+				}
+				case Sub as sub_op {
+					sub_op.a - sub_op.b
+				}
+				case Div as { a, b } {
+					a / b
+				}
+				case Mul as op {
+					return op.a * op.b
+				}
+			}
+		}
+
+		fn create_op<T> (opcode: u32, a: T, b: T) -> Optional:<Operation:<T> > {
+			switch opcode {
+				case 0 {
+					Optional.Some:<Operation:<T> > {
+						value: Operation.Add:<T> {
+							a: a, b: b
+						}
+					};
+				}
+				case 1 {
+					Optional.Some:<Operation:<T> > {
+						value: Operation.Sub:<T> {
+							a: a, b: b
+						}
+					};
+				}
+				case 2 {
+					Optional.Some:<Operation:<T> > {
+						value: Operation.Mul:<T> {
+							a: a, b: b
+						}
+					};
+				}
+				case 3 {
+					Optional.Some:<Operation:<T> > {
+						value: Operation.Div:<T> {
+							a: a, b: b
+						}
+					};
+				}
+				default {
+					Optional.None:<Operation:<T> > {};
+				}
+			}
+		}
+
+		fn do_thing<T> (opcode: u32, a: T, b: T) -> T {
+			switch create_op:<T>(opcode, a, b) {
+				case Some as { value } {
+					return perform_op:<T>(value)
+				}
+				case None {
+					return 0
+				}
+			}
+		}
+
+		export fn do_thing_f64 (opcode: u32, a: f64, b: f64) -> f64 {
+			do_thing:<f64>(opcode, a, b)
+		}
+
+		export fn do_thing_i32 (opcode: u32, a: i32, b: i32) -> i32 {
+			do_thing:<i32>(opcode, a, b)
+		}
+		`);
+	});
+
+	test("exports functions", () => {
+		expect(mod).toHaveProperty("do_thing_f64");
+		expect(mod).toHaveProperty("do_thing_i32");
+
+		expect(mod.do_thing_i32).toBeInstanceOf(Function);
+		expect(mod.do_thing_f64).toBeInstanceOf(Function);
 	});
 });
 

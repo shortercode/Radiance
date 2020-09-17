@@ -3,13 +3,10 @@ import { WASTExpressionNode, WASTNodeList, WASTConditionalNode, Ref } from "../.
 import { BOOL_TYPE, VOID_TYPE, LangType } from "../LangType";
 import { ensure_expression_emits_boolean } from "./boolean";
 import { find_common_type } from "../find_common_type";
+import { IfNode } from "../../parser/ast";
 
 function read_node_data (node: AST) {
-	return node.data as {
-		condition: AST
-		thenBranch: AST
-		elseBranch: AST | null
-	};
+	return (node as IfNode).data;
 }
 
 export function visit_if_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {

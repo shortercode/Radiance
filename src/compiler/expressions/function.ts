@@ -1,5 +1,4 @@
 import { Compiler, AST } from "../core";
-import { TypePattern } from "../../parser/index";
 import { Context } from "../Context";
 import { FunctionDeclaration } from "../FunctionDeclaration";
 import { compiler_assert, is_defined, type_assert, syntax_assert, compiler_error } from "../error";
@@ -8,15 +7,10 @@ import { parse_type } from "../LangType";
 import { Variable } from "../Variable";
 import { FunctionEnvironment } from "../Environment";
 import { FunctionTemplateInstance } from "../FunctionTemplateInstance";
+import { FunctionNode } from "../../parser/ast";
 
 function read_node_data (node: AST) {
-	return node.data as {
-		name: string
-		type: TypePattern
-		generics: string[]
-		body: Array<AST>
-		parameters: Array<{ name: string, type: TypePattern }>
-	}
+	return (node as FunctionNode).data;
 }
 
 export function hoist_imported_function_declaration (compiler: Compiler, node: AST) {

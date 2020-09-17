@@ -3,12 +3,10 @@ import { InferContext } from "../InferContext";
 import { guess_expression_type } from "../inference";
 import { type_assert } from "../error";
 import { Ref } from "../../WASTNode";
+import { BinaryNode } from "../../parser/ast";
 
 function read_node_data (node: AST) {
-	return node.data as {
-		left: AST,
-		right: AST
-	}	
+	return (node as BinaryNode<string>).data;
 }
 
 export function visit_binary_expresson (compiler: Compiler, node: AST, type_hint: TypeHint) {

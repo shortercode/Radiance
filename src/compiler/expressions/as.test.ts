@@ -5,11 +5,7 @@ import parser from "../../parser/index";
 import ControlledIterator from "../../pratt/Iterator";
 import { WASTConvertToFloat, Ref, WASTConstNode, WASTNotEqualsNode, WASTConvertToInt } from "../../WASTNode";
 import { F32_TYPE, I32_TYPE, F64_TYPE, I64_TYPE } from "../LangType";
-
-type CastASTType = AST<{
-	expr: AST, 
-	type: TypePattern
-}>;
+import { TypeCastNode } from "../../parser/ast";
 
 describe("i64 type cast", () => {
 	const compiler = new Compiler();
@@ -20,7 +16,7 @@ describe("i64 type cast", () => {
 	const source_wast = new WASTConstNode(ref, I64_TYPE, "12")
 
 	test("to f32", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("f32")
 		});
@@ -30,7 +26,7 @@ describe("i64 type cast", () => {
 		expect(wast).toStrictEqual(new WASTConvertToFloat(ref, F32_TYPE, source_wast));
 	});
 	test("to f64", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("f64")
 		});
@@ -40,7 +36,7 @@ describe("i64 type cast", () => {
 		expect(wast).toStrictEqual(new WASTConvertToFloat(ref, F64_TYPE, source_wast));
 	});
 	test("to i64", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("i64")
 		});
@@ -50,7 +46,7 @@ describe("i64 type cast", () => {
 		expect(wast).toStrictEqual(source_wast);
 	});
 	test("to bool", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("bool")
 		});
@@ -60,7 +56,7 @@ describe("i64 type cast", () => {
 		expect(wast).toStrictEqual(new WASTNotEqualsNode(ref, new WASTConstNode(ref, I64_TYPE, "0"), source_wast));
 	});
 	test("to i32", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("i32")
 		});
@@ -80,7 +76,7 @@ describe("i32 type cast", () => {
 	const source_wast = new WASTConstNode(ref, I32_TYPE, "12")
 
 	test("to f32", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("f32")
 		});
@@ -90,7 +86,7 @@ describe("i32 type cast", () => {
 		expect(wast).toStrictEqual(new WASTConvertToFloat(ref, F32_TYPE, source_wast));
 	});
 	test("to f64", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("f64")
 		});
@@ -100,7 +96,7 @@ describe("i32 type cast", () => {
 		expect(wast).toStrictEqual(new WASTConvertToFloat(ref, F64_TYPE, source_wast));
 	});
 	test("to i64", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("i64")
 		});
@@ -110,7 +106,7 @@ describe("i32 type cast", () => {
 		expect(wast).toStrictEqual(new WASTConvertToInt(ref, I64_TYPE, source_wast));
 	});
 	test("to bool", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("bool")
 		});
@@ -120,7 +116,7 @@ describe("i32 type cast", () => {
 		expect(wast).toStrictEqual(new WASTNotEqualsNode(ref, new WASTConstNode(ref, I32_TYPE, "0"), source_wast));
 	});
 	test("to i32", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("i32")
 		});
@@ -140,7 +136,7 @@ describe("f32 type cast", () => {
 	const source_wast = new WASTConstNode(ref, F32_TYPE, "12")
 
 	test("to f32", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("f32")
 		});
@@ -150,7 +146,7 @@ describe("f32 type cast", () => {
 		expect(wast).toStrictEqual(source_wast);
 	});
 	test("to f64", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("f64")
 		});
@@ -160,7 +156,7 @@ describe("f32 type cast", () => {
 		expect(wast).toStrictEqual(new WASTConvertToFloat(ref, F64_TYPE, source_wast));
 	});
 	test("to i64", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("i64")
 		});
@@ -170,7 +166,7 @@ describe("f32 type cast", () => {
 		expect(wast).toStrictEqual(new WASTConvertToInt(ref, I64_TYPE, source_wast));
 	});
 	test("to bool", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("bool")
 		});
@@ -180,7 +176,7 @@ describe("f32 type cast", () => {
 		expect(wast).toStrictEqual(new WASTNotEqualsNode(ref, new WASTConstNode(ref, F32_TYPE, "0"), source_wast));
 	});
 	test("to i32", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("i32")
 		});
@@ -200,7 +196,7 @@ describe("f64 type cast", () => {
 	const source_wast = new WASTConstNode(ref, F64_TYPE, "12")
 
 	test("to f32", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("f32")
 		});
@@ -210,7 +206,7 @@ describe("f64 type cast", () => {
 		expect(wast).toStrictEqual(new WASTConvertToFloat(ref, F32_TYPE, source_wast));
 	});
 	test("to f64", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("f64")
 		});
@@ -220,7 +216,7 @@ describe("f64 type cast", () => {
 		expect(wast).toStrictEqual(source_wast);
 	});
 	test("to i64", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("i64")
 		});
@@ -230,7 +226,7 @@ describe("f64 type cast", () => {
 		expect(wast).toStrictEqual(new WASTConvertToInt(ref, I64_TYPE, source_wast));
 	});
 	test("to bool", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("bool")
 		});
@@ -240,7 +236,7 @@ describe("f64 type cast", () => {
 		expect(wast).toStrictEqual(new WASTNotEqualsNode(ref, new WASTConstNode(ref, F64_TYPE, "0"), source_wast));
 	});
 	test("to i32", () => {
-		const ast: CastASTType = new AST("as", pos, pos, {
+		const ast: TypeCastNode = new AST("as", pos, pos, {
 			expr: source_ast,
 			type: parse_type("i32")
 		});

@@ -1,15 +1,11 @@
 import { Compiler, AST } from "../core";
 import { WASTStatementNode, WASTImportFunctionNode, Ref } from "../../WASTNode";
-import { TypePattern } from "../../parser/index";
 import { is_defined, compiler_assert } from "../error";
 import { parse_type } from "../LangType";
+import { ImportFunctionNode } from "../../parser/ast";
 
 function read_node_data (node: AST) {
-	return node.data as {
-		name: string,
-		parameters: Array<{ name: string, type: TypePattern }>,
-		type: TypePattern
-	}
+	return (node as ImportFunctionNode).data;
 }
 
 export function visit_import_function (compiler: Compiler, node: AST): Array<WASTStatementNode> {

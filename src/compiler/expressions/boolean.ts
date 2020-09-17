@@ -2,9 +2,10 @@ import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTConstNode, WASTNotEqualsNode, WASTNotNode, Ref } from "../../WASTNode";
 import { BOOL_TYPE } from "../LangType";
 import { compiler_error, type_error } from "../error";
+import { LiteralNode } from "../../parser/ast";
 
 export function visit_boolean_expression (_compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
-	const value = node.data as string;
+	const value = (node as LiteralNode<"boolean">).data;
 	const type = BOOL_TYPE;
 	const ref = Ref.from_node(node);
 

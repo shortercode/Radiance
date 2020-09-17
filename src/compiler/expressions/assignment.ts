@@ -3,12 +3,10 @@ import { WASTExpressionNode, Ref, WASTStoreNode, WASTSetVarNode } from "../../WA
 import { syntax_assert, is_defined, type_assert, syntax_error, type_error, compiler_error, compiler_assert } from "../error";
 import { TupleLangType, StructLangType, ArrayLangType, LangType, I32_TYPE, EnumCaseLangType } from "../LangType";
 import { bounds_check, ensure_int32 } from "./subscript";
+import { BinaryNode } from "../../parser/ast";
 
-function read_node_data<T = unknown> (node: AST) {
-	return node.data as {
-		left: AST<T>,
-		right: AST
-	};
+function read_node_data (node: AST) {
+	return (node as BinaryNode<"=">).data;
 }
 
 export function visit_assignment_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {

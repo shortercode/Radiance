@@ -3,15 +3,10 @@ import { WASTExpressionNode, WASTBlockNode, Ref, WASTSetVarNode, WASTGetVarNode,
 import { BOOL_TYPE, EnumLangType, I32_TYPE, LangType, VOID_TYPE, EnumCaseLangType } from "../LangType";
 import { type_assert, compiler_assert, syntax_assert, type_error, compiler_error } from "../error";
 import { find_common_type } from "../find_common_type";
-
-type Case = { block: AST[], conditions: AST[] } & ({ style: "match" } | { style: "cast", identifier: string } | { style: "destructure", fields: string[] });
+import { SwitchNode } from "../../parser/ast";
 
 function read_node_data (node: AST) {
-	return node.data as {
-		parameter: AST
-		default?: AST<AST[]>
-		cases: Case[]
-	};
+	return (node as SwitchNode).data
 }
 
 function combineConditions (conditions: WASTExpressionNode[]): WASTExpressionNode {

@@ -2,12 +2,10 @@ import { WASTExpressionNode, WASTLoadNode, WASTNodeList, WASTGreaterThanEqualsNo
 import { Compiler, AST, TypeHint } from "../core";
 import { type_error, type_assert } from "../error";
 import { I32_TYPE, VOID_TYPE, BOOL_TYPE, ArrayLangType } from "../LangType";
+import { SubscriptNode } from "../../parser/ast";
 
 function read_node_data (node: AST) {
-	return node.data as {
-		target: AST,
-		accessor: AST
-	};
+	return (node as SubscriptNode).data;
 }
 
 export function visit_subscript_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {

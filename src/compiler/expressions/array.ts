@@ -1,12 +1,13 @@
-import { Compiler, AST, TypeHint } from "../core";
+import { Compiler, TypeHint, AST } from "../core";
 import { WASTExpressionNode, WASTConstNode, Ref } from "../../WASTNode";
 import { type_assert, type_error } from "../error";
 import { create_object } from "./object";
 import { create_array_type, I32_TYPE } from "../LangType";
 import { find_common_type } from "../find_common_type";
+import { ArrayNode } from "../../parser/ast";
 
 function read_node_data (node: AST) {
-	return node.data as Array<AST>;
+	return (node as ArrayNode).data;
 }
 
 export function visit_array_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {

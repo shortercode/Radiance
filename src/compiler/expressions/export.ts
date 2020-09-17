@@ -6,11 +6,10 @@ import { I32_TYPE, VOID_TYPE } from "../LangType";
 import { Context } from "../Context";
 import { Variable } from "../Variable";
 import { FunctionDeclaration } from "../FunctionDeclaration";
+import { ExportNode } from "../../parser/ast";
 
 export function visit_export (compiler: Compiler, node: AST): Array<WASTStatementNode> {
-	const data = node.data as {
-		name: string
-	};
+	const data = (node as ExportNode).data;
 	const ref = Ref.from_node(node);
 	
 	const wrapper_fn_node = wrap_exported_function(compiler, ref, data.name);

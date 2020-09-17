@@ -1,15 +1,11 @@
 import { AST, Compiler } from "../core";
-import { TypePattern } from "../../parser/index";
 import { syntax_assert } from "../error";
 import { parse_type } from "../LangType";
 import { Ref } from "../../WASTNode";
+import { StructNode } from "../../parser/ast";
 
 function read_node_data (node: AST) {
-	return node.data as {
-		name: string,
-		fields: Map<string, TypePattern>,
-		generics: string[]
-	};
+	return (node as StructNode).data;
 }
 
 export function hoist_struct_declaration(compiler: Compiler, node: AST) {

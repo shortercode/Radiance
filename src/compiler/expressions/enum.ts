@@ -2,14 +2,10 @@ import { Ref } from "../../WASTNode";
 import { parse_type, LangType } from "../LangType";
 import { syntax_assert } from "../error";
 import { Compiler, AST } from "../core";
-import { TypePattern } from "../../parser/index";
+import { EnumNode } from "../../parser/ast";
 
 function read_node_data (node: AST) {
-	return node.data as {
-		name: string,
-		generics: string[],
-		cases: Map<string, Map<string, TypePattern>>
-	};
+	return (node as EnumNode).data;
 }
 
 export function hoist_enum_declaration (compiler: Compiler, node: AST) {

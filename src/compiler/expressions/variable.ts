@@ -1,17 +1,13 @@
-import { TypePattern } from "../../parser/index";
 import { AST, Compiler, TypeHint } from "../core";
 import { WASTExpressionNode, Ref, WASTGlobalExpression, WASTStatementNode, WASTSetVarNode } from "../../WASTNode";
 import { parse_type } from "../LangType";
 import { guess_expression_type } from "../inference";
 import { InferContext } from "../InferContext";
-import { is_defined, type_assert } from "../error";
+import { is_defined, type_assert, type_error } from "../error";
+import { VariableNode } from "../../parser/ast";
 
 function read_node_data (node: AST) {
-	return node.data as {
-		name: string
-		type: TypePattern | null
-		initial: AST
-	}
+	return (node as VariableNode).data;
 }
 
 export function visit_variable (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
@@ -35,12 +31,21 @@ function variable_common_process (compiler: Compiler, node: AST) {
 
 	let type;
 
+	if (!data.initial) {
+		type_error(node, `Variables MUST include an initialiser at the moment.`);
+	}
+
 	if (data.type) {
 		type = parse_type(data.type, compiler.ctx);
 	}
-	else {
+	// NOTE due to limited control analysis variables must have an initialiser
+	// at this time. Until then some of this code is unrequired.
+	else if (data.initial) {
 		const infer_ctx = new InferContext(compiler.ctx);
 		type = guess_expression_type(data.initial, infer_ctx)!;
+	}
+	else {
+		type_error(node, `Unable to infer type of ${data.name} without an initialiser or explicit type.`);
 	}
 
 	type_assert(is_defined(type), node, `Unable to infer type of ${data.name} please include an explicit type`);

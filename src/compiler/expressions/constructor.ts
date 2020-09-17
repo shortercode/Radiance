@@ -9,24 +9,18 @@ import { StructTemplateDeclaration } from "../StructTemplateDeclaration";
 import { TypePattern } from "../../parser/index";
 import { Declaration } from "../Declaration";
 import { EnumTemplateDeclaration, EnumCaseTemplateDeclaration } from "../EnumTemplateDeclaration";
+import { ConstructorNode, LiteralNode, MemberNode } from "../../parser/ast";
 
 function read_constructor_node_data (node: AST) {
-	return node.data as {
-		target: AST,
-		fields: Map<string, AST>,
-		generics: TypePattern[]
-	};
+	return (node as ConstructorNode).data;
 }
 
 function read_identifier_node_data (node: AST) {
-	return node.data as string;
+	return (node as LiteralNode<"identifier">).data;
 }
 
 function read_member_node_data (node: AST) {
-	return node.data as {
-		target: AST,
-		member: string
-	};
+	return (node as MemberNode).data;
 }
 
 export function visit_constructor_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {

@@ -774,13 +774,14 @@ describe("constructor expression", () => {
 
 	test("basic constructor with multiple fields", () => {
 		const ast = parse("Obj { a: 42, b: \"hi\" }");
+		const fields: Map<string, AST<string, "string" | "number">> = new Map();
+		fields.set("a", new AST("number", [1, 9], [1, 11], "42"));
+		fields.set("b", new AST("string", [1, 16], [1, 20], "hi"));
+
 		compareModule(ast, [
 			new AST("expression", [1, 0], [1, 22], new AST("constructor", [1, 0], [1, 22], {
 				target: new AST("identifier", [1, 0], [1, 3], "Obj"),
-				fields: new Map([
-					["a", new AST("number", [1, 9], [1, 11], "42")],
-					["b", new AST("string", [1, 16], [1, 20], "hi")]
-				]),
+				fields,
 				generics: []
 			}))
 		]);

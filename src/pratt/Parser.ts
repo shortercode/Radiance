@@ -67,7 +67,7 @@ export default class Parser {
         this.symbols.remove(str);
     }
 
-    parseProgram (str: string, label: string = "") {
+    parseProgram (str: string, label: string = ""): Node {
 
         this.label = label + "";
 
@@ -94,7 +94,7 @@ export default class Parser {
 
         return this.createNode("module", start, end, stmts);
     }
-    parseStatement (tokens: Iterator<Token>) {
+    parseStatement (tokens: Iterator<Token>): Node {
         const parselet = this.getStatement(tokens);
 
         if (parselet)
@@ -108,7 +108,7 @@ export default class Parser {
             return stmt;
         }
     }
-    parseExpression (tokens: Iterator<Token>, precedence = 0) {
+    parseExpression (tokens: Iterator<Token>, precedence = 0): Node {
         let parselet = this.getPrefix(tokens);
 
         if (!parselet)
@@ -163,7 +163,7 @@ export default class Parser {
 
     // helper functions for common parsing methods
 
-    binary (type: string): (tokens: Iterator<Token>, left: Node, precedence: number) => Node {
+    binary <T extends string> (type: T): (tokens: Iterator<Token>, left: Node, precedence: number) => Node<{ left: Node; right: Node }, T> {
         return (tokens, left, precedence) => {
             const right = this.parseExpression(tokens, precedence);
             const end = tokens.previous()!.end;
@@ -171,7 +171,7 @@ export default class Parser {
         }
     }
 
-    unary (type: string): (tokens: Iterator<Token>, precedence: number) => Node {
+    unary <T extends string> (type: T): (tokens: Iterator<Token>, precedence: number) => Node<Node, T> {
         return (tokens, precedence) => {
             const start = tokens.previous()!.start;
             const expression = this.parseExpression(tokens, precedence);
@@ -180,7 +180,7 @@ export default class Parser {
         }
     }
 
-    literal (type: string): (tokens: Iterator<Token>) => Node {
+    literal <T extends string> (type: T): (tokens: Iterator<Token>) => Node<string, T> {
         return (tokens) => {
             const token = tokens.previous()!;
             const { value, start, end } = token;
@@ -191,7 +191,7 @@ export default class Parser {
 
     // token utilities
 
-    createNode (type: string, start: [number, number], end: [number, number], data: unknown): Node {
+    createNode <T extends string, D = unknown> (type: T, start: [number, number], end: [number, number], data: D): Node<D, T> {
         return new Node(type, start, end, data);
     }
 

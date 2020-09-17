@@ -4,12 +4,10 @@ import { BOOL_TYPE } from "../LangType";
 import { invert_boolean_expression } from "./boolean";
 import { default_initialiser } from "../default_initialiser";
 import { Variable } from "../Variable";
+import { WhileNode } from "../../parser/ast";
 
 function read_node_data (node: AST) {
-	return node.data as {
-		condition: AST
-		block: AST
-	};
+	return (node as WhileNode).data;
 }
 
 export function visit_while_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {

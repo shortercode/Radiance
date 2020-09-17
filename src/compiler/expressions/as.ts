@@ -1,16 +1,13 @@
 import { AST, Compiler } from "../core";
-import { TypePattern } from "../../parser/index";
 import { WASTExpressionNode, WASTConvertToFloat, WASTConvertToInt, Ref, WASTLoadNode, WASTNodeList, WASTUnsafeCast } from "../../WASTNode";
 import { parse_type, TupleLangType, LangType } from "../LangType";
 import { type_assert, type_error } from "../error";
 import { wrap_boolean_cast } from "./boolean";
 import { create_object } from "./object";
+import { TypeCastNode } from "../../parser/ast";
 
 function read_node_data (node: AST) {
-	return node.data as {
-		expr: AST, 
-		type: TypePattern
-	}
+	return (node as TypeCastNode).data;
 }
 
 export function visit_as_expression (compiler: Compiler, node: AST): WASTExpressionNode {

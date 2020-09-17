@@ -2,12 +2,10 @@ import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTLoadNode, WASTNotNode, Ref } from "../../WASTNode";
 import { type_assert, compiler_assert, type_error, is_defined, compiler_error } from "../error";
 import { StructLangType, TupleLangType, I32_TYPE, EnumCaseLangType } from "../LangType";
+import { MemberNode } from "../../parser/ast";
 
 function read_node_data (node: AST) {
-	return node.data as {
-		target: AST,
-		member: string
-	};
+	return (node as MemberNode).data;
 }
 
 export function visit_member_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {

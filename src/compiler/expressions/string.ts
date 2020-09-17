@@ -2,6 +2,7 @@ import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTDataRefNode, Ref } from "../../WASTNode";
 import { encode_string } from "../../encode_string";
 import { STR_TYPE } from "../LangType";
+import { LiteralNode } from "../../parser/ast";
 
 /*
 	Strings are basically an array of bytes. All arrays are prepended
@@ -20,7 +21,7 @@ function encode_byte_array (bytes: Uint8Array) {
 
 export function visit_string_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
 	const ref = Ref.from_node(node);
-	const data = node.data as string;
+	const data = (node as LiteralNode).data;
 	const str = encode_string(data);
 	const byte_array = encode_byte_array(str);
 	const data_block = compiler.ctx.define_data(ref, byte_array);

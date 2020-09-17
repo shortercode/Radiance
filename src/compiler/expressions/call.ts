@@ -1,18 +1,14 @@
 import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTCallNode, Ref } from "../../WASTNode";
 import { type_assert, syntax_assert, is_defined, type_error } from "../error";
-import { TypePattern } from "../../parser/index";
 import { parse_type } from "../LangType";
 import { FunctionTemplateDeclaration } from "../FunctionTemplateDeclaration";
 import { FunctionDeclaration } from "../FunctionDeclaration";
 import { FunctionTemplateInstance } from "../FunctionTemplateInstance";
+import { CallNode } from "../../parser/ast";
 
 function read_node_data (node: AST) {
-	return node.data as {
-		callee: AST
-		arguments: AST[]
-		generics: TypePattern[]
-	};
+	return (node as CallNode).data;
 }
 
 export function visit_call_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {

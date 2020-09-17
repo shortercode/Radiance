@@ -2,11 +2,10 @@ import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTNodeList, Ref } from "../../WASTNode";
 import { LangType, create_tuple_type } from "../LangType";
 import { create_object } from "./object";
+import { TupleNode } from "../../parser/ast";
 
 function read_node_data (node: AST) {
-	return node.data as {
-		values: Array<AST>
-	};
+	return (node as TupleNode).data;
 }
 
 export function visit_tuple_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {

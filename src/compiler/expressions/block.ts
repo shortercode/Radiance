@@ -2,12 +2,13 @@ import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTNodeList, Ref } from "../../WASTNode";
 import { VOID_TYPE } from "../LangType";
 import { syntax_assert } from "../error";
+import { BlockNode } from "../../parser/ast";
 
 export function visit_block_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
 	const ctx = compiler.ctx;
 	const ref = Ref.from_node(node);
 	const node_list = new WASTNodeList(ref);
-	const statements = node.data as Array<AST>;
+	const statements = (node as BlockNode).data;
 	
 	ctx.push_frame();
 	

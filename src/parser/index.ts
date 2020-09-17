@@ -3,6 +3,8 @@ import Node from "../pratt/Node";
 import Iterator from "../pratt/Iterator";
 import Token from "../pratt/Token";
 
+import * as AST from "./ast";
+
 export type TypePattern = { style: "tuple", types: Array<TypePattern> }
 	| { style: "class", type: string }
 	| { style: "generic", type: TypePattern, arguments: TypePattern[] }
@@ -97,13 +99,13 @@ class LangParser extends Parser {
 		this.addPrefix("identifier:false", 	12, this.literal("boolean"));
 	}
 
-	parseAssignment(tokens: Iterator<Token>, left: Node, precedence: number): Node {
+	parseAssignment(tokens: Iterator<Token>, left: Node, precedence: number): AST.BinaryNode<"="> {
 		const right = this.parseExpression(tokens, precedence - 1);
 		const end = tokens.previous()!.end;
-		return this.createNode("=", left.start, end, { left, right });
+		return new Node("=", left.start, end, { left, right });
 	}
 	
-	parseCallExpression(tokens: Iterator<Token>, left: Node, _precedence: number): Node {
+	parseCallExpression(tokens: Iterator<Token>, left: Node, _precedence: number): AST.CallNode {
 		const values: Array<Node> = [];
 		
 		if (!this.match(tokens, "symbol:)")) {
@@ -136,7 +138,7 @@ class LangParser extends Parser {
 		}
 	}
 
-	parseConstructor(tokens: Iterator<Token>, left: Node, _precedence: number): Node {
+	parseConstructor(tokens: Iterator<Token>, left: Node, _precedence: number): AST.ConstructorNode {
 		const fields: Map<string, Node> = new Map;
 
 		if (!this.match(tokens, "symbol:}")) {
@@ -180,7 +182,7 @@ class LangParser extends Parser {
 		}
 	}
 
-	parseSubscript(tokens: Iterator<Token>, left: Node): Node {
+	parseSubscript(tokens: Iterator<Token>, left: Node): AST.SubscriptNode {
 		const expr = this.parseExpression(tokens, 0);
 		this.ensure(tokens, "symbol:]");
 
@@ -189,7 +191,7 @@ class LangParser extends Parser {
 		return new Node("subscript", left.start, end, { target: left, accessor: expr})
 	}
 
-	parseMemberAccess(tokens: Iterator<Token>, left: Node): Node {
+	parseMemberAccess(tokens: Iterator<Token>, left: Node): AST.MemberNode {
 		if (this.match(tokens, "number:")) {
 			const member = tokens.consume()!.value;
 			const end = tokens.previous()!.end;
@@ -225,7 +227,7 @@ class LangParser extends Parser {
 		}
 	}
 
-	parseGenericCall (tokens: Iterator<Token>, left: Node, precedence: number): Node {
+	parseGenericCall (tokens: Iterator<Token>, left: Node, precedence: number): AST.CallNode | AST.ConstructorNode {
 		const start = tokens.previous()!.start;
 		this.ensure(tokens, "symbol:<");
 
@@ -258,7 +260,7 @@ class LangParser extends Parser {
 		}
 	}
  
-	parseGrouping(tokens: Iterator<Token>, _precedence: number): Node {
+	parseGrouping(tokens: Iterator<Token>, _precedence: number): AST.GroupingNode | AST.TupleNode {
 		const start = tokens.previous()!.start;
 		
 		if (this.match(tokens, "symbol:)")) {
@@ -280,18 +282,18 @@ class LangParser extends Parser {
 		return new Node("group", start, end, sub_expression);
 	}
 
-	parseTypeCast (tokens: Iterator<Token>, left: Node): Node {
+	parseTypeCast (tokens: Iterator<Token>, left: Node): AST.TypeCastNode {
 		const start = tokens.previous()!.start;
 		const type = this.parseType(tokens);
 		const end = tokens.previous()!.end;
 		return new Node("as", start, end, { expr: left, type });
 	}
 
-	emitEmptyTuple(start: [number, number], end: [number, number]): Node {
+	emitEmptyTuple(start: [number, number], end: [number, number]): AST.TupleNode {
 		return new Node("tuple", start, end, { values: [] });
 	}
 
-	parseTuple(tokens: Iterator<Token>, first: Node | null, start: [number, number]): Node {
+	parseTuple(tokens: Iterator<Token>, first: Node, start: [number, number]): AST.TupleNode {
 		const values = [first];
 
 		while (tokens.incomplete()) {
@@ -312,7 +314,7 @@ class LangParser extends Parser {
 
 	}
 	
-	parseWhileExpression(tokens: Iterator<Token>, _precedence: number): Node {
+	parseWhileExpression(tokens: Iterator<Token>, _precedence: number): AST.WhileNode {
 		const start = tokens.previous()!.start;
 		
 		const condition = this.parseExpression(tokens, 1);
@@ -323,16 +325,19 @@ class LangParser extends Parser {
 		return new Node("while", start, end, { condition, block });
 	}
 
-	parseUnsafeExpression(tokens: Iterator<Token>, _precedence: number): Node {
+	parseUnsafeExpression(tokens: Iterator<Token>, _precedence: number): AST.UnsafeNode {
 		const block = this.parseBlock(tokens);
 		return new Node("unsafe", block.start, block.end, block);
 	}
 
-	parseSwitchExpression(tokens: Iterator<Token>, _precedence: number): Node {
+	parseSwitchExpression(tokens: Iterator<Token>, _precedence: number): AST.SwitchNode {
 		const start = tokens.previous()!.start;
 		const parameter = this.parseExpression(tokens, 2);
-		const cases = [];
-		let default_case: Node | null = null;
+
+		type Case = { block: Node[], conditions: Node[] } & ({ style: "match" } | { style: "cast", identifier: string } | { style: "destructure", fields: string[] });
+		
+		const cases: Case[] = [];
+		let default_case: AST.BlockNode | null = null;
 		this.ensure(tokens, "symbol:{");
 
 		if (!this.match(tokens, "symbol:}")) {
@@ -411,7 +416,7 @@ class LangParser extends Parser {
 		});
 	}
 
-	parseNotExpression(tokens: Iterator<Token>, precedence: number): Node {
+	parseNotExpression(tokens: Iterator<Token>, precedence: number): AST.NotNode {
 		const start = tokens.previous()!.start;
 		const subnode = this.parseExpression(tokens, precedence);
 		const end = tokens.previous()!.end;
@@ -419,14 +424,14 @@ class LangParser extends Parser {
 		return new Node("not", start, end, { subnode });
 	}
 	
-	parseIfExpression(tokens: Iterator<Token>, _precedence: number): Node {
+	parseIfExpression(tokens: Iterator<Token>, _precedence: number): AST.IfNode | AST.IfLetNode {
 		const start = tokens.previous()!.start;
 		
 		if (this.match(tokens, "identifier:let")) {
 			tokens.next();
 			const name = this.ensure(tokens, "identifier:");
 			this.ensure(tokens, "symbol:=");
-			const type = this.parseType(tokens);
+			const expr = this.parseExpression(tokens);
 
 			const thenBranch = this.parseBlock(tokens);
 			let elseBranch = null;
@@ -438,7 +443,7 @@ class LangParser extends Parser {
 		
 			const end = tokens.previous()!.end;
 		
-			return new Node("if let", start, end, { name, type, thenBranch, elseBranch });
+			return new Node("if_let", start, end, { name, expr, thenBranch, elseBranch });
 		}
 		else {
 			const condition = this.parseExpression(tokens, 1);
@@ -456,7 +461,7 @@ class LangParser extends Parser {
 		}
 	}
 	
-	parseFunction (tokens: Iterator<Token>): Node {
+	parseFunction (tokens: Iterator<Token>): AST.FunctionNode {
 		// NOTE previous token is the "identifier:fn" read by statement matcher
 		const start = tokens.previous()!.start;
 		const name = this.ensure(tokens, "identifier:");
@@ -513,7 +518,7 @@ class LangParser extends Parser {
 		return new Node("function", start, end, { name, type, parameters, generics, body: statements });
 	}
 
-	parseStruct (tokens: Iterator<Token>): Node {
+	parseStruct (tokens: Iterator<Token>): AST.StructNode {
 		const start = tokens.previous()!.start;
 		const name = this.ensure(tokens, "identifier:");
 
@@ -547,7 +552,7 @@ class LangParser extends Parser {
 		return new Node("struct", start, end, { name, fields, generics });
 	}
 
-	parseEnum (tokens: Iterator<Token>): Node {
+	parseEnum (tokens: Iterator<Token>): AST.EnumNode {
 		const start = tokens.previous()!.start;
 		const name = this.ensure(tokens, "identifier:");
 
@@ -609,7 +614,7 @@ class LangParser extends Parser {
 		return new Node("enum", start, end, { name, cases, generics });
 	}
 
-	parseStructBody (tokens: Iterator<Token>) {
+	parseStructBody (tokens: Iterator<Token>): Map<string, TypePattern> {
 		const fields: Map<string, TypePattern> = new Map;
 		// parse struct with fields
 		this.ensure(tokens, "symbol:{");
@@ -631,7 +636,7 @@ class LangParser extends Parser {
 		return fields;
 	}
 	
-	parseImport (tokens: Iterator<Token>): Node {
+	parseImport (tokens: Iterator<Token>): AST.ImportFunctionNode {
 		const start = tokens.previous()!.start;
 		const label = this.ensure(tokens, "identifier:");
 		
@@ -665,7 +670,7 @@ class LangParser extends Parser {
 		}
 	}
 
-	parseExport (tokens: Iterator<Token>): Node {
+	parseExport (tokens: Iterator<Token>): AST.ExportNode | AST.ExportFunctionNode {
 		const start = tokens.previous()!.start;
 		const label = this.ensure(tokens, "identifier:");
 		
@@ -686,7 +691,7 @@ class LangParser extends Parser {
 		}
 	}
 	
-	parseVariable (tokens: Iterator<Token>): Node {
+	parseVariable (tokens: Iterator<Token>): AST.VariableNode {
 		// NOTE previous token is the "identifier:let" read by statement matcher
 		const start = tokens.previous()!.start;
 		const name = this.ensure(tokens, "identifier:");
@@ -707,7 +712,7 @@ class LangParser extends Parser {
 		return new Node("variable", start, end, { name, type, initial });
 	}
 
-	parseReturn (tokens: Iterator<Token>): Node {
+	parseReturn (tokens: Iterator<Token>): AST.ReturnNode {
 		// NOTE previous token is the "identifier:let" read by statement matcher
 		const start = tokens.previous()!.start;
 		let value: Node | null = null
@@ -720,7 +725,7 @@ class LangParser extends Parser {
 		return new Node("return", start, end, value);
 	}
 
-	parseTypeAlias (tokens: Iterator<Token>): Node {
+	parseTypeAlias (tokens: Iterator<Token>): AST.TypeNode {
 		const start = tokens.previous()!.start;
 		const name = this.ensure(tokens, "identifier:");
 		this.ensure(tokens, "symbol:=");
@@ -733,12 +738,12 @@ class LangParser extends Parser {
 		});
 	}
 	
-	parseBlockExpression(tokens: Iterator<Token>): Node {
+	parseBlockExpression(tokens: Iterator<Token>): AST.BlockNode {
 		tokens.back();
 		return this.parseBlock(tokens);
 	}
 	
-	parseBlock(tokens: Iterator<Token>): Node {
+	parseBlock(tokens: Iterator<Token>): AST.BlockNode {
 		const statements = [];
 		
 		this.ensure(tokens, "symbol:{");
@@ -761,7 +766,7 @@ class LangParser extends Parser {
 		return new Node("block", start, end, statements); 
 	}
 
-	parseArrayExpression (tokens: Iterator<Token>): Node {
+	parseArrayExpression (tokens: Iterator<Token>): AST.ArrayNode {
 		const values = [];
 		const start = tokens.previous()!.start;
 

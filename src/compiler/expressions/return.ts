@@ -2,9 +2,10 @@ import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, Ref, WASTReturnNode } from "../../WASTNode";
 import { type_assert, syntax_assert } from "../error";
 import { VOID_TYPE } from "../LangType";
+import { ReturnNode } from "../../parser/ast";
 
 export function visit_return_statement (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
-	const expr_node = node.data as AST | null;
+	const expr_node = (node as ReturnNode).data;
 	const ref = Ref.from_node(node);
 
 	syntax_assert(compiler.ctx.fn_env !== null, ref, `Illegal return statement`);

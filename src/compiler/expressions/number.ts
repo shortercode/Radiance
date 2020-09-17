@@ -2,11 +2,12 @@ import { Compiler, AST, TypeHint } from "../core";
 import { WASTExpressionNode, WASTConstNode, Ref } from "../../WASTNode";
 import { I64_TYPE, F64_TYPE } from "../LangType";
 import { type_error } from "../error";
+import { LiteralNode } from "../../parser/ast";
 
 export function visit_number_expression (_compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
 	const ref = Ref.from_node(node);
 	if (type_hint !== null && type_hint.is_numeric()) {
-		const value = node.data as string;
+		const value = (node as LiteralNode<"number">).data;
 		if (type_hint.is_integer() && (!should_create_int(value))) {
 			type_error(node, "Inference believes this value should be an integer but it contains a fractional part");
 		}

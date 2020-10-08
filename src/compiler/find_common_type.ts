@@ -1,8 +1,7 @@
-import { Ref } from "../WASTNode";
 import { LangType, EnumCaseLangType, create_array_type } from "./LangType";
 import { TypeHint } from "./core";
 
-export function find_common_type (ref: Ref, a: LangType, b: LangType, ignore_never: boolean = false): TypeHint {
+export function find_common_type (a: LangType, b: LangType, ignore_never: boolean = false): TypeHint {
 
 	if (ignore_never) {
 		if (a.is_never()) {
@@ -35,7 +34,7 @@ export function find_common_type (ref: Ref, a: LangType, b: LangType, ignore_nev
 			count = -1;
 		}
 		if (a.type.equals(b.type) === false) {
-			const common_type = find_common_type(ref, a.type, b.type);
+			const common_type = find_common_type(a.type, b.type);
 			if (common_type) {
 				return create_array_type(a.type, count);
 			}

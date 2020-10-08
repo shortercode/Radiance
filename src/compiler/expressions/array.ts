@@ -54,7 +54,7 @@ export function visit_array_expression (compiler: Compiler, node: AST, type_hint
 			const stmt = rest[i];
 			const result = compiler.visit_expression(stmt, inner_type);
 			const ref = Ref.from_node(stmt);
-			const common_type = find_common_type(ref, inner_type, result.value_type);
+			const common_type = find_common_type(inner_type, result.value_type);
 			if (common_type) {
 				inner_type = common_type;
 			}

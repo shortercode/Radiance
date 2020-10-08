@@ -92,7 +92,7 @@ export function visit_switch_expression (compiler: Compiler, node: AST, type_hin
 				}
 			}
 
-			return_type = compile_block(ref, block, compiler, arm.block, return_type, type_hint);
+			return_type = compile_block(block, compiler, arm.block, return_type, type_hint);
 			blocks.push([ combineConditions(conditions), block ]);
 			ctx.pop_frame();
 		}
@@ -136,7 +136,7 @@ export function visit_switch_expression (compiler: Compiler, node: AST, type_hin
 				compiler_error(ref, 'Destructing a switch case with a non-enumerable input type is not yet possible');
 			}
 
-			return_type = compile_block(ref, block, compiler, arm.block, return_type, type_hint);
+			return_type = compile_block(block, compiler, arm.block, return_type, type_hint);
 			blocks.push([ combineConditions(conditions), block ]);
 			ctx.pop_frame();
 		}
@@ -152,7 +152,7 @@ export function visit_switch_expression (compiler: Compiler, node: AST, type_hin
 		type_assert(remaining_variant_count > 0, ref, `The default case is never used, all cases are met`);
 		ctx.push_frame();
 		const block = new WASTNodeList(ref);
-		return_type = compile_block(ref, block, compiler, data.default.data, return_type, type_hint);
+		return_type = compile_block(block, compiler, data.default.data, return_type, type_hint);
 		finalised_return_type = return_type ?? VOID_TYPE;
 		does_emit_value = !finalised_return_type.is_void();
 
@@ -198,7 +198,7 @@ export function visit_switch_expression (compiler: Compiler, node: AST, type_hin
 	return block;
 }
 
-function compile_block (ref: Ref, block: WASTNodeList, compiler: Compiler, stmts: AST[], return_type: TypeHint, type_hint: TypeHint): TypeHint {
+function compile_block (block: WASTNodeList, compiler: Compiler, stmts: AST[], return_type: TypeHint, type_hint: TypeHint): TypeHint {
 	// NOTE this should probably pass the type hint to the last sub-stmt
 	if (stmts.length > 0) {
 		const last = stmts[stmts.length - 1];
@@ -210,7 +210,7 @@ function compile_block (ref: Ref, block: WASTNodeList, compiler: Compiler, stmts
 		const last_stmt = compiler.visit_local_statement(last, type_hint);
 		block.nodes.push(last_stmt);
 		block.value_type = last_stmt.value_type;
-		return return_type ? find_common_type(ref, return_type, last_stmt.value_type, true) : last_stmt.value_type;
+		return return_type ? find_common_type(return_type, last_stmt.value_type, true) : last_stmt.value_type;
 	}
 	return VOID_TYPE;
 }

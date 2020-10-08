@@ -21,7 +21,7 @@ export function visit_if_expression (compiler: Compiler, node: AST, type_hint: T
 	
 	if (data.elseBranch !== null) {
 		const else_branch = compiler.visit_expression(data.elseBranch, type_hint) as WASTNodeList;
-		const common_type = find_common_type(ref, then_branch.value_type, else_branch.value_type);
+		const common_type = find_common_type(then_branch.value_type, else_branch.value_type);
 		if (common_type) {
 			value_type = common_type;
 		}

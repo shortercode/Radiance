@@ -1,9 +1,10 @@
-import { BOOL_TYPE, LangType, parse_type, create_tuple_type, VOID_TYPE, TupleLangType, StructLangType, I32_TYPE, F64_TYPE, create_array_type, EnumCaseLangType } from "./LangType";
+import { BOOL_TYPE, LangType, parse_type, create_tuple_type, VOID_TYPE, TupleLangType, StructLangType, I32_TYPE, F64_TYPE, create_array_type } from "./LangType";
 import { InferContext } from "./InferContext";
 import { TypePattern } from "../parser/index";
 import { AST } from "./core";
 import { StructDeclaration } from "./StructDeclaration";
 import { EnumDeclaration, EnumCaseDeclaration } from "./EnumDeclaration";
+import { find_common_type } from "./find_common_type";
 
 type TypeHint = LangType | null;
 type Declaration = StructDeclaration | EnumDeclaration | EnumCaseDeclaration;
@@ -227,39 +228,6 @@ function guess_array_type (node: AST, ctx: InferContext): TypeHint {
 	else {
 		return create_array_type(inner_type, statements.length);
 	}
-}
-
-function find_common_type (a: LangType, b: LangType): TypeHint {
-
-	if (a.is_enum() && b.is_enum()) {
-		if (a instanceof EnumCaseLangType) {
-			a = a.parent;
-		}
-		if (b instanceof EnumCaseLangType) {
-			b = b.parent;
-		}
-
-		if (a.equals(b)) {
-			return a;
-		}
-	}
-	else if (a.is_array() && b.is_array()) {
-		let count = a.count;
-		let common_type: TypeHint = a.type;
-
-		if (a.count !== b.count) {
-			count = -1;
-		}
-		if (a.type.equals(b.type) === false) {
-			common_type = find_common_type(a.type, b.type);
-		}
-
-		if (common_type) {
-			return create_array_type(common_type, count);
-		}
-	}
-
-	return null;
 }
 
 function guess_number_type (node: AST, _ctx: InferContext): TypeHint {

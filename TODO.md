@@ -20,7 +20,7 @@
 	- [X] Export memory
 	- [ ] Add reserved names list to variable declaration
 	- [X] Add global variables
-	- [ ] Fix block scopes outside of functions
+	- [X] Fix block scopes outside of functions
 	- [X] Read tuple values back!
 	- [ ] Tuple destructuring assignment
 	- [X] Add type casting inference
@@ -32,7 +32,7 @@
 	- [X] Tuples
 	- [ ] Escape analysis
 	- [ ] Object scalerisation ( convert non escaping object to numnerous local variables to avoid alloc )
-	- [ ] Enums
+	- [X] Enums
 	- [ ] Generics
 	- [X] Pointers
 	- [X] Basic type inference

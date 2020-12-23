@@ -2,7 +2,7 @@ import { Ref } from "../WASTNode";
 import { syntax_assert } from "./error";
 import { Context } from "./Context";
 import { Frame } from "./Frame";
-import { LangType, parse_type, EnumCaseLangType, StructLangType, EnumLangType } from "./LangType";
+import { LangType, parse_type, EnumCaseLangType, StructLangType, EnumLangType, LateLangType } from "./LangType";
 import { EnumTemplateInstance, EnumCaseTemplateInstance } from "./EnumTemplateInstance";
 import { TypePattern } from "../parser/index";
 
@@ -26,6 +26,13 @@ export class EnumTemplateDeclaration {
 	}
 
 	instance (ref: Ref, ctx: Context, args: LangType[]): EnumTemplateInstance {
+		if (args.length < this.generics.length) {
+			const l = this.generics.length;
+			for (let i = args.length; i < l; i++) {
+				const type = new LateLangType(ref, this.generics[i]);
+				args.push(type);
+			}
+		}
 		syntax_assert(args.length === this.generics.length, ref, `Struct ${this.name} expects ${this.generics.length} types but ${args.length} were given`);
 		for (const inst of this.instances) {
 			let matched = true;

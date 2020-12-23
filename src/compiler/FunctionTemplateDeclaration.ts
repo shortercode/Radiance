@@ -1,10 +1,10 @@
 import { TypePattern } from "../parser/index"
 import { FunctionTemplateInstance } from "./FunctionTemplateInstance"
 import { Frame } from "./Frame"
-import { AST } from "./core"
+import { AST, TypeHint } from "./core"
 import { Context } from "./Context"
 import { Ref } from "../WASTNode"
-import { LangType, parse_type } from "./LangType"
+import { LangType, parse_type, LateLangType } from "./LangType"
 import { syntax_assert } from "./error"
 import { Variable } from "./Variable"
 
@@ -30,21 +30,17 @@ export class FunctionTemplateDeclaration {
 		this.body = body;
 	}
 
-	instance (ref: Ref, ctx: Context, args: LangType[]): FunctionTemplateInstance {
-
-		syntax_assert(args.length === this.generics.length, ref, `Function ${this.name} expects ${this.generics.length} types but ${args.length} were given`);
-		for (const inst of this.instances) {
-			let matched = true;
-			for (let i = 0; i < args.length; i++) {
-				if (inst.generics[i].exact_equals(args[i]) === false) {
-					matched = false;
-					break;
-				}
-			}
-			if (matched) {
-				return inst;
+	instance (ref: Ref, ctx: Context, generic_args: LangType[], return_hint: TypeHint): { instance: FunctionTemplateInstance, lock: () => void } {
+		const late_types: LateLangType[] = [];
+		if (generic_args.length < this.generics.length) {
+			const l = this.generics.length;
+			for (let i = generic_args.length; i < l; i++) {
+				const type = new LateLangType(ref, this.generics[i]);
+				generic_args.push(type);
+				late_types.push(type);
 			}
 		}
+		syntax_assert(generic_args.length === this.generics.length, ref, `Function ${this.name} expects ${this.generics.length} types but ${generic_args.length} were given`);
 		{
 			const fn_env = ctx.fn_env;
 			ctx.fn_env = null;
@@ -53,20 +49,21 @@ export class FunctionTemplateDeclaration {
 			ctx.push_frame();
 			for (let i = 0; i < this.generics.length; i++) {
 				const name = this.generics[i];
-				const type = args[i];
+				const type = generic_args[i];
 				ctx.declare_type_alias(Ref.unknown(), name, type);
 			}
-			const return_type = parse_type(this.type, ctx);
-			const parameters = this.parameters.map(par => {
-				const type = parse_type(par.type, ctx);
+			const return_type = parse_type(this.type, ctx, return_hint?.resolve());
+			const parameters = this.parameters.map((par) => {
+				const type = parse_type(par.type, ctx, null);
 				return new Variable(Ref.unknown(), type, par.name)
 			});
-			const inst: FunctionTemplateInstance = {
+
+			const instance: FunctionTemplateInstance = {
 				type: return_type,
 				id: Symbol(this.name),
 				name: this.name,
 				parameters,
-				generics: args,
+				generics: generic_args,
 				generic_names: this.generics,
 				scope: this.scope,
 				body: this.body
@@ -75,9 +72,30 @@ export class FunctionTemplateDeclaration {
 			ctx.pop_frame();
 			ctx.fn_env = fn_env;
 			ctx.env.swap_snapshot(snapshot);
-			this.instances.push(inst);
 
-			return inst;
+			return {
+				instance,
+				lock: () => {
+					for (const type of late_types) {
+						const inner_type = type.lock(ref);
+						const i = generic_args.indexOf(type);
+						generic_args[i] = inner_type;
+					}
+					for (const inst of this.instances) {
+						let matched = true;
+						for (let i = 0; i < generic_args.length; i++) {
+							if (inst.generics[i].exact_equals(generic_args[i]) === false) {
+								matched = false;
+								break;
+							}
+						}
+						if (matched) {
+							return;
+						}
+					}
+					this.instances.push(instance);
+				}
+			}
 		}
 	}
 }

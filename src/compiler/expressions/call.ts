@@ -11,7 +11,7 @@ function read_node_data (node: AST) {
 	return (node as CallNode).data;
 }
 
-export function visit_call_expression (compiler: Compiler, node: AST, _type_hint: TypeHint): WASTExpressionNode {
+export function visit_call_expression (compiler: Compiler, node: AST, type_hint: TypeHint): WASTExpressionNode {
 	const value = read_node_data(node);
 	const ref = Ref.from_node(node);
 	const ctx = compiler.ctx;
@@ -24,10 +24,13 @@ export function visit_call_expression (compiler: Compiler, node: AST, _type_hint
 	syntax_assert(is_defined(fn), ref, `Cannot call undeclared function ${function_name}`);
 
 	let fn_inst: FunctionTemplateInstance | FunctionDeclaration;
+	let lock_generics: (() => void) | null = null; 
 
 	if (fn instanceof FunctionTemplateDeclaration) {
 		const generic_parameters = value.generics.map(pattern => parse_type(pattern, ctx));
-		fn_inst = fn.instance(ref, ctx, generic_parameters);
+		const { instance, lock } = fn.instance(ref, ctx, generic_parameters, type_hint);
+		fn_inst = instance;
+		lock_generics = lock;
 	}
 	else if (fn instanceof FunctionDeclaration) {
 		const count = value.generics.length;
@@ -53,6 +56,10 @@ export function visit_call_expression (compiler: Compiler, node: AST, _type_hint
 		type_assert(param.type.equals(expr.value_type), ref, `Argument of type ${expr.value_type.name} is not assignable to parameter of type ${param.type.name}`);
 		
 		args.push(expr);
+	}
+
+	if (lock_generics) {
+		lock_generics();
 	}
 	
 	return new WASTCallNode(Ref.from_node(node), fn_inst.id, function_name, fn_inst.type, args)

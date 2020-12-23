@@ -3,10 +3,12 @@ import { Context } from "./Context";
 import { StructDeclaration } from "./StructDeclaration";
 import { EnumDeclaration, EnumCaseDeclaration } from "./EnumDeclaration";
 import { TypeAlias } from "./TypeAlias";
-import { compiler_error } from "./error";
+import { compiler_error, compiler_assert } from "./error";
 import { Ref } from "../WASTNode";
 import { StructTemplateDeclaration } from "./StructTemplateDeclaration";
 import { EnumTemplateDeclaration, EnumCaseTemplateDeclaration } from "./EnumTemplateDeclaration";
+import { find_common_type } from "./find_common_type";
+import { TypeHint } from "./core";
 
 // NOTE this allows us to return pointers to the host environment
 // which is cool but the host environment will likely not be able
@@ -63,6 +65,7 @@ export interface LangType {
 	
 	equals (other: LangType): boolean
 	exact_equals (other: LangType): boolean
+	resolve (other?: LangType): LangType
 
 	is_numeric (): boolean
 	is_integer (): boolean
@@ -98,10 +101,15 @@ class PrimativeLangType implements LangType {
 			this.size = 4;
 		}
 	}
+
+	resolve (): LangType {
+		return this;
+	}
 	
 	equals (other: LangType): boolean {
-		if (other instanceof PrimativeLangType) {
-			return this.type === other.type;
+		const resolved = other.resolve(this);
+		if (resolved instanceof PrimativeLangType) {
+			return this.type === resolved.type;
 		}
 		return false;
 	}
@@ -167,12 +175,182 @@ class PrimativeLangType implements LangType {
 	}
 }
 
+export class LateLangType implements LangType {
+	inner_type?: LangType;
+	readonly name: string;
+	private source: Ref;
+	private is_locked: boolean = false;
+
+	constructor (ref: Ref, name: string) {
+		this.name = name;
+		this.source = ref;
+	}
+
+	get size () {
+		if (!this.inner_type) {
+			compiler_error(this.source, `Unable to infer type of ${this.name}`);
+		}
+		return this.inner_type.size;
+	}
+
+	lock (ref: Ref): LangType {
+		compiler_assert(!!this.inner_type, ref, `Unable to infer type of ${this.name}`);
+		this.is_locked = true;
+		return this.inner_type!;
+	}
+
+	combine (type: LangType): boolean {
+		// prevent circular self reference
+		if (type === this) {
+			return true;
+		}
+
+		if (!this.inner_type) {
+			compiler_assert(!(type instanceof LateLangType), Ref.unknown(), `Attempted to put a late bound type into a late bound type`);
+			this.inner_type = type;
+			return true;
+		}
+		else {
+			const common = find_common_type(this.inner_type, type);
+			if (common) {
+				compiler_assert(!(type instanceof LateLangType), Ref.unknown(), `Attempted to put a late bound type into a late bound type`);
+				this.inner_type = common;
+				return true;
+			}
+		}
+		return false;
+	}
+
+	resolve (other?: LangType): LangType {
+		if (this.is_locked) {
+			return this.inner_type!;
+		}
+		if (other) {
+			this.combine(other);
+		}
+		compiler_error(this.source, `Unable to infer type of ${this.name}`);
+	}
+
+	equals (other: LangType): boolean {
+		if (this.is_locked) {
+			this.inner_type?.equals(other.resolve(this));
+		}
+		return this.combine(other.resolve(this));
+	}
+
+	exact_equals (other: LangType): boolean {
+		return this === other;
+	}
+
+	is_numeric (): boolean {
+		if (!this.inner_type) {
+			compiler_error(this.source, `Unable to infer type of ${this.name}`);
+		}
+		return this.inner_type.is_numeric();
+	}
+	
+	is_integer (): boolean {
+		if (!this.inner_type) {
+			compiler_error(this.source, `Unable to infer type of ${this.name}`);
+		}
+		return this.inner_type?.is_integer();
+	}
+
+	is_string (): boolean {
+		if (!this.inner_type) {
+			compiler_error(this.source, `Unable to infer type of ${this.name}`);
+		}
+		return this.inner_type.is_string();
+	}
+
+	is_float (): boolean {
+		if (!this.inner_type) {
+			compiler_error(this.source, `Unable to infer type of ${this.name}`);
+		}
+		return this.inner_type.is_float();
+	}
+
+	wasm_type (): PrimativeTypes {
+		if (!this.inner_type) {
+			compiler_error(this.source, `Unable to infer type of ${this.name}`);
+		}
+		return this.inner_type.wasm_type();
+	}
+
+	is_boolean (): boolean {
+		if (!this.inner_type) {
+			compiler_error(this.source, `Unable to infer type of ${this.name}`);
+		}
+		return this.inner_type.is_boolean();
+	}
+
+	is_void (): boolean {
+		if (!this.inner_type) {
+			compiler_error(this.source, `Unable to infer type of ${this.name}`);
+		}
+		return this.inner_type.is_void();
+	}
+
+	is_never (): boolean {
+		if (!this.inner_type) {
+			compiler_error(this.source, `Unable to infer type of ${this.name}`);
+		}
+		return this.inner_type.is_never();
+	}
+	
+	is_tuple (): this is TupleLangType {
+		if (!this.inner_type) {
+			compiler_error(this.source, `Unable to infer type of ${this.name}`);
+		}
+		return this.inner_type.is_tuple();
+	}
+
+	is_struct (): this is StructLangType {
+		if (!this.inner_type) {
+			compiler_error(this.source, `Unable to infer type of ${this.name}`);
+		}
+		return this.inner_type.is_struct();
+	}
+
+	is_array (): this is ArrayLangType {
+		if (!this.inner_type) {
+			compiler_error(this.source, `Unable to infer type of ${this.name}`);
+		}
+		return this.inner_type.is_array();
+	}
+
+	is_enum (): this is EnumLangType | EnumCaseLangType {
+		if (!this.inner_type) {
+			compiler_error(this.source, `Unable to infer type of ${this.name}`);
+		}
+		return this.inner_type.is_enum();
+	}
+
+	is_object_type (): boolean {
+		if (!this.inner_type) {
+			compiler_error(this.source, `Unable to infer type of ${this.name}`);
+		}
+		return this.inner_type.is_object_type();
+	}
+	
+	is_exportable (): boolean {
+		if (!this.inner_type) {
+			compiler_error(this.source, `Unable to infer type of ${this.name}`);
+		}
+		return this.inner_type.is_exportable();
+	}	
+}
+
 class ObjectLangType implements LangType {
 	readonly name: string
 	readonly size: number = 4
 
 	constructor (name: string) {
 		this.name = name;
+	}
+
+	resolve (): LangType {
+		return this;
 	}
 
 	equals (_other: LangType): boolean {
@@ -265,9 +443,10 @@ export class TupleLangType extends ObjectLangType{
 	}
 	
 	equals (other: LangType): boolean {
-		if (other instanceof TupleLangType) {
+		const resolved = other.resolve(this);
+		if (resolved instanceof TupleLangType) {
 			const a = this.types;
-			const b = other.types;
+			const b = resolved.types;
 			
 			if (a.length !== b.length) {
 				return false;
@@ -284,9 +463,10 @@ export class TupleLangType extends ObjectLangType{
 	}
 
 	exact_equals (other: LangType): boolean {
-		if (other instanceof TupleLangType) {
+		const resolved = other.resolve(this);
+		if (resolved instanceof TupleLangType) {
 			const a = this.types;
-			const b = other.types;
+			const b = resolved.types;
 			
 			if (a.length !== b.length) {
 				return false;
@@ -332,9 +512,10 @@ export class StructLangType extends ObjectLangType {
 	}
 	
 	equals (other: LangType): boolean {
-		if (other instanceof StructLangType) {
+		const resolved = other.resolve(this);
+		if (resolved instanceof StructLangType) {
 			// we dont support structural typing, so we can use direct comparison
-			return this === other;
+			return this === resolved;
 		}
 		return false;
 	}
@@ -349,12 +530,13 @@ export class EnumLangType extends ObjectLangType {
 	}
 	
 	equals (other: LangType): boolean {
-		if (other instanceof EnumLangType) {
-			return this === other;
+		const resolved = other.resolve(this);
+		if (resolved instanceof EnumLangType) {
+			return this === resolved;
 		}
-		if (other instanceof EnumCaseLangType) {
+		if (resolved instanceof EnumCaseLangType) {
 			for (const case_type of this.cases.values()) {
-				if (case_type.equals(other)) {
+				if (case_type.equals(resolved)) {
 					return true;
 				}
 			}
@@ -363,8 +545,9 @@ export class EnumLangType extends ObjectLangType {
 	}
 
 	exact_equals (other: LangType): boolean {
-		if (other instanceof EnumLangType) {
-			return this === other;
+		const resolved = other.resolve(this);
+		if (resolved instanceof EnumLangType) {
+			return this === resolved;
 		}
 		return false;
 	}
@@ -384,8 +567,9 @@ export class EnumCaseLangType extends ObjectLangType {
 	}
 
 	equals (other: LangType): boolean {
-		if (other instanceof EnumCaseLangType) {
-			return this === other;
+		const resolved = other.resolve(this);
+		if (resolved instanceof EnumCaseLangType) {
+			return this === resolved;
 		}
 		return false;
 	}
@@ -407,15 +591,17 @@ export class ArrayLangType extends ObjectLangType {
 	}
 	
 	equals (other: LangType): boolean {
-		if (other instanceof ArrayLangType) {
-			return this.type.equals(other.type) && (this.is_sized() ? this.count === other.count : true);
+		const resolved = other.resolve(this);
+		if (resolved instanceof ArrayLangType) {
+			return this.type.equals(resolved.type) && (this.is_sized() ? this.count === resolved.count : true);
 		}
 		return false;
 	}
 
 	exact_equals (other: LangType): boolean {
-		if (other instanceof ArrayLangType) {
-			return this.type.exact_equals(other.type);
+		const resolved = other.resolve(this);
+		if (resolved instanceof ArrayLangType) {
+			return this.type.exact_equals(resolved.type);
 		}
 		return false;
 	}
@@ -474,25 +660,30 @@ export function create_array_type (type: LangType, count: number) {
 	return new ArrayLangType(type, name, count);
 }
 
-export function parse_type (pattern: TypePattern, ctx: Context): LangType {
+export function parse_type (pattern: TypePattern, ctx: Context, hint?: TypeHint): LangType {
 	const name = type_pattern_name(pattern);
 	switch (pattern.style) {
 		case "class": {
 			const decl = ctx.get_declaration(pattern.type);
+			const combine = (type: LangType) => hint && type instanceof LateLangType && type.combine(hint);
 
 			if (decl instanceof StructDeclaration) {
+				combine(decl.type);
 				return decl.type;
 			}
 
 			if (decl instanceof EnumDeclaration) {
+				combine(decl.type);
 				return decl.type;
 			}
 
 			if (decl instanceof EnumCaseDeclaration) {
+				combine(decl.type);
 				return decl.type;
 			}
 
 			if (decl instanceof TypeAlias) {
+				combine(decl.type);
 				return decl.type;
 			}
 

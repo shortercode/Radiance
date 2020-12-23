@@ -2,7 +2,7 @@ import { Ref } from "../WASTNode";
 import { TypePattern } from "../parser/index";
 import { StructTemplateInstance } from "./StructTemplateInstance";
 import { syntax_assert } from "./error";
-import { LangType, parse_type, StructLangType } from "./LangType";
+import { LangType, parse_type, StructLangType, LateLangType } from "./LangType";
 import { Context } from "./Context";
 import { Frame } from "./Frame";
 
@@ -21,7 +21,13 @@ export class StructTemplateDeclaration {
 	}
 
 	instance (ref: Ref, ctx: Context, args: LangType[]): StructTemplateInstance {
-
+		if (args.length < this.generics.length) {
+			const l = this.generics.length;
+			for (let i = args.length; i < l; i++) {
+				const type = new LateLangType(ref, this.generics[i]);
+				args.push(type);
+			}
+		}
 		syntax_assert(args.length === this.generics.length, ref, `Struct ${this.name} expects ${this.generics.length} types but ${args.length} were given`);
 		for (const inst of this.instances) {
 			let matched = true;
@@ -46,19 +52,23 @@ export class StructTemplateDeclaration {
 				const type = args[i];
 				ctx.declare_type_alias(Ref.unknown(), name, type);
 			}
-			let size = 0;
 			const fields: Map<string, LangType> = new Map();
 			for (const [name, type_pattern] of this.fields.entries()) {
 				const type = parse_type(type_pattern, ctx)
 				fields.set(name, type);
-				size += type.size;
 			}
 			const struct_type = new StructLangType(fields, this.name);
 			const inst: StructTemplateInstance = {
 				type: struct_type,
 				name: this.name,
 				generics: args,
-				size,
+				get size() {
+					let size = 0;
+					for (const type of fields.values()) {
+						size += type.size;
+					}
+					return size;
+				},
 				fields
 			};
 

@@ -777,7 +777,7 @@ describe("complex enum with generics and switch ", () => {
 		fn do_thing<T> (opcode: u32, a: T, b: T) -> T {
 			switch create_op:<T>(opcode, a, b) {
 				case Some as { value } {
-					return perform_op:<T>(value)
+					return perform_op(value)
 				}
 				case None {
 					return 0
@@ -786,11 +786,11 @@ describe("complex enum with generics and switch ", () => {
 		}
 
 		export fn do_thing_f64 (opcode: u32, a: f64, b: f64) -> f64 {
-			do_thing:<f64>(opcode, a, b)
+			do_thing(opcode, a, b)
 		}
 
 		export fn do_thing_i32 (opcode: u32, a: i32, b: i32) -> i32 {
-			do_thing:<i32>(opcode, a, b)
+			do_thing(opcode, a, b)
 		}
 		`);
 	});

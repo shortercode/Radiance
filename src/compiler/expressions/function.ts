@@ -89,7 +89,7 @@ export function visit_function_instance (compiler: Compiler, ref: Ref, inst: Fun
 	for (let i = 0; i < inst.generics.length; i++) {
 		const name = inst.generic_names[i];
 		const type = inst.generics[i];
-		compiler.ctx.declare_type_alias(Ref.unknown(), name, type);
+		compiler.ctx.declare_type_alias(Ref.unknown(), name, type.resolve());
 	}
 
 	const fn_wast = initialise_function_environment(ref, compiler.ctx, inst);
@@ -117,7 +117,7 @@ export function visit_function_instance (compiler: Compiler, ref: Ref, inst: Fun
 }
 
 export function initialise_function_environment(ref: Ref, ctx: Context, decl: FunctionDeclaration) {
-	const fn_wast = new WASTFunctionNode(ref, decl.id, decl.name, decl.type);
+	const fn_wast = new WASTFunctionNode(ref, decl.id, decl.name, decl.type.resolve());
 	
 	ctx.fn_env = new FunctionEnvironment(decl);
 	

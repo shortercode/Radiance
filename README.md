@@ -21,6 +21,23 @@ export fn factorial (count: i32) -> i32 {
 
 A more in depth look at the language can be found [here](Language%20Features.md).
 
+## Status
+
+You may have noticed it's been a little while since a commit! Well the project is not dead, although it has slowed somewhat. I started this while I was between jobs and had much more time. While working on the somewhat large addition of generics I realised I wanted to change how and when type inference occurs in relation to the parse and compile stages ( take at the struct generics branch if you are interested ). As this would be quite a substantial change I decided to attach some other pieces to it which made sense to resolve at the same time. Hence I am now in the process of rewriting the parser as it's on separate project. The typechecker and the AST definitions will also be separate to the compiler. My hope is that this will enable easier use and growth for the project as a whole, and gives me a chance to break things down into more testable chunks with better defined edges.
+
+As I write this I have effectively finished the parser but am still in the process of writing the somewhat comprehensive tests. The compiler will be the last chunk to be reworked, but I'm hopeful that the time will be worth it. The parser rewrite has definitely resolved some small but long standing issues.
+
+If you are interested in this project and want to help it develop please come say hi on the discussions page.
+
+### Progress
+
+- [ ] Rewrite the parser in it's own package.
+- [ ] Define the AST as it's own package.
+- [ ] Write an explicit type inference and checking stage, to be executed before compilation.
+- [ ] Rewrite the compiler separate from the parser and type checker, integrating the new packages.
+- [ ] Create a CLI package to wrap the compiler for AOT compilation.
+- [ ] Publish the 5 main packages on npm: parser/ast/type-checker/compiler/cli.
+
 ## Installation
 
 Radiance is available via NPM. It can either be used via the CLI or as a library.
